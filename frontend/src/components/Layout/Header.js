@@ -22,6 +22,7 @@ import {
   Logout as LogoutIcon,
   Person as PersonIcon,
   Add as AddIcon,
+  Remove as RemoveIcon,
 } from '@mui/icons-material';
 
 const Header = () => {
@@ -127,6 +128,25 @@ const Header = () => {
           }}
         >
           Add Investment
+        </Button>
+
+        {/* Remove Investment Button */}
+        <Button
+          variant="contained"
+          startIcon={<RemoveIcon />}
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            fontWeight: 500,
+            px: 3,
+            borderRadius: 2,
+            textTransform: 'none',
+            '&:hover': {
+              bgcolor: 'primary.dark',
+            },
+          }}
+        >
+          Remove Investment
         </Button>
 
         {/* Notifications */}

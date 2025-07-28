@@ -14,7 +14,7 @@ import {
   TableRow,
   LinearProgress,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 import { portfolioAPI, formatCurrency, formatPercentage } from '../services/api';
 
@@ -33,16 +33,32 @@ const Portfolio = () => {
   return (
     <Box sx={{ py: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Portfolio Overview
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          sx={{ borderRadius: 2 }}
-        >
-          Add Investment
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+            Portfolio Overview
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            sx={{ borderRadius: 2 }}
+          >
+            Add Investment
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<RemoveIcon />}
+            sx={{ borderRadius: 2 }}
+          >
+            Remove Investment
+          </Button>
+        
+        </Box>
+
+
+
       </Box>
 
       <Grid container spacing={3}>
