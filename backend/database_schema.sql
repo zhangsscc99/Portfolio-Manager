@@ -1,6 +1,6 @@
 -- =========================================
 -- Portfolio Manager 数据库结构
--- 生成时间: 28/7/2025 上午8:07:39
+-- 生成时间: 28/7/2025 上午9:09:35
 -- 数据库: portfolio_manager
 -- 字符集: utf8mb4
 -- =========================================
@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS portfolios (
   cash DECIMAL(15,2) DEFAULT 0.00 COMMENT '现金余额',
   day_change DECIMAL(15,2) DEFAULT 0.00 COMMENT '日变动金额',
   day_change_percent DECIMAL(5,2) DEFAULT 0.00 COMMENT '日变动百分比',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='投资组合表';
 
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS holdings (
   avg_price DECIMAL(10,2) NOT NULL COMMENT '平均买入价格',
   current_price DECIMAL(10,2) NOT NULL COMMENT '当前市场价格',
   portfolio_id INT COMMENT '所属投资组合ID',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX idx_symbol (symbol),
   INDEX idx_portfolio_id (portfolio_id),
   INDEX idx_type (type),
