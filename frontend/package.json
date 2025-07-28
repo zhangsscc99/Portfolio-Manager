@@ -26,7 +26,7 @@
     "react-hot-toast": "^2.4.1",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.3.0",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^0.0.0",
     "react-table": "^7.8.0",
     "recharts": "^2.7.2",
     "sequelize": "^6.37.7",
@@ -34,8 +34,12 @@
   },
   "scripts": {
     "start": "craco start",
+    "start:dev": "NODE_ENV=development craco start",
+    "start:prod": "NODE_ENV=production craco start",
     "build": "craco build",
-    "test": "react-scripts test",
+    "build:dev": "NODE_ENV=development craco build",
+    "build:prod": "NODE_ENV=production craco build",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -56,5 +60,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5000",
+  "devDependencies": {
+    "@craco/craco": "^5.9.0"
+  }
 }

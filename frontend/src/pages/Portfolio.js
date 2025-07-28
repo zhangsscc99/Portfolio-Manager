@@ -36,6 +36,7 @@ import {
   Visibility as WatchIcon
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 // 🎯 Asset type configuration
 const ASSET_TYPES = {
@@ -75,7 +76,7 @@ const Portfolio = () => {
   // 📊 Fetch portfolio data
   const fetchPortfolioData = async () => {
     try {
-      const response = await fetch('/api/assets/portfolio/1');
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1)));
       const data = await response.json();
       if (data.success) {
         setPortfolioData(data.data);
@@ -88,7 +89,7 @@ const Portfolio = () => {
   // 📋 Fetch watchlist
   const fetchWatchlist = async () => {
     try {
-      const response = await fetch('/api/assets/watchlist');
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.watchlist));
       const data = await response.json();
       if (data.success) {
         setWatchlist(data.data);
@@ -171,7 +172,7 @@ const Portfolio = () => {
   // 🔄 Refresh prices
   const handleRefreshPrices = async () => {
     try {
-      const response = await fetch('/api/assets/update-prices', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.updatePrices), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ portfolioId: 1 })
@@ -236,7 +237,7 @@ const Portfolio = () => {
   // ➕ Add asset
   const handleAddAsset = async () => {
     try {
-      const response = await fetch('/api/assets', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
