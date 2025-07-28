@@ -1,6 +1,6 @@
 -- =========================================
 -- Portfolio Manager 数据库结构
--- 生成时间: 7/28/2025, 6:57:05 AM
+-- 生成时间: 2025/7/28 15:02:15
 -- 数据库: portfolio_manager
 -- 字符集: utf8mb4
 -- =========================================
@@ -13,19 +13,7 @@ COLLATE utf8mb4_unicode_ci;
 USE portfolio_manager;
 
 -- =========================================
--- 1. 用户表 (users)
--- =========================================
-CREATE TABLE IF NOT EXISTS users (
-  id INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
-  username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
-  email VARCHAR(100) NOT NULL UNIQUE COMMENT '邮箱地址',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  INDEX idx_username (username),
-  INDEX idx_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
-
--- =========================================
--- 2. 投资组合表 (portfolios)
+-- 1. 投资组合表 (portfolios)
 -- =========================================
 CREATE TABLE IF NOT EXISTS portfolios (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT '投资组合ID',
@@ -35,16 +23,13 @@ CREATE TABLE IF NOT EXISTS portfolios (
   cash DECIMAL(15,2) DEFAULT 0.00 COMMENT '现金余额',
   day_change DECIMAL(15,2) DEFAULT 0.00 COMMENT '日变动金额',
   day_change_percent DECIMAL(5,2) DEFAULT 0.00 COMMENT '日变动百分比',
-  user_id INT COMMENT '用户ID',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  INDEX idx_user_id (user_id),
-  INDEX idx_created_at (created_at),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='投资组合表';
 
 -- =========================================
--- 3. 持仓表 (holdings)
+-- 2. 持仓表 (holdings)
 -- =========================================
 CREATE TABLE IF NOT EXISTS holdings (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT '持仓ID',
@@ -67,13 +52,9 @@ CREATE TABLE IF NOT EXISTS holdings (
 -- 插入示例数据
 -- =========================================
 
--- 示例用户
-INSERT IGNORE INTO users (id, username, email, created_at) VALUES 
-(1, 'demo_user', 'demo@portfolio.com', NOW());
-
 -- 示例投资组合
-INSERT IGNORE INTO portfolios (id, name, description, total_value, cash, user_id, created_at) VALUES 
-(1, 'My Investment Portfolio', 'Main investment portfolio', 50000.00, 25000.00, 1, NOW());
+INSERT IGNORE INTO portfolios (id, name, description, total_value, cash, created_at) VALUES 
+(1, 'My Investment Portfolio', 'Main investment portfolio', 50000.00, 25000.00, NOW());
 
 -- 示例持仓
 INSERT IGNORE INTO holdings (symbol, name, type, quantity, avg_price, current_price, portfolio_id, created_at) VALUES 
@@ -123,7 +104,6 @@ INSERT IGNORE INTO holdings (symbol, name, type, quantity, avg_price, current_pr
 -- =========================================
 
 -- 查看表结构
--- DESCRIBE users;
 -- DESCRIBE portfolios;
 -- DESCRIBE holdings;
 

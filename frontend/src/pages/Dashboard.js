@@ -14,7 +14,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  LinearProgress,
+
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -70,13 +70,7 @@ const Dashboard = () => {
   const { data: losers } = useQuery('marketLosers', () => marketAPI.getLosers(5));
   const { data: indices } = useQuery('marketIndices', marketAPI.getIndices);
 
-  if (portfolioLoading) {
-    return (
-      <Box sx={{ width: '100%', mt: 2 }}>
-        <LinearProgress />
-      </Box>
-    );
-  }
+  // Removed loading animation
 
   const portfolioData = portfolio?.data;
 

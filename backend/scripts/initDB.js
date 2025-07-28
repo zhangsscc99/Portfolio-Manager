@@ -29,7 +29,6 @@ const initializeDatabase = async () => {
     
     console.log('✅ 数据库表结构同步完成!');
     console.log('📋 数据库表:');
-    console.log('   - users (用户表)');
     console.log('   - portfolios (投资组合表)');
     console.log('   - holdings (持仓表)');
     

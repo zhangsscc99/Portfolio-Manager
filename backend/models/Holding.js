@@ -40,11 +40,12 @@ const Holding = sequelize.define('Holding', {
   },
   portfolio_id: {
     type: DataTypes.INTEGER,
-    allowNull: true, // 暂时允许为空，开发阶段更宽松
+    allowNull: false, // 必须属于某个投资组合
     references: {
       model: 'portfolios',  // 外键关联到portfolios表
       key: 'id'
     },
+    onDelete: 'CASCADE',  // 删除投资组合时自动删除持仓
     comment: '所属投资组合ID'
   }
 }, {

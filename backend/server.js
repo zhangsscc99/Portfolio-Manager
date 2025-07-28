@@ -8,11 +8,13 @@ require('dotenv').config();
 // 数据库连接和模型
 const { testConnection } = require('./config/database');
 const { syncDatabase } = require('./models/index');
+const scheduledUpdatesService = require('./services/scheduledUpdates');
 
 // Import routes
 const portfolioRoutes = require('./routes/portfolio');
 const holdingsRoutes = require('./routes/holdings');
 const marketDataRoutes = require('./routes/marketData');
+const assetsRoutes = require('./routes/assets');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,6 +30,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/holdings', holdingsRoutes);
 app.use('/api/market', marketDataRoutes);
+app.use('/api/assets', assetsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -47,6 +50,7 @@ app.get('/', (req, res) => {
       portfolio: '/api/portfolio',
       holdings: '/api/holdings',
       market: '/api/market',
+      assets: '/api/assets',
       health: '/api/health'
     }
   });
@@ -88,17 +92,22 @@ const startServer = async () => {
     const { generateSQLSchema } = require('./scripts/generateSQL');
     await generateSQLSchema();
     
-    // 4. 启动HTTP服务器
-    app.listen(PORT, () => {
-      console.log('');
-      console.log('🎉 ===== Portfolio Manager 启动成功! =====');
-      console.log(`🚀 API服务器: http://localhost:${PORT}`);
-      console.log(`📊 管理面板: http://localhost:${PORT}`);
-      console.log(`🏥 健康检查: http://localhost:${PORT}/api/health`);
-      console.log(`💾 MySQL数据库: portfolio_manager`);
-      console.log(`📁 SQL结构文件: ./database_schema.sql`);
-      console.log('==========================================');
-    });
+            // 4. 启动HTTP服务器
+        app.listen(PORT, () => {
+          console.log('');
+          console.log('🎉 ===== Portfolio Manager 启动成功! =====');
+          console.log(`🚀 API服务器: http://localhost:${PORT}`);
+          console.log(`📊 管理面板: http://localhost:${PORT}`);
+          console.log(`🏥 健康检查: http://localhost:${PORT}/api/health`);
+          console.log(`💾 MySQL数据库: portfolio_manager`);
+          console.log(`📁 SQL结构文件: ./database_schema.sql`);
+          console.log('==========================================');
+          
+          // 5. 启动定时数据更新服务
+          setTimeout(() => {
+            scheduledUpdatesService.startAllTasks();
+          }, 3000); // 延迟3秒启动，确保数据库完全就绪
+        });
   } catch (error) {
     console.error('❌ 服务器启动失败:', error);
     process.exit(1);

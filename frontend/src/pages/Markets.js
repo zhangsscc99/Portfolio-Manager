@@ -16,7 +16,7 @@ import {
   Tabs,
   Tab,
   Chip,
-  LinearProgress,
+
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { useQuery } from 'react-query';
@@ -85,9 +85,7 @@ const Markets = () => {
     </Card>
   );
 
-  if (isLoading) {
-    return <LinearProgress />;
-  }
+  // Removed loading animation
 
   return (
     <Box sx={{ py: 2 }}>

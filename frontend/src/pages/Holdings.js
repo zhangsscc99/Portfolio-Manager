@@ -13,7 +13,7 @@ import {
   TableRow,
   IconButton,
   Chip,
-  LinearProgress,
+
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,9 +26,7 @@ import { holdingsAPI, formatCurrency, formatPercentage, getChangeColor } from '.
 const Holdings = () => {
   const { data: holdings, isLoading } = useQuery('holdings', holdingsAPI.getHoldings);
 
-  if (isLoading) {
-    return <LinearProgress />;
-  }
+  // Removed loading animation
 
   return (
     <Box sx={{ py: 2 }}>
