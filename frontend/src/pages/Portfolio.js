@@ -38,7 +38,7 @@ const Portfolio = () => {
             Portfolio Overview
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, gap: 2 }}>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
