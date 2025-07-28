@@ -60,12 +60,37 @@ router.get('/search', async (req, res) => {
       });
     }
 
+    // 使用Yahoo Finance搜索
     const results = await yahooFinanceService.searchStock(query);
-    res.json({
-      success: true,
-      data: results
-    });
+    
+    // 为搜索结果获取价格数据
+    if (results && results.length > 0) {
+      const symbols = results.slice(0, 5).map(r => r.symbol);
+      const pricesData = await yahooFinanceService.getMultipleStockPrices(symbols);
+      
+      const enrichedResults = results.slice(0, 5).map(result => {
+        const priceData = pricesData.find(p => p.symbol === result.symbol);
+        return {
+          ...result,
+          price: priceData?.price || 0,
+          change: priceData?.change || 0,
+          changePercent: priceData?.changePercent || 0,
+          volume: priceData?.volume || 0
+        };
+      });
+      
+      res.json({
+        success: true,
+        data: enrichedResults
+      });
+    } else {
+      res.json({
+        success: true,
+        data: []
+      });
+    }
   } catch (error) {
+    console.error('搜索股票失败:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -236,25 +261,153 @@ router.delete('/clear-cache', async (req, res) => {
 // 🔥 GET /api/market/trending - 获取热门股票
 router.get('/trending', async (req, res) => {
   try {
-    // 模拟热门股票数据
-    const trendingStocks = [
-      { symbol: 'AAPL', name: 'Apple Inc.', change: '+2.34%' },
-      { symbol: 'MSFT', name: 'Microsoft Corporation', change: '+1.87%' },
-      { symbol: 'GOOGL', name: 'Alphabet Inc.', change: '+0.92%' },
-      { symbol: 'AMZN', name: 'Amazon.com Inc.', change: '+1.43%' },
-      { symbol: 'TSLA', name: 'Tesla Inc.', change: '-0.76%' }
-    ];
+    const { limit = 10 } = req.query;
+    
+    // 热门股票列表
+    const trendingSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'AMD', 'CRM'];
+    const selectedSymbols = trendingSymbols.slice(0, parseInt(limit));
+    
+    // 获取实时价格数据
+    const stocksData = await yahooFinanceService.getMultipleStockPrices(selectedSymbols);
+    
+    // 格式化数据
+    const trendingStocks = stocksData.map(stock => ({
+      symbol: stock.symbol,
+      name: stock.name || `${stock.symbol} Inc.`,
+      price: stock.price || 0,
+      change: stock.change || 0,
+      changePercent: stock.changePercent || 0,
+      volume: stock.volume || 0
+    }));
 
     res.json({
       success: true,
       data: trendingStocks
     });
   } catch (error) {
+    console.error('获取热门股票失败:', error);
     res.status(500).json({
       success: false,
       error: error.message
     });
   }
 });
+
+// 📈 GET /api/market/gainers - 获取涨幅榜
+router.get('/gainers', async (req, res) => {
+  try {
+    const { limit = 5 } = req.query;
+    
+    // 一些活跃股票列表
+    const activeSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'AMD', 'CRM', 'ADBE', 'ORCL', 'INTC', 'IBM', 'CSCO'];
+    
+    // 获取价格数据
+    const stocksData = await yahooFinanceService.getMultipleStockPrices(activeSymbols);
+    
+    // 筛选出涨幅最大的股票
+    const gainers = stocksData
+      .filter(stock => !stock.error && stock.changePercent > 0)
+      .sort((a, b) => b.changePercent - a.changePercent)
+      .slice(0, parseInt(limit))
+      .map(stock => ({
+        symbol: stock.symbol,
+        name: stock.name || `${stock.symbol} Inc.`,
+        price: stock.price || 0,
+        change: stock.change || 0,
+        changePercent: stock.changePercent || 0,
+        volume: stock.volume || 0
+      }));
+
+    res.json({
+      success: true,
+      data: gainers
+    });
+  } catch (error) {
+    console.error('获取涨幅榜失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 📉 GET /api/market/losers - 获取跌幅榜
+router.get('/losers', async (req, res) => {
+  try {
+    const { limit = 5 } = req.query;
+    
+    // 一些活跃股票列表
+    const activeSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'AMD', 'CRM', 'ADBE', 'ORCL', 'INTC', 'IBM', 'CSCO'];
+    
+    // 获取价格数据
+    const stocksData = await yahooFinanceService.getMultipleStockPrices(activeSymbols);
+    
+    // 筛选出跌幅最大的股票
+    const losers = stocksData
+      .filter(stock => !stock.error && stock.changePercent < 0)
+      .sort((a, b) => a.changePercent - b.changePercent)
+      .slice(0, parseInt(limit))
+      .map(stock => ({
+        symbol: stock.symbol,
+        name: stock.name || `${stock.symbol} Inc.`,
+        price: stock.price || 0,
+        change: stock.change || 0,
+        changePercent: stock.changePercent || 0,
+        volume: stock.volume || 0
+      }));
+
+    res.json({
+      success: true,
+      data: losers
+    });
+  } catch (error) {
+    console.error('获取跌幅榜失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 📊 GET /api/market/indices - 获取主要指数
+router.get('/indices', async (req, res) => {
+  try {
+    // 主要市场指数
+    const indexSymbols = ['^GSPC', '^DJI', '^IXIC', '^RUT']; // S&P 500, Dow, Nasdaq, Russell 2000
+    
+    // 获取指数数据
+    const indicesData = await yahooFinanceService.getMultipleStockPrices(indexSymbols);
+    
+    const indices = indicesData.map(index => ({
+      symbol: index.symbol,
+      name: getIndexName(index.symbol),
+      price: index.price || 0,
+      change: index.change || 0,
+      changePercent: index.changePercent || 0
+    }));
+
+    res.json({
+      success: true,
+      data: indices
+    });
+  } catch (error) {
+    console.error('获取指数数据失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 辅助函数：获取指数名称
+function getIndexName(symbol) {
+  const indexNames = {
+    '^GSPC': 'S&P 500',
+    '^DJI': 'Dow Jones',
+    '^IXIC': 'NASDAQ',
+    '^RUT': 'Russell 2000'
+  };
+  return indexNames[symbol] || symbol;
+}
 
 module.exports = router; 

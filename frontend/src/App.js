@@ -9,7 +9,6 @@ import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
-import Holdings from './pages/Holdings';
 import Analytics from './pages/Analytics';
 import Markets from './pages/Markets';
 
@@ -150,7 +149,6 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/holdings" element={<Holdings />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/markets" element={<Markets />} />
               </Routes>
