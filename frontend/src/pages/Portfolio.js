@@ -214,16 +214,30 @@ const Portfolio = () => {
 
   // 📈 Format numbers
   const formatCurrency = (value, currency = 'USD') => {
+    if (value === undefined || value === null || isNaN(value)) {
+      return currency === 'USD' ? '$0.00' : `0.00 ${currency}`;
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      return currency === 'USD' ? '$0.00' : `0.00 ${currency}`;
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: 2
-    }).format(value);
+    }).format(numValue);
   };
 
   const formatPercent = (value) => {
-    const sign = value >= 0 ? '+' : '';
-    return `${sign}${value.toFixed(2)}%`;
+    if (value === undefined || value === null || isNaN(value)) {
+      return '0.00%';
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      return '0.00%';
+    }
+    const sign = numValue >= 0 ? '+' : '';
+    return `${sign}${numValue.toFixed(2)}%`;
   };
 
   // Chart options

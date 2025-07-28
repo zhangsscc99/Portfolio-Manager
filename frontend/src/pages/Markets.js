@@ -28,10 +28,31 @@ const Markets = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const { data: gainers } = useQuery('marketGainers', () => marketAPI.getGainers(10));
-  const { data: losers } = useQuery('marketLosers', () => marketAPI.getLosers(10));
-  const { data: trending } = useQuery('marketTrending', () => marketAPI.getTrending(10));
-  const { data: indices } = useQuery('marketIndices', marketAPI.getIndices);
+  const { data: gainers } = useQuery('marketGainers', () => marketAPI.getGainers(10), {
+    cacheTime: 0,
+    staleTime: 0
+  });
+  const { data: losers } = useQuery('marketLosers', () => marketAPI.getLosers(10), {
+    cacheTime: 0,
+    staleTime: 0
+  });
+  const { data: trending } = useQuery('marketTrending', () => marketAPI.getTrending(10), {
+    cacheTime: 0,
+    staleTime: 0
+  });
+  const { data: indices } = useQuery('marketIndices', marketAPI.getIndices, {
+    cacheTime: 0,
+    staleTime: 0
+  });
+
+  // 调试trending数据
+  React.useEffect(() => {
+    if (trending) {
+      console.log('Trending data:', trending);
+      console.log('Trending data type:', typeof trending);
+      console.log('Trending data.data:', trending?.data);
+    }
+  }, [trending]);
 
   // 搜索功能
   const handleSearch = async (query) => {
