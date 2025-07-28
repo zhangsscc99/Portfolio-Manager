@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -6,131 +6,626 @@ import {
   CardContent,
   Grid,
   Button,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
   LinearProgress,
+  Alert
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { useQuery } from 'react-query';
-import { portfolioAPI, formatCurrency, formatPercentage } from '../services/api';
+import {
+  ExpandMore as ExpandMoreIcon,
+  Add as AddIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  Refresh as RefreshIcon,
+  Visibility as WatchIcon
+} from '@mui/icons-material';
+import { Line } from 'react-chartjs-2';
+
+// 🎯 Asset type configuration
+const ASSET_TYPES = {
+  stock: { name: 'Stocks', icon: '📈', color: '#1976d2' },
+  crypto: { name: 'Cryptocurrency', icon: '₿', color: '#ff9800' },
+  etf: { name: 'ETF Funds', icon: '🏛️', color: '#2e7d32' },
+  fund: { name: 'Mutual Funds', icon: '💼', color: '#7b1fa2' },
+  bond: { name: 'Bonds', icon: '📜', color: '#5d4037' },
+  cash: { name: 'Cash', icon: '💰', color: '#424242' },
+  commodity: { name: 'Commodities', icon: '🥇', color: '#f57c00' }
+};
 
 const Portfolio = () => {
-  const { data: portfolio, isLoading } = useQuery(
-    'currentPortfolio',
-    portfolioAPI.getCurrentPortfolio
-  );
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [watchlist, setWatchlist] = useState({});
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [assetChartData, setAssetChartData] = useState(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [addAssetOpen, setAddAssetOpen] = useState(false);
+  const [expandedTypes, setExpandedTypes] = useState({});
+  const [newAsset, setNewAsset] = useState({
+    symbol: '',
+    name: '',
+    asset_type: 'stock',
+    quantity: '',
+    avg_cost: '',
+    currency: 'USD'
+  });
 
-  if (isLoading) {
-    return <LinearProgress />;
+  // 📊 Fetch portfolio data
+  const fetchPortfolioData = async () => {
+    try {
+      const response = await fetch('/api/assets/portfolio/1');
+      const data = await response.json();
+      if (data.success) {
+        setPortfolioData(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch portfolio data:', error);
+    }
+  };
+
+  // 📋 Fetch watchlist
+  const fetchWatchlist = async () => {
+    try {
+      const response = await fetch('/api/assets/watchlist');
+      const data = await response.json();
+      if (data.success) {
+        setWatchlist(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch watchlist:', error);
+    }
+  };
+
+  // 📈 Fetch asset chart data
+  const fetchAssetChartData = async (asset) => {
+    if (!asset) return;
+    
+    setChartLoading(true);
+    try {
+      // Generate mock historical data for demo
+      const days = 30;
+      const currentPrice = parseFloat(asset.current_price);
+      const volatility = 0.02; // 2% daily volatility
+      
+      const chartData = [];
+      const labels = [];
+      let price = currentPrice * 0.95; // Start 5% lower than current
+      
+      for (let i = days; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        
+        // Random walk with slight upward trend
+        const change = (Math.random() - 0.48) * volatility; // Slight positive bias
+        price = price * (1 + change);
+        
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        chartData.push(parseFloat(price.toFixed(2)));
+      }
+      
+      // Ensure the last price matches current price
+      chartData[chartData.length - 1] = currentPrice;
+      
+      const data = {
+        labels,
+        datasets: [
+          {
+            label: `${asset.symbol} Price`,
+            data: chartData,
+            borderColor: ASSET_TYPES[asset.asset_type]?.color || '#1976d2',
+            backgroundColor: `${ASSET_TYPES[asset.asset_type]?.color || '#1976d2'}20`,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+        ],
+      };
+      
+      setAssetChartData(data);
+    } catch (error) {
+      console.error('Failed to fetch chart data:', error);
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
+  // Handle asset selection
+  const handleAssetSelection = (asset) => {
+    setSelectedAsset(asset);
+    fetchAssetChartData(asset);
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchPortfolioData(), fetchWatchlist()]);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
+
+  // 🔄 Refresh prices
+  const handleRefreshPrices = async () => {
+    try {
+      const response = await fetch('/api/assets/update-prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ portfolioId: 1 })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchPortfolioData();
+        // Refresh chart data if asset is selected
+        if (selectedAsset) {
+          fetchAssetChartData(selectedAsset);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update prices:', error);
+    }
+  };
+
+  // ➕ Add asset
+  const handleAddAsset = async () => {
+    try {
+      const response = await fetch('/api/assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newAsset,
+          portfolio_id: 1,
+          quantity: parseFloat(newAsset.quantity),
+          avg_cost: parseFloat(newAsset.avg_cost)
+        })
+      });
+      
+      if (response.ok) {
+        setAddAssetOpen(false);
+        setNewAsset({
+          symbol: '',
+          name: '',
+          asset_type: 'stock',
+          quantity: '',
+          avg_cost: '',
+          currency: 'USD'
+        });
+        await fetchPortfolioData();
+      }
+    } catch (error) {
+      console.error('Failed to add asset:', error);
+    }
+  };
+
+  // 📈 Format numbers
+  const formatCurrency = (value, currency = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2
+    }).format(value);
+  };
+
+  const formatPercent = (value) => {
+    const sign = value >= 0 ? '+' : '';
+    return `${sign}${value.toFixed(2)}%`;
+  };
+
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: 'white',
+        bodyColor: 'white',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 1,
+        callbacks: {
+          label: function(context) {
+            return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        display: true,
+        grid: {
+          display: false,
+        },
+        ticks: {
+          maxTicksLimit: 6,
+        }
+      },
+      y: {
+        display: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          callback: function(value) {
+            return formatCurrency(value);
+          }
+        }
+      },
+    },
+    interaction: {
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false,
+    },
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ width: '100%', mt: 2 }}>
+        <LinearProgress />
+        <Typography sx={{ textAlign: 'center', mt: 2 }}>
+          Loading portfolio data...
+        </Typography>
+      </Box>
+    );
   }
-
-  const portfolioData = portfolio?.data;
 
   return (
     <Box sx={{ py: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Portfolio Overview
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          sx={{ borderRadius: 2 }}
-        >
-          Add Investment
-        </Button>
+      {/* 📊 Header statistics */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+            Portfolio Overview
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mt: 1 }}>
+            {formatCurrency(portfolioData?.totalValue || 0)}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={handleRefreshPrices}
+          >
+            Refresh Prices
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setAddAssetOpen(true)}
+          >
+            Add Asset
+          </Button>
+        </Box>
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Total Value
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                {formatCurrency(portfolioData?.totalValue || 0)}
-              </Typography>
-            </CardContent>
-          </Card>
+        {/* 📈 Main assets area */}
+        <Grid item xs={12} lg={8}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Asset Categories
+          </Typography>
+          
+          {Object.entries(ASSET_TYPES).map(([type, config]) => {
+            const typeData = portfolioData?.assetsByType?.[type];
+            const hasAssets = typeData?.count > 0;
+            
+            return (
+              <Accordion 
+                key={type}
+                expanded={expandedTypes[type] || hasAssets}
+                onChange={(_, isExpanded) => setExpandedTypes(prev => ({...prev, [type]: isExpanded}))}
+                sx={{ mb: 1, display: hasAssets ? 'block' : 'none' }}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <Typography sx={{ fontSize: '1.2em', mr: 1 }}>
+                      {config.icon}
+                    </Typography>
+                    <Typography sx={{ flexGrow: 1, fontWeight: 600 }}>
+                      {config.name} ({typeData?.count || 0})
+                    </Typography>
+                    <Typography sx={{ fontWeight: 600, color: config.color }}>
+                      {formatCurrency(typeData?.totalValue || 0)}
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Symbol</TableCell>
+                          <TableCell>Name</TableCell>
+                          <TableCell align="right">Quantity</TableCell>
+                          <TableCell align="right">Avg Cost</TableCell>
+                          <TableCell align="right">Current Price</TableCell>
+                          <TableCell align="right">Total Value</TableCell>
+                          <TableCell align="right">Gain/Loss</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {typeData?.assets?.map((asset) => (
+                          <TableRow 
+                            key={asset.id}
+                            hover
+                            sx={{ 
+                              cursor: 'pointer',
+                              backgroundColor: selectedAsset?.id === asset.id ? 'action.selected' : 'inherit'
+                            }}
+                            onClick={() => handleAssetSelection(asset)}
+                          >
+                            <TableCell sx={{ fontWeight: 600 }}>
+                              {asset.symbol}
+                            </TableCell>
+                            <TableCell>{asset.name}</TableCell>
+                            <TableCell align="right">
+                              {parseFloat(asset.quantity).toLocaleString()}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(asset.avg_cost, asset.currency)}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(asset.current_price, asset.currency)}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(asset.currentValue, asset.currency)}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                {asset.gainLoss >= 0 ? (
+                                  <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main', mr: 0.5 }} />
+                                ) : (
+                                  <TrendingDownIcon sx={{ fontSize: 16, color: 'error.main', mr: 0.5 }} />
+                                )}
+                                <Typography
+                                  sx={{
+                                    color: asset.gainLoss >= 0 ? 'success.main' : 'error.main',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  {formatPercent(asset.gainLossPercent)}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </AccordionDetails>
+              </Accordion>
+            );
+          })}
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Cash Available
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: 'success.main' }}>
-                {formatCurrency(portfolioData?.cash || 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* 📋 Sidebar: Watchlist and charts */}
+        <Grid item xs={12} lg={4}>
+          {/* Selected asset trend chart */}
+          {selectedAsset && (
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    {selectedAsset.symbol} Trend
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      30 Days
+                    </Typography>
+                    <Typography
+                      sx={{
+                        color: selectedAsset.gainLoss >= 0 ? 'success.main' : 'error.main',
+                        fontWeight: 600,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {formatPercent(selectedAsset.gainLossPercent)}
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                  {formatCurrency(selectedAsset.current_price, selectedAsset.currency)}
+                </Typography>
+                
+                <Box sx={{ height: 200, position: 'relative' }}>
+                  {chartLoading ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                      <LinearProgress sx={{ width: '80%' }} />
+                    </Box>
+                  ) : assetChartData ? (
+                    <Line 
+                      data={assetChartData} 
+                      options={chartOptions}
+                      key={`chart-${selectedAsset.id}`}
+                    />
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                      <Typography color="text.secondary">
+                        No chart data available
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+                
+                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">
+                        Holdings
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {parseFloat(selectedAsset.quantity).toLocaleString()}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">
+                        Total Value
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {formatCurrency(selectedAsset.currentValue, selectedAsset.currency)}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
 
-        <Grid item xs={12} md={4}>
+          {/* Watchlist */}
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Total Holdings
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: 'warning.main' }}>
-                {portfolioData?.holdings?.length || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                Holdings Details
-              </Typography>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Symbol</TableCell>
-                      <TableCell>Name</TableCell>
-                      <TableCell align="right">Quantity</TableCell>
-                      <TableCell align="right">Avg Price</TableCell>
-                      <TableCell align="right">Current Price</TableCell>
-                      <TableCell align="right">Total Value</TableCell>
-                      <TableCell align="right">Gain/Loss</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {portfolioData?.holdings?.map((holding) => (
-                      <TableRow key={holding.id}>
-                        <TableCell sx={{ fontWeight: 600 }}>{holding.symbol}</TableCell>
-                        <TableCell>{holding.name}</TableCell>
-                        <TableCell align="right">{holding.quantity}</TableCell>
-                        <TableCell align="right">{formatCurrency(holding.avgPrice)}</TableCell>
-                        <TableCell align="right">{formatCurrency(holding.currentPrice)}</TableCell>
-                        <TableCell align="right">{formatCurrency(holding.currentValue)}</TableCell>
-                        <TableCell 
-                          align="right"
-                          sx={{ 
-                            color: holding.gainLoss >= 0 ? 'success.main' : 'error.main',
-                            fontWeight: 600
-                          }}
-                        >
-                          {formatCurrency(holding.gainLoss)} ({formatPercentage(holding.gainLossPercent)})
-                        </TableCell>
-                      </TableRow>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Watchlist
+                </Typography>
+                <IconButton size="small">
+                  <WatchIcon />
+                </IconButton>
+              </Box>
+              
+              {Object.entries(watchlist).map(([type, data]) => {
+                if (!data.items?.length) return null;
+                
+                return (
+                  <Box key={type} sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                      {ASSET_TYPES[type]?.icon} {ASSET_TYPES[type]?.name}
+                    </Typography>
+                    {data.items.map((item) => (
+                      <Box
+                        key={item.id}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          py: 1,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider'
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {item.symbol}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.name}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography variant="body2">
+                            {formatCurrency(item.current_price)}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: item.price_change_percent >= 0 ? 'success.main' : 'error.main'
+                            }}
+                          >
+                            {formatPercent(item.price_change_percent)}
+                          </Typography>
+                        </Box>
+                      </Box>
                     ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                  </Box>
+                );
+              })}
+              
+              {Object.values(watchlist).every(data => !data.items?.length) && (
+                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                  No assets in watchlist
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+
+      {/* 📝 Add asset dialog */}
+      <Dialog open={addAssetOpen} onClose={() => setAddAssetOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New Asset</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                label="Asset Type"
+                value={newAsset.asset_type}
+                onChange={(e) => setNewAsset(prev => ({...prev, asset_type: e.target.value}))}
+              >
+                {Object.entries(ASSET_TYPES).map(([type, config]) => (
+                  <MenuItem key={type} value={type}>
+                    {config.icon} {config.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Symbol"
+                placeholder="e.g., AAPL, BTC"
+                value={newAsset.symbol}
+                onChange={(e) => setNewAsset(prev => ({...prev, symbol: e.target.value}))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Asset Name"
+                value={newAsset.name}
+                onChange={(e) => setNewAsset(prev => ({...prev, name: e.target.value}))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Quantity"
+                type="number"
+                value={newAsset.quantity}
+                onChange={(e) => setNewAsset(prev => ({...prev, quantity: e.target.value}))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Average Cost"
+                type="number"
+                value={newAsset.avg_cost}
+                onChange={(e) => setNewAsset(prev => ({...prev, avg_cost: e.target.value}))}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddAssetOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddAsset}>Add</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
