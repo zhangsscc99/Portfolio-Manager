@@ -29,6 +29,7 @@ import {
 import {
   ExpandMore as ExpandMoreIcon,
   Add as AddIcon,
+  Remove as RemoveIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   Refresh as RefreshIcon,
@@ -320,6 +321,13 @@ const Portfolio = () => {
             onClick={() => setAddAssetOpen(true)}
           >
             Add Asset
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<RemoveIcon />}
+            onClick={() => setAddAssetOpen(true)}
+          >
+            Remove Asset
           </Button>
         </Box>
       </Box>
