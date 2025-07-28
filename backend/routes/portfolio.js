@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const db = require('../db');
 const { Portfolio, Holding } = require('../models/index');
 
 // 🎯 初始化示例数据 - 使用数据库操作
@@ -122,54 +123,46 @@ router.get('/current', async (req, res) => {
 });
 
 // 📝 POST /api/portfolio - 创建新投资组合
-router.post('/', async (req, res) => {
-  try {
-    const { name, description, cash = 0 } = req.body;
-    
-    const portfolio = await Portfolio.create({
-      name,
-      description,
-      cash: parseFloat(cash),
-      total_value: parseFloat(cash)
-    });
 
-    res.status(201).json({
-      success: true,
-      data: portfolio
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+// 创建新投资组合
+router.post('/', async (req, res) => {
+  const { name, description, total_value = 0, cash = 0 } = req.body;
+
+  try {
+    const [result] = await db.execute(
+      `INSERT INTO portfolios (name, description, total_value, cash)
+       VALUES (?, ?, ?, ?)`,
+      [name, description, total_value, cash]
+    );
+
+    res.json({ success: true, id: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: '创建投资组合失败' });
   }
 });
 
 // ✏️ PUT /api/portfolio/:id - 更新投资组合
+// 更新投资组合
 router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, description, cash, total_value } = req.body;
+
   try {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    const portfolio = await Portfolio.findByPk(id);
-    if (!portfolio) {
-      return res.status(404).json({
-        success: false,
-        error: 'Portfolio not found'
-      });
+    const [result] = await db.execute(
+      `UPDATE portfolios SET name = ?, description = ?, cash = ?, total_value = ?
+       WHERE id = ?`,
+      [name, description, cash, total_value, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: '找不到投资组合' });
     }
 
-    await portfolio.update(updates);
-    
-    res.json({
-      success: true,
-      data: portfolio
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    res.json({ success: true, message: '更新成功' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: '更新失败' });
   }
 });
 

@@ -1,5 +1,22 @@
 {
   "devDependencies": {
     "@craco/craco": "^7.1.0"
-  }
+  },
+  "name": "portfolio-manager",
+  "version": "1.0.0",
+  "description": "A modern, full-stack portfolio management application built with React and Node.js. Track your investments, view performance analytics, and stay updated with market data.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangsscc99/Portfolio-Manager.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zhangsscc99/Portfolio-Manager/issues"
+  },
+  "homepage": "https://github.com/zhangsscc99/Portfolio-Manager#readme"
 }
