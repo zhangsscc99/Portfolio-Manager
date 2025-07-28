@@ -9,7 +9,6 @@ const ASSET_TYPES = {
   stock: { name: '股票', icon: '📈', priceSource: 'yahoo_finance' },
   crypto: { name: '加密货币', icon: '₿', priceSource: 'coingecko' },
   etf: { name: 'ETF基金', icon: '🏛️', priceSource: 'yahoo_finance' },
-  fund: { name: '基金', icon: '💼', priceSource: 'manual' },
   bond: { name: '债券', icon: '📜', priceSource: 'manual' },
   cash: { name: '现金', icon: '💰', priceSource: 'manual' },
   commodity: { name: '商品', icon: '🥇', priceSource: 'manual' }

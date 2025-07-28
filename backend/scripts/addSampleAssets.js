@@ -151,46 +151,7 @@ const addSampleAssets = async () => {
         category: 'Total Market'
       },
 
-      // 💼 MUTUAL FUNDS (3 assets)
-      {
-        symbol: 'VTIAX',
-        name: 'Vanguard Total International Stock Index Fund',
-        asset_type: 'fund',
-        quantity: 200,
-        avg_cost: 29.50,
-        current_price: 31.20,
-        currency: 'USD',
-        price_source: 'manual',
-        source_symbol: 'VTIAX',
-        portfolio_id: portfolio.id,
-        category: 'International'
-      },
-      {
-        symbol: 'VTBSX',
-        name: 'Vanguard Total Bond Market Index Fund',
-        asset_type: 'fund',
-        quantity: 150,
-        avg_cost: 10.85,
-        current_price: 10.42,
-        currency: 'USD',
-        price_source: 'manual',
-        source_symbol: 'VTBSX',
-        portfolio_id: portfolio.id,
-        category: 'Bond'
-      },
-      {
-        symbol: 'FXNAX',
-        name: 'Fidelity U.S. Sustainability Index Fund',
-        asset_type: 'fund',
-        quantity: 100,
-        avg_cost: 42.30,
-        current_price: 44.75,
-        currency: 'USD',
-        price_source: 'manual',
-        source_symbol: 'FXNAX',
-        portfolio_id: portfolio.id,
-        category: 'ESG'
-      },
+
 
       // 📜 BONDS (3 assets)
       {
@@ -401,7 +362,6 @@ const addSampleAssets = async () => {
     console.log('   - 3 Stocks (AAPL, MSFT, TSLA)');
     console.log('   - 3 Cryptocurrencies (BTC, ETH, ADA)');
     console.log('   - 3 ETF Funds (SPY, QQQ, VTI)');
-    console.log('   - 3 Mutual Funds (VTIAX, VTBSX, FXNAX)');
     console.log('   - 3 Bonds (TLT, LQD, HYG)');
     console.log('   - 3 Cash Holdings (USD, EUR, GBP)');
     console.log('   - 3 Commodities (GLD, SLV, USO)');

@@ -6,7 +6,7 @@ import {
   CardContent,
   Grid,
   Chip,
-  LinearProgress,
+
 } from '@mui/material';
 import { Line, Bar } from 'react-chartjs-2';
 import { useQuery } from 'react-query';
@@ -18,9 +18,7 @@ const Analytics = () => {
     portfolioAPI.getCurrentPortfolio
   );
 
-  if (isLoading) {
-    return <LinearProgress />;
-  }
+  // Removed loading animation
 
   // Mock performance data
   const performanceData = {

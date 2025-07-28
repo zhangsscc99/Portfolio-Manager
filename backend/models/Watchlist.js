@@ -19,7 +19,7 @@ const Watchlist = sequelize.define('Watchlist', {
     comment: '资产名称'
   },
   asset_type: {
-    type: DataTypes.ENUM('stock', 'crypto', 'bond', 'fund', 'cash', 'etf', 'commodity'),
+    type: DataTypes.ENUM('stock', 'crypto', 'bond', 'cash', 'etf', 'commodity'),
     allowNull: false,
     comment: '资产类型'
   },

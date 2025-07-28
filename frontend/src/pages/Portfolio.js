@@ -24,7 +24,6 @@ import {
   DialogActions,
   TextField,
   MenuItem,
-  LinearProgress,
   Alert
 } from '@mui/material';
 import {
@@ -42,7 +41,6 @@ const ASSET_TYPES = {
   stock: { name: 'Stocks', icon: '📈', color: '#1976d2' },
   crypto: { name: 'Cryptocurrency', icon: '₿', color: '#ff9800' },
   etf: { name: 'ETF Funds', icon: '🏛️', color: '#2e7d32' },
-  fund: { name: 'Mutual Funds', icon: '💼', color: '#7b1fa2' },
   bond: { name: 'Bonds', icon: '📜', color: '#5d4037' },
   cash: { name: 'Cash', icon: '💰', color: '#424242' },
   commodity: { name: 'Commodities', icon: '🥇', color: '#f57c00' }
@@ -280,16 +278,7 @@ const Portfolio = () => {
     },
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ width: '100%', mt: 2 }}>
-        <LinearProgress />
-        <Typography sx={{ textAlign: 'center', mt: 2 }}>
-          Loading portfolio data...
-        </Typography>
-      </Box>
-    );
-  }
+  // Removed loading animation
 
   return (
     <Box sx={{ py: 2 }}>
@@ -452,11 +441,7 @@ const Portfolio = () => {
                 </Typography>
                 
                 <Box sx={{ height: 200, position: 'relative' }}>
-                  {chartLoading ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                      <LinearProgress sx={{ width: '80%' }} />
-                    </Box>
-                  ) : assetChartData ? (
+                  {assetChartData ? (
                     <Line 
                       data={assetChartData} 
                       options={chartOptions}
