@@ -130,14 +130,15 @@ router.post('/', async (req, res) => {
 
   try {
     const [result] = await db.execute(
-      `INSERT INTO portfolios (name, description, total_value, cash)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO portfolios (name, description, total_value, cash, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
       [name, description, total_value, cash]
     );
 
     res.json({ success: true, id: result.insertId });
   } catch (err) {
-    console.error(err);
+    console.error("❌ 插入失败：", err.message);
+    console.error("🔍 SQL 原因：", err); // 打印堆栈
     res.status(500).json({ success: false, message: '创建投资组合失败' });
   }
 });
