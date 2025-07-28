@@ -1,78 +1,61 @@
-const { v4: uuidv4 } = require('uuid');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
-class Portfolio {
-  constructor(name = 'My Portfolio', description = '') {
-    this.id = uuidv4();
-    this.name = name;
-    this.description = description;
-    this.createdAt = new Date().toISOString();
-    this.updatedAt = new Date().toISOString();
-    this.totalValue = 0;
-    this.cash = 0;
-    this.dayChange = 0;
-    this.dayChangePercent = 0;
-    this.holdings = [];
+// 📚 JavaScript操作MySQL原理解释:
+// 1. ORM (Object-Relational Mapping) - 对象关系映射
+// 2. 把数据库表映射为JavaScript对象
+// 3. 把SQL操作转换为JS方法调用
+
+// 用Sequelize定义Portfolio表结构
+const Portfolio = sequelize.define('Portfolio', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  name: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    defaultValue: 'My Portfolio'
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  total_value: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0.00,
+    comment: '投资组合总价值'
+  },
+  cash: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0.00,
+    comment: '现金余额'
+  },
+  day_change: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0.00,
+    comment: '日变动金额'
+  },
+  day_change_percent: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0.00,
+    comment: '日变动百分比'
+  },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // 暂时允许为空
+    comment: '用户ID'
   }
+}, {
+  tableName: 'portfolios',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
+});
 
-  addHolding(holding) {
-    this.holdings.push(holding);
-    this.updateTotalValue();
-    this.updatedAt = new Date().toISOString();
-  }
-
-  removeHolding(holdingId) {
-    this.holdings = this.holdings.filter(h => h.id !== holdingId);
-    this.updateTotalValue();
-    this.updatedAt = new Date().toISOString();
-  }
-
-  updateHolding(holdingId, updates) {
-    const holdingIndex = this.holdings.findIndex(h => h.id === holdingId);
-    if (holdingIndex !== -1) {
-      this.holdings[holdingIndex] = { ...this.holdings[holdingIndex], ...updates };
-      this.updateTotalValue();
-      this.updatedAt = new Date().toISOString();
-    }
-  }
-
-  updateTotalValue() {
-    this.totalValue = this.cash + this.holdings.reduce((total, holding) => {
-      return total + (holding.currentPrice * holding.quantity);
-    }, 0);
-  }
-
-  getPerformance() {
-    const totalCost = this.holdings.reduce((total, holding) => {
-      return total + (holding.avgPrice * holding.quantity);
-    }, 0);
-    
-    const totalGainLoss = this.totalValue - this.cash - totalCost;
-    const totalGainLossPercent = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
-
-    return {
-      totalValue: this.totalValue,
-      totalCost,
-      totalGainLoss,
-      totalGainLossPercent,
-      cash: this.cash
-    };
-  }
-
-  toJSON() {
-    return {
-      id: this.id,
-      name: this.name,
-      description: this.description,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
-      totalValue: this.totalValue,
-      cash: this.cash,
-      dayChange: this.dayChange,
-      dayChangePercent: this.dayChangePercent,
-      holdings: this.holdings,
-      performance: this.getPerformance()
-    };
-  }
-}
+// 📝 暂时注释掉复杂的实例方法，开发阶段先简化
+// Portfolio.prototype.updateTotalValue = async function() { ... };
+// Portfolio.prototype.getPerformance = async function() { ... };
 
 module.exports = Portfolio; 

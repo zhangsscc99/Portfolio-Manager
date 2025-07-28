@@ -3,6 +3,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
+require('dotenv').config();
+
+// 数据库连接和模型
+const { testConnection } = require('./config/database');
+const { syncDatabase } = require('./models/index');
 
 // Import routes
 const portfolioRoutes = require('./routes/portfolio');
@@ -64,8 +69,40 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Portfolio Manager API running on port ${PORT}`);
-  console.log(`📊 Dashboard: http://localhost:${PORT}`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
-}); 
+// 🚀 启动服务器并自动初始化数据库
+const startServer = async () => {
+  try {
+    console.log('🔄 正在启动Portfolio Manager后端服务...');
+    
+    // 1. 测试数据库连接
+    console.log('🔗 测试数据库连接...');
+    await testConnection();
+    
+    // 2. 自动初始化数据库和表结构
+    console.log('🏗️ 自动初始化数据库...');
+    const { initializeDatabase } = require('./scripts/initDB');
+    await initializeDatabase();
+    
+    // 3. 生成SQL结构文件
+    console.log('📄 生成SQL结构文件...');
+    const { generateSQLSchema } = require('./scripts/generateSQL');
+    await generateSQLSchema();
+    
+    // 4. 启动HTTP服务器
+    app.listen(PORT, () => {
+      console.log('');
+      console.log('🎉 ===== Portfolio Manager 启动成功! =====');
+      console.log(`🚀 API服务器: http://localhost:${PORT}`);
+      console.log(`📊 管理面板: http://localhost:${PORT}`);
+      console.log(`🏥 健康检查: http://localhost:${PORT}/api/health`);
+      console.log(`💾 MySQL数据库: portfolio_manager`);
+      console.log(`📁 SQL结构文件: ./database_schema.sql`);
+      console.log('==========================================');
+    });
+  } catch (error) {
+    console.error('❌ 服务器启动失败:', error);
+    process.exit(1);
+  }
+};
+
+startServer(); 

@@ -1,46 +1,58 @@
 const express = require('express');
 const router = express.Router();
-const Portfolio = require('../models/Portfolio');
-const Holding = require('../models/Holding');
+const { Portfolio, Holding, User } = require('../models/index');
 
-// In-memory storage (replace with database in production)
-let portfolios = [];
-let currentPortfolio = null;
+// 🎯 初始化示例数据 - 使用数据库操作
+const initializeSampleData = async () => {
+  try {
+    // 检查是否已有数据
+    const portfolioCount = await Portfolio.count();
+    if (portfolioCount === 0) {
+      console.log('📊 正在创建示例数据...');
+      
+      // 创建示例投资组合
+      const samplePortfolio = await Portfolio.create({
+        name: 'My Investment Portfolio',
+        description: 'Main investment portfolio',
+        cash: 25000.00,
+        total_value: 0.00
+      });
 
-// Initialize with sample data
-const initializeSampleData = () => {
-  if (portfolios.length === 0) {
-    const samplePortfolio = new Portfolio('My Investment Portfolio', 'Main investment portfolio');
-    samplePortfolio.cash = 25000;
-    
-    // Add sample holdings
-    const sampleHoldings = [
-      { symbol: 'AAPL', name: 'Apple Inc.', quantity: 10, avgPrice: 150.00, currentPrice: 175.25 },
-      { symbol: 'GOOGL', name: 'Alphabet Inc.', quantity: 5, avgPrice: 2500.00, currentPrice: 2680.50 },
-      { symbol: 'MSFT', name: 'Microsoft Corporation', quantity: 8, avgPrice: 300.00, currentPrice: 315.75 },
-      { symbol: 'TSLA', name: 'Tesla Inc.', quantity: 3, avgPrice: 800.00, currentPrice: 245.60 },
-      { symbol: 'AMZN', name: 'Amazon.com Inc.', quantity: 2, avgPrice: 3200.00, currentPrice: 3150.80 }
-    ];
+      // 创建示例持仓
+      const sampleHoldings = [
+        { symbol: 'AAPL', name: 'Apple Inc.', quantity: 10, avg_price: 150.00, current_price: 175.25, portfolio_id: samplePortfolio.id },
+        { symbol: 'GOOGL', name: 'Alphabet Inc.', quantity: 5, avg_price: 2500.00, current_price: 2680.50, portfolio_id: samplePortfolio.id },
+        { symbol: 'MSFT', name: 'Microsoft Corporation', quantity: 8, avg_price: 300.00, current_price: 315.75, portfolio_id: samplePortfolio.id },
+        { symbol: 'TSLA', name: 'Tesla Inc.', quantity: 3, avg_price: 800.00, current_price: 245.60, portfolio_id: samplePortfolio.id },
+        { symbol: 'AMZN', name: 'Amazon.com Inc.', quantity: 2, avg_price: 3200.00, current_price: 3150.80, portfolio_id: samplePortfolio.id }
+      ];
 
-    sampleHoldings.forEach(holdingData => {
-      const holding = new Holding(holdingData);
-      samplePortfolio.addHolding(holding.toJSON());
-    });
-
-    portfolios.push(samplePortfolio);
-    currentPortfolio = samplePortfolio;
+      await Holding.bulkCreate(sampleHoldings);
+      
+      // 更新投资组合总价值
+      const totalValue = sampleHoldings.reduce((sum, holding) => 
+        sum + (holding.current_price * holding.quantity), 0
+      ) + samplePortfolio.cash;
+      
+      await samplePortfolio.update({ total_value: totalValue });
+      
+      console.log('✅ 示例数据创建成功!');
+    }
+  } catch (error) {
+    console.error('❌ 初始化示例数据失败:', error);
   }
 };
 
-// Initialize sample data
+// 🚀 启动时初始化数据
 initializeSampleData();
 
-// GET /api/portfolio - Get all portfolios
-router.get('/', (req, res) => {
+// 📖 GET /api/portfolio - 获取所有投资组合
+router.get('/', async (req, res) => {
   try {
+    const portfolios = await Portfolio.findAll();
     res.json({
       success: true,
-      data: portfolios.map(p => p.toJSON())
+      data: portfolios
     });
   } catch (error) {
     res.status(500).json({
@@ -50,37 +62,56 @@ router.get('/', (req, res) => {
   }
 });
 
-// GET /api/portfolio/current - Get current portfolio
-router.get('/current', (req, res) => {
+// 📖 GET /api/portfolio/current - 获取当前投资组合
+router.get('/current', async (req, res) => {
   try {
-    if (!currentPortfolio) {
-      initializeSampleData();
-    }
-    res.json({
-      success: true,
-      data: currentPortfolio.toJSON()
+    const portfolio = await Portfolio.findOne({
+      order: [['created_at', 'DESC']] // 获取最新的投资组合
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// GET /api/portfolio/:id - Get portfolio by ID
-router.get('/:id', (req, res) => {
-  try {
-    const portfolio = portfolios.find(p => p.id === req.params.id);
+    
     if (!portfolio) {
       return res.status(404).json({
         success: false,
-        error: 'Portfolio not found'
+        error: 'No portfolio found'
       });
     }
+
+    // 获取持仓数据
+    const holdings = await Holding.findAll({
+      where: { portfolio_id: portfolio.id }
+    });
+
+    // 计算性能数据
+    const totalCost = holdings.reduce((sum, holding) => 
+      sum + (parseFloat(holding.avg_price) * parseFloat(holding.quantity)), 0
+    );
+    
+    const currentValue = holdings.reduce((sum, holding) => 
+      sum + (parseFloat(holding.current_price) * parseFloat(holding.quantity)), 0
+    );
+    
+    const totalGainLoss = currentValue - totalCost;
+    const totalGainLossPercent = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
+
     res.json({
       success: true,
-      data: portfolio.toJSON()
+      data: {
+        ...portfolio.toJSON(),
+        holdings: holdings.map(holding => ({
+          ...holding.toJSON(),
+          currentValue: holding.getCurrentValue(),
+          costBasis: holding.getCostBasis(),
+          gainLoss: holding.getGainLoss(),
+          gainLossPercent: holding.getGainLossPercent()
+        })),
+        performance: {
+          totalValue: parseFloat(portfolio.total_value),
+          totalCost,
+          totalGainLoss,
+          totalGainLossPercent,
+          cash: parseFloat(portfolio.cash)
+        }
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -90,33 +121,37 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// POST /api/portfolio - Create new portfolio
-router.post('/', (req, res) => {
+// 📝 POST /api/portfolio - 创建新投资组合
+router.post('/', async (req, res) => {
   try {
-    const { name, description } = req.body;
-    const portfolio = new Portfolio(name, description);
-    portfolios.push(portfolio);
+    const { name, description, cash = 0 } = req.body;
     
-    if (!currentPortfolio) {
-      currentPortfolio = portfolio;
-    }
+    const portfolio = await Portfolio.create({
+      name,
+      description,
+      cash: parseFloat(cash),
+      total_value: parseFloat(cash)
+    });
 
     res.status(201).json({
       success: true,
-      data: portfolio.toJSON()
+      data: portfolio
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       success: false,
       error: error.message
     });
   }
 });
 
-// PUT /api/portfolio/:id - Update portfolio
-router.put('/:id', (req, res) => {
+// ✏️ PUT /api/portfolio/:id - 更新投资组合
+router.put('/:id', async (req, res) => {
   try {
-    const portfolio = portfolios.find(p => p.id === req.params.id);
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const portfolio = await Portfolio.findByPk(id);
     if (!portfolio) {
       return res.status(404).json({
         success: false,
@@ -124,89 +159,44 @@ router.put('/:id', (req, res) => {
       });
     }
 
-    const { name, description, cash } = req.body;
-    if (name) portfolio.name = name;
-    if (description) portfolio.description = description;
-    if (cash !== undefined) portfolio.cash = parseFloat(cash);
+    await portfolio.update(updates);
     
-    portfolio.updatedAt = new Date().toISOString();
-    portfolio.updateTotalValue();
-
     res.json({
       success: true,
-      data: portfolio.toJSON()
+      data: portfolio
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       success: false,
       error: error.message
     });
   }
 });
 
-// DELETE /api/portfolio/:id - Delete portfolio
-router.delete('/:id', (req, res) => {
+// 🗑️ DELETE /api/portfolio/:id - 删除投资组合
+router.delete('/:id', async (req, res) => {
   try {
-    const portfolioIndex = portfolios.findIndex(p => p.id === req.params.id);
-    if (portfolioIndex === -1) {
+    const { id } = req.params;
+    
+    const portfolio = await Portfolio.findByPk(id);
+    if (!portfolio) {
       return res.status(404).json({
         success: false,
         error: 'Portfolio not found'
       });
     }
 
-    const deletedPortfolio = portfolios.splice(portfolioIndex, 1)[0];
+    // 先删除关联的持仓
+    await Holding.destroy({
+      where: { portfolio_id: id }
+    });
     
-    if (currentPortfolio && currentPortfolio.id === deletedPortfolio.id) {
-      currentPortfolio = portfolios.length > 0 ? portfolios[0] : null;
-    }
-
+    // 再删除投资组合
+    await portfolio.destroy();
+    
     res.json({
       success: true,
       message: 'Portfolio deleted successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// GET /api/portfolio/:id/summary - Get portfolio summary with analytics
-router.get('/:id/summary', (req, res) => {
-  try {
-    const portfolio = portfolios.find(p => p.id === req.params.id);
-    if (!portfolio) {
-      return res.status(404).json({
-        success: false,
-        error: 'Portfolio not found'
-      });
-    }
-
-    const performance = portfolio.getPerformance();
-    const summary = {
-      ...performance,
-      holdingsCount: portfolio.holdings.length,
-      topGainers: portfolio.holdings
-        .filter(h => h.gainLossPercent > 0)
-        .sort((a, b) => b.gainLossPercent - a.gainLossPercent)
-        .slice(0, 5),
-      topLosers: portfolio.holdings
-        .filter(h => h.gainLossPercent < 0)
-        .sort((a, b) => a.gainLossPercent - b.gainLossPercent)
-        .slice(0, 5),
-      allocation: {
-        stocks: portfolio.holdings.filter(h => h.type === 'stock').reduce((sum, h) => sum + h.currentValue, 0),
-        bonds: portfolio.holdings.filter(h => h.type === 'bond').reduce((sum, h) => sum + h.currentValue, 0),
-        etfs: portfolio.holdings.filter(h => h.type === 'etf').reduce((sum, h) => sum + h.currentValue, 0),
-        cash: portfolio.cash
-      }
-    };
-
-    res.json({
-      success: true,
-      data: summary
     });
   } catch (error) {
     res.status(500).json({
