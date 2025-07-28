@@ -112,6 +112,9 @@ export const marketAPI = {
 
 // Utility functions
 export const formatCurrency = (amount, currency = 'USD') => {
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return currency === 'USD' ? '$0.00' : `0.00 ${currency}`;
+  }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
@@ -125,10 +128,16 @@ export const formatNumber = (number) => {
 };
 
 export const formatPercentage = (percentage) => {
+  if (percentage === undefined || percentage === null || isNaN(percentage)) {
+    return '0.00%';
+  }
   return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
 };
 
 export const getChangeColor = (change) => {
+  if (change === undefined || change === null || isNaN(change)) {
+    return 'text.primary';
+  }
   if (change > 0) return '#10b981'; // green
   if (change < 0) return '#ef4444'; // red
   return '#6b7280'; // gray

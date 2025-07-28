@@ -15,7 +15,6 @@ import {
 import {
   Dashboard as DashboardIcon,
   AccountBalance as PortfolioIcon,
-  TrendingUp as HoldingsIcon,
   Analytics as AnalyticsIcon,
   ShowChart as MarketsIcon,
   Person as PersonIcon,
@@ -35,17 +34,10 @@ const navigationItems = [
     icon: PortfolioIcon,
   },
   {
-    id: 'holdings',
-    label: 'Holdings',
-    path: '/holdings',
-    icon: HoldingsIcon,
-  },
-  {
     id: 'analytics',
     label: 'Analytics',
     path: '/analytics',
     icon: AnalyticsIcon,
-    badge: 'New',
   },
   {
     id: 'markets',

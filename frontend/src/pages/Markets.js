@@ -57,27 +57,27 @@ const Markets = () => {
             </TableHead>
             <TableBody>
               {data?.map((stock) => (
-                <TableRow key={stock.symbol} hover>
-                  <TableCell sx={{ fontWeight: 600 }}>{stock.symbol}</TableCell>
-                  <TableCell>{stock.name}</TableCell>
-                  <TableCell align="right">{formatCurrency(stock.price)}</TableCell>
+                <TableRow key={stock?.symbol || Math.random()} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{stock?.symbol || 'N/A'}</TableCell>
+                  <TableCell>{stock?.name || 'N/A'}</TableCell>
+                  <TableCell align="right">{formatCurrency(stock?.price)}</TableCell>
                   <TableCell 
                     align="right"
-                    sx={{ color: getChangeColor(stock.change), fontWeight: 500 }}
+                    sx={{ color: getChangeColor(stock?.change), fontWeight: 500 }}
                   >
-                    {formatCurrency(stock.change)}
+                    {formatCurrency(stock?.change)}
                   </TableCell>
                   <TableCell 
                     align="right"
-                    sx={{ color: getChangeColor(stock.changePercent), fontWeight: 500 }}
+                    sx={{ color: getChangeColor(stock?.changePercent), fontWeight: 500 }}
                   >
-                    {formatPercentage(stock.changePercent)}
+                    {formatPercentage(stock?.changePercent)}
                   </TableCell>
                   <TableCell align="right">
-                    {stock.volume ? stock.volume.toLocaleString() : 'N/A'}
+                    {stock?.volume ? stock.volume.toLocaleString() : 'N/A'}
                   </TableCell>
                 </TableRow>
-              ))}
+              )) || []}
             </TableBody>
           </Table>
         </TableContainer>
@@ -112,30 +112,30 @@ const Markets = () => {
       {/* Market Indices */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {indices?.data?.map((index) => (
-          <Grid item xs={12} sm={6} md={3} key={index.symbol}>
+          <Grid item xs={12} sm={6} md={3} key={index?.symbol || Math.random()}>
             <Card>
               <CardContent>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {index.symbol}
+                  {index?.symbol || 'N/A'}
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                  {formatCurrency(index.price)}
+                  {formatCurrency(index?.price)}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Typography 
                     variant="body2" 
                     sx={{ 
-                      color: getChangeColor(index.change),
+                      color: getChangeColor(index?.change),
                       fontWeight: 500 
                     }}
                   >
-                    {formatCurrency(index.change)} ({formatPercentage(index.changePercent)})
+                    {formatCurrency(index?.change)} ({formatPercentage(index?.changePercent)})
                   </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-        ))}
+        )) || []}
       </Grid>
 
       {/* Market Data Tabs */}

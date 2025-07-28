@@ -36,8 +36,7 @@ const Layout = ({ children }) => {
         return 'Dashboard';
       case '/portfolio':
         return 'Portfolio';
-      case '/holdings':
-        return 'Holdings';
+
       case '/analytics':
         return 'Analytics';
       case '/markets':
