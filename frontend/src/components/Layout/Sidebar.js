@@ -1,0 +1,260 @@
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Box,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Typography,
+  Avatar,
+  Divider,
+  Chip,
+} from '@mui/material';
+import {
+  Dashboard as DashboardIcon,
+  AccountBalance as PortfolioIcon,
+  TrendingUp as HoldingsIcon,
+  Analytics as AnalyticsIcon,
+  ShowChart as MarketsIcon,
+  Person as PersonIcon,
+} from '@mui/icons-material';
+
+const navigationItems = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    path: '/dashboard',
+    icon: DashboardIcon,
+  },
+  {
+    id: 'portfolio',
+    label: 'Portfolio',
+    path: '/portfolio',
+    icon: PortfolioIcon,
+  },
+  {
+    id: 'holdings',
+    label: 'Holdings',
+    path: '/holdings',
+    icon: HoldingsIcon,
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    path: '/analytics',
+    icon: AnalyticsIcon,
+    badge: 'New',
+  },
+  {
+    id: 'markets',
+    label: 'Markets',
+    path: '/markets',
+    icon: MarketsIcon,
+  },
+];
+
+const Sidebar = ({ onNavigate }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    if (onNavigate) {
+      onNavigate();
+    }
+  };
+
+  const isActive = (path) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/' || location.pathname === '/dashboard';
+    }
+    return location.pathname === path;
+  };
+
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 2,
+      }}
+    >
+      {/* Logo and Brand */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mr: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '1.2rem',
+              }}
+            >
+              P
+            </Typography>
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+            }}
+          >
+            Portfolio Manager
+          </Typography>
+        </Box>
+        
+        {/* User Info */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            p: 2,
+            borderRadius: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              mr: 2,
+              bgcolor: 'primary.main',
+              fontSize: '0.875rem',
+            }}
+          >
+            YW
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                color: 'text.primary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Yuting Wang
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Portfolio Value: $2,317,371
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      <Divider sx={{ mb: 2, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+
+      {/* Navigation */}
+      <List sx={{ flex: 1, py: 0 }}>
+        {navigationItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.path);
+
+          return (
+            <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => handleNavigation(item.path)}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.5,
+                  px: 2,
+                  backgroundColor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                  color: active ? 'primary.main' : 'text.primary',
+                  '&:hover': {
+                    backgroundColor: active 
+                      ? 'rgba(99, 102, 241, 0.15)' 
+                      : 'rgba(255, 255, 255, 0.05)',
+                  },
+                  '&:before': active ? {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 3,
+                    height: '70%',
+                    backgroundColor: 'primary.main',
+                    borderRadius: '0 2px 2px 0',
+                  } : {},
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: 'inherit',
+                    minWidth: 40,
+                  }}
+                >
+                  <Icon />
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: active ? 600 : 500,
+                  }}
+                />
+                {item.badge && (
+                  <Chip
+                    label={item.badge}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      bgcolor: 'secondary.main',
+                      color: 'white',
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+
+      {/* Footer */}
+      <Box sx={{ mt: 'auto', pt: 2 }}>
+        <Divider sx={{ mb: 2, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+        <Typography
+          variant="caption"
+          sx={{
+            color: 'text.secondary',
+            textAlign: 'center',
+            display: 'block',
+          }}
+        >
+          Portfolio Manager v1.0.0
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+export default Sidebar; 
