@@ -28,31 +28,45 @@ const Markets = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const { data: gainers } = useQuery('marketGainers', () => marketAPI.getGainers(10), {
-    cacheTime: 0,
-    staleTime: 0
+  const { data: gainers, isLoading: gainersLoading, error: gainersError } = useQuery('marketGainers', () => marketAPI.getGainers(10), {
+    cacheTime: 30000, // 30秒缓存
+    staleTime: 30000,
+    retry: 2
   });
-  const { data: losers } = useQuery('marketLosers', () => marketAPI.getLosers(10), {
-    cacheTime: 0,
-    staleTime: 0
+  const { data: losers, isLoading: losersLoading, error: losersError } = useQuery('marketLosers', () => marketAPI.getLosers(10), {
+    cacheTime: 30000,
+    staleTime: 30000,
+    retry: 2
   });
-  const { data: trending } = useQuery('marketTrending', () => marketAPI.getTrending(10), {
-    cacheTime: 0,
-    staleTime: 0
+  const { data: trending, isLoading: trendingLoading, error: trendingError } = useQuery('marketTrending', () => marketAPI.getTrending(10), {
+    cacheTime: 30000,
+    staleTime: 30000,
+    retry: 2
   });
-  const { data: indices } = useQuery('marketIndices', marketAPI.getIndices, {
-    cacheTime: 0,
-    staleTime: 0
+  const { data: indices, isLoading: indicesLoading, error: indicesError } = useQuery('marketIndices', marketAPI.getIndices, {
+    cacheTime: 30000,
+    staleTime: 30000,
+    retry: 2
   });
 
-  // 调试trending数据
+  // 调试数据和错误
   React.useEffect(() => {
     if (trending) {
       console.log('Trending data:', trending);
-      console.log('Trending data type:', typeof trending);
-      console.log('Trending data.data:', trending?.data);
     }
-  }, [trending]);
+    if (trendingError) {
+      console.error('Trending error:', trendingError);
+    }
+    if (gainersError) {
+      console.error('Gainers error:', gainersError);
+    }
+    if (losersError) {
+      console.error('Losers error:', losersError);
+    }
+    if (indicesError) {
+      console.error('Indices error:', indicesError);
+    }
+  }, [trending, trendingError, gainersError, losersError, indicesError]);
 
   // 搜索功能
   const handleSearch = async (query) => {
@@ -92,57 +106,109 @@ const Markets = () => {
     // TODO: 实现股票详情查看或添加到关注列表
   };
 
-  const renderStockTable = (data, title) => (
+  const renderStockTable = (data, title, isLoading = false, error = null) => (
     <Card>
       <CardContent>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           {title}
         </Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Symbol</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell align="right">Price</TableCell>
-                <TableCell align="right">Change</TableCell>
-                <TableCell align="right">% Change</TableCell>
-                <TableCell align="right">Volume</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data?.map((stock) => (
-                <TableRow 
-                  key={stock?.symbol || Math.random()} 
-                  hover
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => handleStockClick(stock)}
-                >
-                  <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    {stock?.symbol || 'N/A'}
-                  </TableCell>
-                  <TableCell>{stock?.name || 'N/A'}</TableCell>
-                  <TableCell align="right">{formatCurrency(stock?.price)}</TableCell>
-                  <TableCell 
-                    align="right"
-                    sx={{ color: getChangeColor(stock?.change), fontWeight: 500 }}
-                  >
-                    {formatCurrency(stock?.change)}
-                  </TableCell>
-                  <TableCell 
-                    align="right"
-                    sx={{ color: getChangeColor(stock?.changePercent), fontWeight: 500 }}
-                  >
-                    {formatPercentage(stock?.changePercent)}
-                  </TableCell>
-                  <TableCell align="right">
-                    {stock?.volume ? stock.volume.toLocaleString() : 'N/A'}
-                  </TableCell>
+        
+        {/* 错误状态 */}
+        {error && (
+          <Box sx={{ textAlign: 'center', py: 3 }}>
+                         <Typography color="error" variant="body2">
+               加载失败: {error.message || '后端Yahoo Finance API调用失败'}
+             </Typography>
+             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+               后端API地址: {process.env.REACT_APP_API_URL || 'http://47.243.102.28:5000/api'}
+             </Typography>
+          </Box>
+        )}
+        
+        {/* 加载状态 */}
+        {isLoading && !error && (
+          <Box sx={{ textAlign: 'center', py: 3 }}>
+            <Box
+              sx={{
+                width: 24,
+                height: 24,
+                border: '3px solid',
+                borderColor: 'primary.main',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                mx: 'auto',
+                mb: 2,
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' },
+                },
+              }}
+            />
+            <Typography color="text.secondary">
+              正在加载数据...
+            </Typography>
+          </Box>
+        )}
+        
+        {/* 数据表格 */}
+        {!isLoading && !error && (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Symbol</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell align="right">Price</TableCell>
+                  <TableCell align="right">Change</TableCell>
+                  <TableCell align="right">% Change</TableCell>
+                  <TableCell align="right">Volume</TableCell>
                 </TableRow>
-              )) || []}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {data && data.length > 0 ? (
+                  data.map((stock) => (
+                    <TableRow 
+                      key={stock?.symbol || Math.random()} 
+                      hover
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => handleStockClick(stock)}
+                    >
+                      <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        {stock?.symbol || 'N/A'}
+                      </TableCell>
+                      <TableCell>{stock?.name || 'N/A'}</TableCell>
+                      <TableCell align="right">{formatCurrency(stock?.price)}</TableCell>
+                      <TableCell 
+                        align="right"
+                        sx={{ color: getChangeColor(stock?.change), fontWeight: 500 }}
+                      >
+                        {formatCurrency(stock?.change)}
+                      </TableCell>
+                      <TableCell 
+                        align="right"
+                        sx={{ color: getChangeColor(stock?.changePercent), fontWeight: 500 }}
+                      >
+                        {formatPercentage(stock?.changePercent)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {stock?.volume ? stock.volume.toLocaleString() : 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} sx={{ textAlign: 'center', py: 3 }}>
+                      <Typography color="text.secondary">
+                        暂无数据
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </CardContent>
     </Card>
   );
@@ -192,31 +258,73 @@ const Markets = () => {
 
       {/* Market Indices */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {indices?.data?.map((index) => (
-          <Grid item xs={12} sm={6} md={3} key={index?.symbol || Math.random()}>
+        {indicesLoading ? (
+          // 加载状态
+          Array.from({ length: 4 }).map((_, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        border: '2px solid',
+                        borderColor: 'primary.main',
+                        borderTopColor: 'transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        mx: 'auto',
+                        '@keyframes spin': {
+                          '0%': { transform: 'rotate(0deg)' },
+                          '100%': { transform: 'rotate(360deg)' },
+                        },
+                      }}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))
+        ) : indicesError ? (
+          // 错误状态
+          <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {index?.symbol || 'N/A'}
+                <Typography color="error" variant="body2" sx={{ textAlign: 'center' }}>
+                  市场指数加载失败: {indicesError.message || '网络错误'}
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                  {formatCurrency(index?.price)}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      color: getChangeColor(index?.change),
-                      fontWeight: 500 
-                    }}
-                  >
-                    {formatCurrency(index?.change)} ({formatPercentage(index?.changePercent)})
-                  </Typography>
-                </Box>
               </CardContent>
             </Card>
           </Grid>
-        )) || []}
+        ) : (
+          // 正常数据显示
+          indices?.data?.map((index) => (
+            <Grid item xs={12} sm={6} md={3} key={index?.symbol || Math.random()}>
+              <Card>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {index?.symbol || 'N/A'}
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                    {formatCurrency(index?.price)}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: getChangeColor(index?.change),
+                        fontWeight: 500 
+                      }}
+                    >
+                      {formatCurrency(index?.change)} ({formatPercentage(index?.changePercent)})
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          )) || []
+        )}
       </Grid>
 
       {/* Market Data Tabs - only show when not searching */}
@@ -256,9 +364,9 @@ const Markets = () => {
       {/* Tab Content - only show when not searching */}
       {!searchTerm && (
         <>
-          {tabValue === 0 && renderStockTable(trending?.data, 'Trending Stocks')}
-          {tabValue === 1 && renderStockTable(gainers?.data, 'Top Gainers')}
-          {tabValue === 2 && renderStockTable(losers?.data, 'Top Losers')}
+          {tabValue === 0 && renderStockTable(trending?.data, 'Trending Stocks', trendingLoading, trendingError)}
+          {tabValue === 1 && renderStockTable(gainers?.data, 'Top Gainers', gainersLoading, gainersError)}
+          {tabValue === 2 && renderStockTable(losers?.data, 'Top Losers', losersLoading, losersError)}
         </>
       )}
     </Box>
