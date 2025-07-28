@@ -70,6 +70,7 @@ const Portfolio = () => {
     name: '',
     asset_type: 'stock'
   });
+  const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
 
   // 📊 Fetch portfolio data
   const fetchPortfolioData = async () => {
@@ -190,26 +191,43 @@ const Portfolio = () => {
   // - Remove asset
   const handleRemoveAsset = async () => {
     try {
-      const response = await fetch('/api/assets', {
+      // Find the asset ID from the portfolio data
+      const assetType = assetToRemove.asset_type;
+      const assetSymbol = assetToRemove.symbol;
+      
+      const asset = portfolioData?.assetsByType?.[assetType]?.assets?.find(
+        a => a.symbol === assetSymbol
+      );
+      
+      if (!asset) {
+        setRemoveMessage({ type: 'error', text: 'Asset not found in portfolio' });
+        return;
+      }
+      
+      const response = await fetch(`/api/assets/${asset.id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symbol: assetToRemove.symbol,
-          asset_type: assetToRemove.asset_type,
-          portfolio_id: 1
-        })
+        headers: { 'Content-Type': 'application/json' }
       });
       
       if (response.ok) {
-        setRemoveAssetOpen(false);
-        setAssetToRemove({
-          symbol: '',
-          name: '',
-          asset_type: 'stock'
-        });
-        await fetchPortfolioData();
+        setRemoveMessage({ type: 'success', text: `${asset.symbol} removed successfully` });
+        setTimeout(() => {
+          setRemoveAssetOpen(false);
+          setAssetToRemove({
+            symbol: '',
+            name: '',
+            asset_type: 'stock'
+          });
+          setRemoveMessage({ type: '', text: '' });
+          fetchPortfolioData();
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        setRemoveMessage({ type: 'error', text: errorData.error || 'Failed to remove asset' });
+        console.error('Failed to remove asset:', errorData);
       }
     } catch (error) {
+      setRemoveMessage({ type: 'error', text: 'Network error occurred' });
       console.error('Failed to remove asset:', error);
     }
   };
@@ -609,6 +627,13 @@ const Portfolio = () => {
         <DialogTitle>Remove Asset</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            {removeMessage.text && (
+              <Grid item xs={12}>
+                <Alert severity={removeMessage.type === 'success' ? 'success' : 'error'}>
+                  {removeMessage.text}
+                </Alert>
+              </Grid>
+            )}
             <Grid item xs={12}>
               <TextField
                 select
@@ -623,6 +648,7 @@ const Portfolio = () => {
                     name: asset?.name || '',
                     asset_type: type
                   });
+                  setRemoveMessage({ type: '', text: '' });
                 }}
               >
                 {Object.entries(ASSET_TYPES).map(([type, config]) => {
@@ -637,7 +663,7 @@ const Portfolio = () => {
                 })}
               </TextField>
             </Grid>
-            {assetToRemove.symbol && (
+            {assetToRemove.symbol && !removeMessage.text && (
               <Grid item xs={12}>
                 <Alert severity="warning">
                   Are you sure you want to remove {assetToRemove.symbol} ({assetToRemove.name}) from your portfolio?
@@ -653,7 +679,7 @@ const Portfolio = () => {
             variant="contained" 
             color="error"
             onClick={handleRemoveAsset}
-            disabled={!assetToRemove.symbol}
+            disabled={!assetToRemove.symbol || removeMessage.type === 'success'}
           >
             Remove Asset
           </Button>
