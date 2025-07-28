@@ -65,6 +65,11 @@ const Portfolio = () => {
     avg_cost: '',
     currency: 'USD'
   });
+  const [assetToRemove, setAssetToRemove] = useState({
+    symbol: '',
+    name: '',
+    asset_type: 'stock'
+  });
 
   // 📊 Fetch portfolio data
   const fetchPortfolioData = async () => {
@@ -189,22 +194,18 @@ const Portfolio = () => {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...newAsset,
-          portfolio_id: 1,
-          quantity: parseFloat(newAsset.quantity),
-          avg_cost: parseFloat(newAsset.avg_cost)
+          symbol: assetToRemove.symbol,
+          asset_type: assetToRemove.asset_type,
+          portfolio_id: 1
         })
       });
       
       if (response.ok) {
         setRemoveAssetOpen(false);
-        setNewAsset({
+        setAssetToRemove({
           symbol: '',
           name: '',
-          asset_type: 'stock',
-          quantity: '',
-          avg_cost: '',
-          currency: 'USD'
+          asset_type: 'stock'
         });
         await fetchPortfolioData();
       }
@@ -603,66 +604,59 @@ const Portfolio = () => {
           </Card>
         </Grid>
       </Grid>
-      {/* 📝 remove asset dialogs */}
+      {/* 📝 Remove asset dialog */}
       <Dialog open={removeAssetOpen} onClose={() => setRemoveAssetOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Remove Asset</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 select
                 fullWidth
-                label="Asset Type"
-                value={newAsset.asset_type}
-                onChange={(e) => setNewAsset(prev => ({...prev, asset_type: e.target.value}))}
+                label="Select Asset to Remove"
+                value={`${assetToRemove.asset_type}:${assetToRemove.symbol}`}
+                onChange={(e) => {
+                  const [type, symbol] = e.target.value.split(':');
+                  const asset = portfolioData?.assetsByType?.[type]?.assets?.find(a => a.symbol === symbol);
+                  setAssetToRemove({
+                    symbol: symbol,
+                    name: asset?.name || '',
+                    asset_type: type
+                  });
+                }}
               >
-                {Object.entries(ASSET_TYPES).map(([type, config]) => (
-                  <MenuItem key={type} value={type}>
-                    {config.icon} {config.name}
-                  </MenuItem>
-                ))}
+                {Object.entries(ASSET_TYPES).map(([type, config]) => {
+                  const typeData = portfolioData?.assetsByType?.[type];
+                  if (!typeData?.assets?.length) return null;
+                  
+                  return typeData.assets.map((asset) => (
+                    <MenuItem key={`${type}:${asset.symbol}`} value={`${type}:${asset.symbol}`}>
+                      {config.icon} {asset.symbol} - {asset.name}
+                    </MenuItem>
+                  ));
+                })}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Symbol"
-                placeholder="e.g., AAPL, BTC"
-                value={newAsset.symbol}
-                onChange={(e) => setNewAsset(prev => ({...prev, symbol: e.target.value}))}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Asset Name"
-                value={newAsset.name}
-                onChange={(e) => setNewAsset(prev => ({...prev, name: e.target.value}))}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Quantity"
-                type="number"
-                value={newAsset.quantity}
-                onChange={(e) => setNewAsset(prev => ({...prev, quantity: e.target.value}))}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Average Cost"
-                type="number"
-                value={newAsset.avg_cost}
-                onChange={(e) => setNewAsset(prev => ({...prev, avg_cost: e.target.value}))}
-              />
-            </Grid>
+            {assetToRemove.symbol && (
+              <Grid item xs={12}>
+                <Alert severity="warning">
+                  Are you sure you want to remove {assetToRemove.symbol} ({assetToRemove.name}) from your portfolio?
+                  This action cannot be undone.
+                </Alert>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddAssetOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleRemoveAsset}>Remove</Button>
+          <Button onClick={() => setRemoveAssetOpen(false)}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            color="error"
+            onClick={handleRemoveAsset}
+            disabled={!assetToRemove.symbol}
+          >
+            Remove Asset
+          </Button>
         </DialogActions>
       </Dialog>
           
