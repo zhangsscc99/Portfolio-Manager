@@ -55,6 +55,7 @@ const Portfolio = () => {
   const [chartLoading, setChartLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [addAssetOpen, setAddAssetOpen] = useState(false);
+  const [removeAssetOpen, setRemoveAssetOpen] = useState(false);
   const [expandedTypes, setExpandedTypes] = useState({});
   const [newAsset, setNewAsset] = useState({
     symbol: '',
@@ -181,6 +182,37 @@ const Portfolio = () => {
       console.error('Failed to update prices:', error);
     }
   };
+  // - Remove asset
+  const handleRemoveAsset = async () => {
+    try {
+      const response = await fetch('/api/assets', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newAsset,
+          portfolio_id: 1,
+          quantity: parseFloat(newAsset.quantity),
+          avg_cost: parseFloat(newAsset.avg_cost)
+        })
+      });
+      
+      if (response.ok) {
+        setRemoveAssetOpen(false);
+        setNewAsset({
+          symbol: '',
+          name: '',
+          asset_type: 'stock',
+          quantity: '',
+          avg_cost: '',
+          currency: 'USD'
+        });
+        await fetchPortfolioData();
+      }
+    } catch (error) {
+      console.error('Failed to remove asset:', error);
+    }
+  };
+
 
   // ➕ Add asset
   const handleAddAsset = async () => {
@@ -325,7 +357,8 @@ const Portfolio = () => {
           <Button
             variant="contained"
             startIcon={<RemoveIcon />}
-            onClick={() => setAddAssetOpen(true)}
+            // CHANGE THIS TO REMOVE 
+            onClick={() => setRemoveAssetOpen(true)}
           >
             Remove Asset
           </Button>
@@ -570,6 +603,70 @@ const Portfolio = () => {
           </Card>
         </Grid>
       </Grid>
+      {/* 📝 remove asset dialogs */}
+      <Dialog open={removeAssetOpen} onClose={() => setRemoveAssetOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Remove Asset</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                label="Asset Type"
+                value={newAsset.asset_type}
+                onChange={(e) => setNewAsset(prev => ({...prev, asset_type: e.target.value}))}
+              >
+                {Object.entries(ASSET_TYPES).map(([type, config]) => (
+                  <MenuItem key={type} value={type}>
+                    {config.icon} {config.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Symbol"
+                placeholder="e.g., AAPL, BTC"
+                value={newAsset.symbol}
+                onChange={(e) => setNewAsset(prev => ({...prev, symbol: e.target.value}))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Asset Name"
+                value={newAsset.name}
+                onChange={(e) => setNewAsset(prev => ({...prev, name: e.target.value}))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Quantity"
+                type="number"
+                value={newAsset.quantity}
+                onChange={(e) => setNewAsset(prev => ({...prev, quantity: e.target.value}))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Average Cost"
+                type="number"
+                value={newAsset.avg_cost}
+                onChange={(e) => setNewAsset(prev => ({...prev, avg_cost: e.target.value}))}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddAssetOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleRemoveAsset}>Remove</Button>
+        </DialogActions>
+      </Dialog>
+          
+
 
       {/* 📝 Add asset dialog */}
       <Dialog open={addAssetOpen} onClose={() => setAddAssetOpen(false)} maxWidth="sm" fullWidth>
@@ -635,6 +732,10 @@ const Portfolio = () => {
       </Dialog>
     </Box>
   );
+
+  
+
+
 };
 
 export default Portfolio; 
