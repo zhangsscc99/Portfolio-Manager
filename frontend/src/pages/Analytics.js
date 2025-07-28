@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -154,7 +154,12 @@ const Analytics = () => {
                 Performance Comparison
               </Typography>
               <Box sx={{ height: 300 }}>
-                <Line data={performanceData} options={chartOptions} />
+                <Line 
+                  key="performance-chart"
+                  data={performanceData} 
+                  options={chartOptions}
+                  redraw={true}
+                />
               </Box>
             </CardContent>
           </Card>
@@ -167,7 +172,12 @@ const Analytics = () => {
                 Sector Allocation
               </Typography>
               <Box sx={{ height: 300 }}>
-                <Bar data={sectorData} options={chartOptions} />
+                <Bar 
+                  key="sector-chart"
+                  data={sectorData} 
+                  options={chartOptions}
+                  redraw={true}
+                />
               </Box>
             </CardContent>
           </Card>
