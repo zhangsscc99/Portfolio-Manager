@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const yahooFinanceService = require('../services/yahooFinance');
-const { Holding } = require('../models/index');
+const { Portfolio, Holding } = require('../models/index');
 const cron = require('node-cron');
 
 // 🔄 定时更新股票价格 (每5分钟)

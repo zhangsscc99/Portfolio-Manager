@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Portfolio, Holding, User } = require('../models/index');
+const { Portfolio, Holding } = require('../models/index');
 
 // 🎯 初始化示例数据 - 使用数据库操作
 const initializeSampleData = async () => {

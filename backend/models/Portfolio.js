@@ -42,11 +42,7 @@ const Portfolio = sequelize.define('Portfolio', {
     defaultValue: 0.00,
     comment: '日变动百分比'
   },
-  user_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true, // 暂时允许为空
-    comment: '用户ID'
-  }
+
 }, {
   tableName: 'portfolios',
   timestamps: true,
