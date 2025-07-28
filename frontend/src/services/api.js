@@ -101,7 +101,7 @@ export const marketAPI = {
   getLosers: (limit = 5) => api.get(`/market/losers?limit=${limit}`),
   
   // Search stocks
-  searchStocks: (query) => api.get(`/market/search/${query}`),
+  searchStocks: (query) => api.get(`/market/search?q=${encodeURIComponent(query)}`),
   
   // Get market indices
   getIndices: () => api.get('/market/indices'),
