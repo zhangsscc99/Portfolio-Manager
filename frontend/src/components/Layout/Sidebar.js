@@ -8,7 +8,6 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-  Avatar,
   Divider,
   Chip,
 } from '@mui/material';
@@ -17,7 +16,6 @@ import {
   AccountBalance as PortfolioIcon,
   Analytics as AnalyticsIcon,
   ShowChart as MarketsIcon,
-  Person as PersonIcon,
 } from '@mui/icons-material';
 
 const navigationItems = [
@@ -111,54 +109,7 @@ const Sidebar = ({ onNavigate }) => {
           </Typography>
         </Box>
         
-        {/* User Info */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            p: 2,
-            borderRadius: 2,
-            bgcolor: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          <Avatar
-            sx={{
-              width: 32,
-              height: 32,
-              mr: 2,
-              bgcolor: 'primary.main',
-              fontSize: '0.875rem',
-            }}
-          >
-            YW
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 500,
-                color: 'text.primary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Yuting Wang
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.secondary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Portfolio Value: $2,317,371
-            </Typography>
-          </Box>
-        </Box>
+        {/* User info removed - no user management */}
       </Box>
 
       <Divider sx={{ mb: 2, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
