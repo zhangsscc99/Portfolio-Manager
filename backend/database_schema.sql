@@ -1,3 +1,9 @@
+-- =========================================
+-- Portfolio Manager 数据库结构
+-- 生成时间: 2025/7/29 10:01:11
+-- 数据库: portfolio_manager
+-- 字符集: utf8mb4
+-- =========================================
 
 -- 创建数据库
 CREATE DATABASE IF NOT EXISTS portfolio_manager 
