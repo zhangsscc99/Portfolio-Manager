@@ -1,4 +1,5 @@
 const axios = require('axios');
+const chatDatabaseService = require('./chatDatabaseService');
 
 class AIChatService {
   constructor() {
@@ -8,42 +9,126 @@ class AIChatService {
     
     // In-memory session storage (in production, use Redis or database)
     this.sessions = new Map();
+    // Portfolio-based session mapping for persistent memory
+    this.portfolioSessions = new Map();
   }
 
-  // Get or create chat session
-  getSession(sessionId) {
+  // Get or create chat session based on portfolio ID for persistent memory
+  async getSession(sessionId, portfolioId = null) {
+    // If portfolioId is provided, use it for persistent session
+    if (portfolioId) {
+      const persistentSessionId = `portfolio_${portfolioId}`;
+      
+      // First try to load from database
+      const dbResult = await chatDatabaseService.loadSession(persistentSessionId);
+      
+      // Check if portfolio already has a session in memory
+      if (this.portfolioSessions.has(portfolioId)) {
+        const existingSessionId = this.portfolioSessions.get(portfolioId);
+        if (this.sessions.has(existingSessionId)) {
+          const session = this.sessions.get(existingSessionId);
+          session.lastActivity = new Date();
+          return session;
+        }
+      }
+      
+      let session;
+      
+      // If session exists in database, restore it
+      if (dbResult.success) {
+        console.log(`📚 Restored session from database: ${persistentSessionId}`);
+        session = {
+          id: dbResult.session.id,
+          portfolioId: dbResult.session.portfolioId,
+          messages: dbResult.session.messages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp),
+            isSystemUpdate: msg.isSystemUpdate
+          })),
+          portfolioContext: dbResult.session.portfolioContext,
+          createdAt: new Date(dbResult.session.createdAt),
+          lastActivity: new Date(),
+          isPersistent: true
+        };
+      } else {
+        // Create new portfolio-based session
+        session = {
+          id: persistentSessionId,
+          portfolioId: portfolioId,
+          messages: [],
+          portfolioContext: null,
+          createdAt: new Date(),
+          lastActivity: new Date(),
+          isPersistent: true
+        };
+        console.log(`📝 Created new persistent session for portfolio ${portfolioId}`);
+      }
+      
+      this.sessions.set(persistentSessionId, session);
+      this.portfolioSessions.set(portfolioId, persistentSessionId);
+      
+      return session;
+    }
+    
+    // Fallback to old behavior for sessionId-based sessions
     if (!this.sessions.has(sessionId)) {
       this.sessions.set(sessionId, {
         id: sessionId,
         messages: [],
         portfolioContext: null,
         createdAt: new Date(),
-        lastActivity: new Date()
+        lastActivity: new Date(),
+        isPersistent: false
       });
     }
     return this.sessions.get(sessionId);
   }
 
   // Update session context with portfolio data
-  updateSessionContext(sessionId, portfolioContext) {
-    const session = this.getSession(sessionId);
+  async updateSessionContext(sessionId, portfolioContext, portfolioId = null) {
+    const session = await this.getSession(sessionId, portfolioId);
     session.portfolioContext = portfolioContext;
     session.lastActivity = new Date();
+    
+    // Save to database if persistent
+    if (session.isPersistent && portfolioId) {
+      await chatDatabaseService.saveSession(
+        session.id, 
+        portfolioId, 
+        portfolioContext, 
+        true
+      );
+    }
   }
 
   // Add message to session history
-  addMessageToSession(sessionId, role, content) {
-    const session = this.getSession(sessionId);
-    session.messages.push({
+  async addMessageToSession(sessionId, role, content, portfolioId = null) {
+    const session = await this.getSession(sessionId, portfolioId);
+    const message = {
       role,
       content,
-      timestamp: new Date()
-    });
+      timestamp: new Date(),
+      isSystemUpdate: role === 'system'
+    };
+    
+    session.messages.push(message);
     session.lastActivity = new Date();
     
-    // Keep only last 20 messages to manage context length
-    if (session.messages.length > 20) {
-      session.messages = session.messages.slice(-20);
+    // Keep more messages for persistent sessions
+    const maxMessages = session.isPersistent ? 50 : 20;
+    if (session.messages.length > maxMessages) {
+      session.messages = session.messages.slice(-maxMessages);
+    }
+    
+    // Save to database if persistent
+    if (session.isPersistent) {
+      await chatDatabaseService.saveMessage(
+        session.id, 
+        role, 
+        content, 
+        role === 'system'
+      );
     }
   }
 
@@ -106,19 +191,19 @@ ${this.formatPortfolioHoldings(portfolioData)}
   }
 
   // Call AI with chat context
-  async generateChatResponse(sessionId, userMessage, portfolioContext) {
+  async generateChatResponse(sessionId, userMessage, portfolioContext, portfolioId = null) {
     try {
       console.log(`🗣️ Generating chat response for session ${sessionId.substring(0, 8)}...`);
       
       // Update session context
       if (portfolioContext) {
-        this.updateSessionContext(sessionId, portfolioContext);
+        await this.updateSessionContext(sessionId, portfolioContext, portfolioId);
       }
       
       // Add user message to session
-      this.addMessageToSession(sessionId, 'user', userMessage);
+      await this.addMessageToSession(sessionId, 'user', userMessage, portfolioId);
       
-      const session = this.getSession(sessionId);
+      const session = await this.getSession(sessionId, portfolioId);
       const systemPrompt = this.generateSystemPrompt(session.portfolioContext);
       
       // Prepare messages for AI
@@ -151,14 +236,14 @@ ${this.formatPortfolioHoldings(portfolioData)}
         const aiResponse = response.data.choices[0].message.content;
         
         // Add AI response to session
-        this.addMessageToSession(sessionId, 'assistant', aiResponse);
+        await this.addMessageToSession(sessionId, 'assistant', aiResponse, portfolioId);
         
         console.log('✅ Chat response generated successfully');
         
         return {
           success: true,
           response: aiResponse,
-          sessionId: sessionId,
+          sessionId: session.id, // Use actual session ID (might be portfolio-based)
           messageCount: session.messages.length,
           usage: response.data.usage
         };
@@ -170,16 +255,49 @@ ${this.formatPortfolioHoldings(portfolioData)}
       
       // Fallback response for errors
       const fallbackResponse = this.generateFallbackResponse(userMessage, portfolioContext);
-      this.addMessageToSession(sessionId, 'assistant', fallbackResponse);
+      await this.addMessageToSession(sessionId, 'assistant', fallbackResponse, portfolioId);
+      
+      const session = await this.getSession(sessionId, portfolioId);
       
       return {
         success: true,
         response: fallbackResponse,
-        sessionId: sessionId,
+        sessionId: session.id,
         isOffline: true,
         error: error.message
       };
     }
+  }
+
+  // Update all sessions for a portfolio when new analysis is generated
+  updatePortfolioMemory(portfolioId, newPortfolioContext) {
+    console.log(`🔄 Updating memory for portfolio ${portfolioId} with new analysis...`);
+    
+    // Get the persistent session for this portfolio
+    if (this.portfolioSessions.has(portfolioId)) {
+      const sessionId = this.portfolioSessions.get(portfolioId);
+      if (this.sessions.has(sessionId)) {
+        const session = this.sessions.get(sessionId);
+        
+        // Update context with new analysis data
+        session.portfolioContext = newPortfolioContext;
+        session.lastActivity = new Date();
+        
+        // Add system message about new analysis
+        session.messages.push({
+          role: 'system',
+          content: `[System Update] New portfolio analysis has been generated. Updated context with latest data and insights.`,
+          timestamp: new Date(),
+          isSystemUpdate: true
+        });
+        
+        console.log(`✅ Updated memory for portfolio ${portfolioId}, session has ${session.messages.length} messages`);
+        return true;
+      }
+    }
+    
+    console.log(`⚠️ No existing session found for portfolio ${portfolioId}`);
+    return false;
   }
 
   // Generate fallback response when AI fails
@@ -245,13 +363,40 @@ For personalized advice based on your specific portfolio, please try again when 
 
   // Get session info
   getSessionInfo(sessionId) {
-    const session = this.getSession(sessionId);
+    // Check if this is a portfolio-based session ID
+    const portfolioIdMatch = sessionId.match(/^portfolio_(\d+)$/);
+    let session;
+    
+    if (portfolioIdMatch) {
+      const portfolioId = portfolioIdMatch[1];
+      if (this.portfolioSessions.has(portfolioId)) {
+        const realSessionId = this.portfolioSessions.get(portfolioId);
+        session = this.sessions.get(realSessionId);
+      }
+    } else {
+      session = this.sessions.get(sessionId);
+    }
+    
+    if (!session) {
+      return {
+        sessionId: sessionId,
+        messageCount: 0,
+        createdAt: null,
+        lastActivity: null,
+        hasPortfolioContext: false,
+        found: false
+      };
+    }
+    
     return {
       sessionId: session.id,
       messageCount: session.messages.length,
       createdAt: session.createdAt,
       lastActivity: session.lastActivity,
-      hasPortfolioContext: !!session.portfolioContext
+      hasPortfolioContext: !!session.portfolioContext,
+      isPersistent: session.isPersistent || false,
+      portfolioId: session.portfolioId || null,
+      found: true
     };
   }
 }

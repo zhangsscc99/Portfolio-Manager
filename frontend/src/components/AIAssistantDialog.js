@@ -47,11 +47,12 @@ const AIAssistantDialog = ({ open, onClose, portfolioId, portfolioData, analysis
   const inputRef = useRef(null);
   const dialogRef = useRef(null);
 
-  // Initialize new session when dialog opens
+  // Initialize persistent session when dialog opens
   useEffect(() => {
     if (open) {
-      const newSessionId = uuidv4();
-      setSessionId(newSessionId);
+      // Use portfolio-based session ID for persistent memory
+      const persistentSessionId = portfolioId ? `portfolio_${portfolioId}` : uuidv4();
+      setSessionId(persistentSessionId);
       setMessages([
         {
           id: 1,
@@ -63,7 +64,9 @@ Your portfolio summary:
 • Asset Types: ${Object.keys(portfolioData?.assetDistribution || {}).length}
 • Risk Level: ${analysisData?.summary?.riskLevel || 'Unknown'}
 
-Feel free to ask me anything about your investments, market outlook, or specific recommendations!`,
+Feel free to ask me anything about your investments, market outlook, or specific recommendations!
+
+💾 **Memory Enabled**: I'll remember our conversation history across sessions for this portfolio.`,
           timestamp: new Date()
         }
       ]);
@@ -74,6 +77,11 @@ Feel free to ask me anything about your investments, market outlook, or specific
       // 同步初始位置到ref
       positionRef.current = position;
       
+      // Load existing conversation history if available
+      if (portfolioId) {
+        loadConversationHistory(persistentSessionId);
+      }
+      
       // Focus input after dialog animation
       setTimeout(() => {
         if (inputRef.current && !isMinimized) {
@@ -81,7 +89,7 @@ Feel free to ask me anything about your investments, market outlook, or specific
         }
       }, 300);
     }
-  }, [open, portfolioData, analysisData]);
+  }, [open, portfolioData, analysisData, portfolioId]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -153,6 +161,45 @@ Feel free to ask me anything about your investments, market outlook, or specific
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Load existing conversation history from server
+  const loadConversationHistory = async (sessionId) => {
+    try {
+      console.log(`📚 Loading conversation history for session ${sessionId}...`);
+      
+      const response = await fetch(buildApiUrl(`/ai-analysis/chat/session/${sessionId}`), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data.messageCount > 0) {
+        console.log(`✅ Loaded ${result.data.messageCount} messages from history`);
+        
+        // Update the welcome message to indicate loaded history
+        setMessages(prev => {
+          const welcomeMessage = prev[0];
+          return [{
+            ...welcomeMessage,
+            content: `👋 Welcome back! I'm your AI Investment Assistant with access to your portfolio analysis.
+
+Your portfolio summary:
+• Total Value: ${formatCurrency(portfolioData?.totalValue || 0)}
+• Asset Types: ${Object.keys(portfolioData?.assetDistribution || {}).length}
+• Risk Level: ${analysisData?.summary?.riskLevel || 'Unknown'}
+
+💾 **Conversation Restored**: I've loaded our previous ${result.data.messageCount} messages. Feel free to continue our discussion!`
+          }];
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+      // Continue without history - not a critical error
+    }
   };
 
   const formatCurrency = (value) => {
