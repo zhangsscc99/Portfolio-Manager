@@ -3,15 +3,11 @@ const router = express.Router();
 const yahooFinanceService = require("../services/yahooFinance");
 const scheduledUpdatesService = require("../services/scheduledUpdates");
 const { Holding } = require("../models/index");
-const cron = require("node-cron");
 const { HttpsProxyAgent } = require("https-proxy-agent");
 // 设置代理地址
 const proxy = "http://127.0.0.1:7777"; // 替换为你的代理地址
 const agent = new HttpsProxyAgent(proxy);
 const axios = require("axios");
-
-const dailyLosersLink =
-  "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=100&formatted=true&scrIds=DAY_LOSERS&sortField=&sortType=&start=0&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US";
 
 // 📊 GET /api/market/quote/:symbol - 获取单个股票报价
 router.get("/quote/:symbol", async (req, res) => {
