@@ -404,30 +404,57 @@ const Stock = () => {
           variant="scrollable" // 允许在小屏幕上滚动
           scrollButtons="auto" // 自动显示/隐藏滚动按钮
         >
-          {/* 移除 Tab 的 minHeight, padding 和 .MuiTab-wrapper 样式，仅保留 hover 效果 */}
           <Tab
             label="Most Active"
             icon={<ActiveIcon />}
             iconPosition="start"
             {...a11yProps(0)}
+            sx={{
+              minHeight: '48px',
+              padding: '6px 16px',
+              '& .MuiTab-iconWrapper': {
+                marginRight: '8px',
+              },
+            }}
           />
           <Tab
             label="Trending Now"
             icon={<TrendingIcon />}
             iconPosition="start"
             {...a11yProps(1)}
+            sx={{
+              minHeight: '48px',
+              padding: '6px 16px',
+              '& .MuiTab-iconWrapper': {
+                marginRight: '8px',
+              },
+            }}
           />
           <Tab
             label="Top Gainers"
             icon={<TrendingUpIcon />}
             iconPosition="start"
             {...a11yProps(2)}
+            sx={{
+              minHeight: '48px',
+              padding: '6px 16px',
+              '& .MuiTab-iconWrapper': {
+                marginRight: '8px',
+              },
+            }}
           />
           <Tab
             label="Top Losers"
             icon={<TrendingDownIcon />}
             iconPosition="start"
             {...a11yProps(3)}
+            sx={{
+              minHeight: '48px',
+              padding: '6px 16px',
+              '& .MuiTab-iconWrapper': {
+                marginRight: '8px',
+              },
+            }}
           />
         </Tabs>
       </Box>
