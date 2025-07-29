@@ -152,16 +152,41 @@ class AIChatService {
 ## Risk Assessment:
 - Overall Risk Level: ${analysisData?.summary?.riskLevel || 'Unknown'}
 - Overall Score: ${analysisData?.summary?.overallScore || 'N/A'}/100
+- Last Analysis: ${analysisData?.analysisTimestamp ? new Date(analysisData.analysisTimestamp).toLocaleDateString() : 'N/A'}
 
 ## Key Holdings Analysis:
 ${this.formatPortfolioHoldings(portfolioData)}
 
+${analysisData?.keyInsights?.length > 0 ? `
+## Recent AI Analysis Insights:
+${analysisData.keyInsights.map(insight => `- ${insight}`).join('\n')}
+` : ''}
+
+${analysisData?.recommendations?.length > 0 ? `
+## AI-Generated Recommendations:
+${analysisData.recommendations.map(rec => `- ${rec}`).join('\n')}
+` : ''}
+
+${analysisData?.riskFactors?.length > 0 ? `
+## Identified Risk Factors:
+${analysisData.riskFactors.map(risk => `- ${risk}`).join('\n')}
+` : ''}
+
+${Object.keys(analysisData?.stockAnalysis || {}).length > 0 ? `
+## Individual Stock Analysis Available:
+You have detailed analysis available for: ${Object.keys(analysisData.stockAnalysis).join(', ')}
+Reference this analysis when discussing these specific stocks.
+` : ''}
+
 ## Your Role:
 - Provide specific, actionable investment advice based on their actual holdings
 - Reference their specific assets when giving recommendations
+- **Leverage recent AI analysis insights and recommendations when available**
+- **Reference individual stock analysis for company-specific questions**
 - Consider their current allocation and risk profile
 - Suggest concrete actions (buy, sell, hold, rebalance)
-- Explain reasoning behind recommendations
+- **Build upon previous analysis and maintain conversation continuity**
+- Explain reasoning behind recommendations using both real-time market knowledge and stored analysis
 - Keep responses concise but informative (200-400 words ideal)
 - Always remind that this is for informational purposes and not professional financial advice
 

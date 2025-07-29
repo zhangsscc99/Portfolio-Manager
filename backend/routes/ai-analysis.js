@@ -3,6 +3,7 @@ const router = express.Router();
 // Use improved AI service with retry mechanism and offline fallback
 const aiAnalysisService = require('../services/aiAnalysisService-improved');
 const aiChatService = require('../services/aiChatService');
+const aiIntegrationService = require('../services/aiIntegrationService');
 const portfolioService = require('../services/portfolioService');
 
 // 🗣️ POST /api/ai-analysis/chat - AI Assistant Chat
@@ -117,17 +118,17 @@ router.post('/portfolio', async (req, res) => {
     
     console.log('✅ AI analysis completed');
 
-    // Update AI chat memory with new analysis
-    const newPortfolioContext = {
-      portfolioData: portfolioResult.data,
-      analysisData: { ...analysisResult.data, summary },
-      timestamp: new Date().toISOString()
-    };
-    
-    // Notify chat service to update memory for this portfolio
-    const memoryUpdated = aiChatService.updatePortfolioMemory(portfolioId, newPortfolioContext);
-    if (memoryUpdated) {
-      console.log(`🧠 Updated AI assistant memory for portfolio ${portfolioId}`);
+    // Store analysis result and update AI Assistant memory with enhanced context
+    try {
+      await aiIntegrationService.storeAnalysisResult(
+        portfolioId, 
+        { ...analysisResult.data, summary }, 
+        portfolioResult.data
+      );
+      console.log(`🤖 AI Assistant memory updated with enhanced analysis for portfolio ${portfolioId}`);
+    } catch (error) {
+      console.warn('Failed to update AI Assistant memory:', error.message);
+      // Don't fail the request if memory update fails
     }
 
     res.json({
@@ -187,17 +188,17 @@ router.get('/portfolio/:portfolioId', async (req, res) => {
       responseData.notice = 'Currently using offline analysis mode. Recommend obtaining detailed analysis when network is restored.';
     }
 
-    // Update AI chat memory with retrieved analysis
-    const newPortfolioContext = {
-      portfolioData: portfolioResult.data,
-      analysisData: responseData,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Notify chat service to update memory for this portfolio
-    const memoryUpdated = aiChatService.updatePortfolioMemory(portfolioId, newPortfolioContext);
-    if (memoryUpdated) {
-      console.log(`🧠 Updated AI assistant memory for portfolio ${portfolioId} (GET)`);
+    // Store analysis result and update AI Assistant memory with enhanced context
+    try {
+      await aiIntegrationService.storeAnalysisResult(
+        portfolioId, 
+        responseData, 
+        portfolioResult.data
+      );
+      console.log(`🤖 AI Assistant memory updated with enhanced analysis for portfolio ${portfolioId} (GET)`);
+    } catch (error) {
+      console.warn('Failed to update AI Assistant memory:', error.message);
+      // Don't fail the request if memory update fails
     }
 
     console.log('✅ AI analysis retrieval completed');
