@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   TextField,
@@ -40,7 +40,8 @@ const AIAssistantDialog = ({ open, onClose, portfolioId, portfolioData, analysis
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const positionRef = useRef({ x: 20, y: 20 });
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -70,6 +71,9 @@ Feel free to ask me anything about your investments, market outlook, or specific
       setError(null);
       setIsMinimized(false);
       
+      // 同步初始位置到ref
+      positionRef.current = position;
+      
       // Focus input after dialog animation
       setTimeout(() => {
         if (inputRef.current && !isMinimized) {
@@ -84,29 +88,36 @@ Feel free to ask me anything about your investments, market outlook, or specific
     scrollToBottom();
   }, [messages]);
 
+  // 优化的鼠标移动处理函数
+  const handleMouseMove = useCallback((e) => {
+    if (dialogRef.current) {
+      // 直接使用鼠标位置减去初始偏移，确保同步移动
+      const newX = e.clientX - dragOffsetRef.current.x;
+      const newY = e.clientY - dragOffsetRef.current.y;
+      
+      // 确保对话框不会拖出屏幕边界
+      const maxX = window.innerWidth - (isMinimized ? 350 : 450);
+      const maxY = window.innerHeight - (isMinimized ? 100 : 600);
+      
+      const clampedX = Math.max(0, Math.min(newX, maxX));
+      const clampedY = Math.max(0, Math.min(newY, maxY));
+      
+      // 直接更新DOM位置，避免状态更新延迟
+      dialogRef.current.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+      
+      // 更新ref中的位置
+      positionRef.current = { x: clampedX, y: clampedY };
+    }
+  }, [isMinimized]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    // 同步最终位置到state，用于重新渲染时的初始位置
+    setPosition(positionRef.current);
+  }, []);
+
   // Handle dragging
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (isDragging) {
-        // 直接使用鼠标位置减去初始偏移，确保同步移动
-        const newX = e.clientX - dragOffset.x;
-        const newY = e.clientY - dragOffset.y;
-        
-        // 确保对话框不会拖出屏幕边界
-        const maxX = window.innerWidth - (isMinimized ? 350 : 450);
-        const maxY = window.innerHeight - (isMinimized ? 100 : 600);
-        
-        setPosition({
-          x: Math.max(0, Math.min(newX, maxX)),
-          y: Math.max(0, Math.min(newY, maxY))
-        });
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove, { passive: false });
       document.addEventListener('mouseup', handleMouseUp, { passive: false });
@@ -121,9 +132,9 @@ Feel free to ask me anything about your investments, market outlook, or specific
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.style.userSelect = '';
     };
-  }, [isDragging, dragOffset, isMinimized]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = useCallback((e) => {
     // 防止在按钮上开始拖动
     if (e.target.closest('button') || e.target.closest('[role="button"]')) {
       return;
@@ -131,14 +142,14 @@ Feel free to ask me anything about your investments, market outlook, or specific
     
     if (dialogRef.current) {
       const rect = dialogRef.current.getBoundingClientRect();
-      setDragOffset({
+      dragOffsetRef.current = {
         x: e.clientX - rect.left,
         y: e.clientY - rect.top
-      });
+      };
       setIsDragging(true);
       e.preventDefault(); // 防止文本选择
     }
-  };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -245,8 +256,9 @@ Feel free to ask me anything about your investments, market outlook, or specific
       elevation={8}
       sx={{
         position: 'fixed',
-        left: position.x,
-        top: position.y,
+        left: 0,
+        top: 0,
+        transform: `translate(${position.x}px, ${position.y}px)`,
         width: isMinimized ? 350 : 450,
         height: isMinimized ? 'auto' : 600,
         maxHeight: isMinimized ? 'auto' : '80vh',
@@ -255,7 +267,7 @@ Feel free to ask me anything about your investments, market outlook, or specific
         flexDirection: 'column',
         borderRadius: 3,
         overflow: 'hidden',
-        transition: 'all 0.3s ease-in-out',
+        transition: isDragging ? 'none' : 'all 0.3s ease-in-out',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         border: '2px solid transparent',
         backgroundImage: 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%), linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
