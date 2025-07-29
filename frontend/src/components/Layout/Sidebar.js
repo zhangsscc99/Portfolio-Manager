@@ -22,25 +22,25 @@ const navigationItems = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    path: '/dashboard',
+    path: '/app/dashboard',
     icon: DashboardIcon,
   },
   {
     id: 'portfolio',
     label: 'Portfolio',
-    path: '/portfolio',
+    path: '/app/portfolio',
     icon: PortfolioIcon,
   },
   {
     id: 'analytics',
     label: 'Analytics',
-    path: '/analytics',
+    path: '/app/analytics',
     icon: AnalyticsIcon,
   },
   {
     id: 'markets',
     label: 'Markets',
-    path: '/markets',
+    path: '/app/markets',
     icon: MarketsIcon,
   },
 ];
@@ -103,7 +103,12 @@ const Sidebar = ({ onNavigate }) => {
             sx={{
               fontWeight: 600,
               color: 'text.primary',
+              cursor: 'pointer',
+              '&:hover': {
+                color: 'primary.main',
+              },
             }}
+            onClick={() => navigate('/')}
           >
             Portfolio Manager
           </Typography>

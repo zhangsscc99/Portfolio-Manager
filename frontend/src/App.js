@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 
 // Components
 import Layout from './components/Layout/Layout';
+import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
@@ -187,15 +188,29 @@ function App() {
         <CssBaseline />
         <Router>
           <div className="App">
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/markets" element={<Markets />} />
-              </Routes>
-            </Layout>
+            <Routes>
+              {/* Homepage route - no layout */}
+              <Route path="/" element={<HomePage />} />
+              
+              {/* Main app routes - with layout */}
+              <Route path="/app/*" element={
+                <Layout>
+                  <Routes>
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="portfolio" element={<Portfolio />} />
+                    <Route path="analytics" element={<Analytics />} />
+                    <Route path="markets" element={<Markets />} />
+                    <Route path="" element={<Dashboard />} /> {/* Default to dashboard */}
+                  </Routes>
+                </Layout>
+              } />
+              
+              {/* Legacy routes redirect to new structure */}
+              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+              <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
+              <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
+              <Route path="/markets" element={<Layout><Markets /></Layout>} />
+            </Routes>
             <Toaster
               position="top-right"
               toastOptions={{
