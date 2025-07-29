@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
@@ -26,9 +25,11 @@ import {
   Star as TrendingIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
+import { useQuery } from 'react-query'; // 引入 useQuery
 
 // 确保这里的路径正确，它应该指向你的api.js或类似文件
-import { formatCurrency, formatPercentage, getChangeColor } from '../../services/api';
+import { formatCurrency, formatPercentage, getChangeColor, marketAPI } from '../../services/api';
+import toast from 'react-hot-toast'; // 引入 toast 用于错误提示
 
 // Tab Panel 的辅助组件
 function TabPanel(props) {
@@ -61,9 +62,6 @@ function a11yProps(index) {
 
 const Stock = () => {
   const [currentTab, setCurrentTab] = useState(0);
-  const [isLoading, setIsLoading] = useState(false); // 主内容区域的加载状态
-
-  // --- 搜索相关状态 ---
   const [searchTerm, setSearchTerm] = useState(''); // 实际用于防抖的搜索词
   const [displayedSearchTerm, setDisplayedSearchTerm] = useState(''); // 显示在输入框的搜索词
   const [currentTabFilteredData, setCurrentTabFilteredData] = useState([]); // 当前 Tab 下经过搜索过滤后的数据
@@ -72,82 +70,58 @@ const Stock = () => {
 
   const debounceTimerRef = useRef(null); // 防抖计时器引用
 
-  // --- 分页相关状态 ---
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsRowsPerPage] = useState(10);
-
-  // --- 排序相关状态 ---
   const [orderBy, setOrderBy] = useState('volume'); // 默认排序字段
   const [order, setOrder] = useState('desc'); // 默认排序方向 ('asc' 或 'desc')
 
-  // --- MOCK 股票数据 (生产环境中应替换为实际 API 调用获取的数据) ---
-  const mockMostActive = [
-    { symbol: 'TSLA', name: 'Tesla Inc.', price: 250.10, change: -5.20, changePercent: -0.0204, volume: 150000000, marketCap: 790000000000 },
-    { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 1000.50, change: 10.75, changePercent: 0.0108, volume: 120000000, marketCap: 2500000000000 },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 180.30, change: 2.15, changePercent: 0.0121, volume: 80000000, marketCap: 1850000000000 },
-    { symbol: 'GOOGL', name: 'Alphabet Inc. (Class A)', price: 175.80, change: 1.50, changePercent: 0.0086, volume: 70000000, marketCap: 2100000000000 },
-    { symbol: 'META', name: 'Meta Platforms Inc.', price: 450.00, change: 8.00, changePercent: 0.0180, volume: 60000000, marketCap: 1200000000000 },
-    { symbol: 'AAPL', name: 'Apple Inc.', price: 170.00, change: 0.50, changePercent: 0.0030, volume: 90000000, marketCap: 2600000000000 },
-    { symbol: 'MSFT', name: 'Microsoft Corp.', price: 420.00, change: 3.00, changePercent: 0.0072, volume: 75000000, marketCap: 3100000000000 },
-    { symbol: 'GOOG', name: 'Alphabet Inc. (Class C)', price: 178.00, change: 1.60, changePercent: 0.0091, volume: 65000000, marketCap: 2150000000000 },
-    { symbol: 'NFLX', name: 'Netflix Inc.', price: 600.00, change: 5.00, changePercent: 0.0084, volume: 30000000, marketCap: 260000000000 },
-    { symbol: 'ADBE', name: 'Adobe Inc.', price: 550.00, change: 4.50, changePercent: 0.0082, volume: 20000000, marketCap: 250000000000 },
-    { symbol: 'CRM', name: 'Salesforce Inc.', price: 280.00, change: 2.80, changePercent: 0.0101, volume: 25000000, marketCap: 270000000000 },
-    { symbol: 'INTC', name: 'Intel Corp.', price: 35.00, change: 0.50, changePercent: 0.0145, volume: 80000000, marketCap: 150000000000 },
-  ];
+  // --- 使用 react-query 获取数据 ---
+  const fetchFunctions = useRef([
+    marketAPI.getMostActive,  
+    marketAPI.getTrending,    
+    marketAPI.getGainers, 
+    marketAPI.getLosers,  
+  ]);
 
-  const mockTrendingNow = [
-    { symbol: 'SMCI', name: 'Super Micro Computer, Inc.', price: 900.20, change: 45.10, changePercent: 0.0527, volume: 30000000, marketCap: 50000000000 },
-    { symbol: 'PLTR', name: 'Palantir Technologies Inc.', price: 23.40, change: 1.20, changePercent: 0.0540, volume: 60000000, marketCap: 50000000000 },
-    { symbol: 'SOFI', name: 'SoFi Technologies, Inc.', price: 7.80, change: 0.40, changePercent: 0.0541, volume: 40000000, marketCap: 7000000000 },
-    { symbol: 'RIVN', name: 'Rivian Automotive Inc.', price: 12.50, change: 0.70, changePercent: 0.0590, volume: 25000000, marketCap: 12000000000 },
-    { symbol: 'PINS', name: 'Pinterest Inc.', price: 40.00, change: 2.00, changePercent: 0.0526, volume: 15000000, marketCap: 28000000000 },
-    { symbol: 'COIN', name: 'Coinbase Global Inc.', price: 250.00, change: 12.00, changePercent: 0.0505, volume: 10000000, marketCap: 55000000000 },
-    { symbol: 'AI', name: 'C3.ai Inc.', price: 30.00, change: 1.50, changePercent: 0.0526, volume: 20000000, marketCap: 3500000000 },
-    { symbol: 'JOBY', name: 'Joby Aviation Inc.', price: 7.00, change: 0.35, changePercent: 0.0526, volume: 18000000, marketCap: 4000000000 },
-  ];
-
-  const mockTopGainers = [
-    { symbol: 'XYZ', name: 'XYZ Corp.', price: 35.60, change: 3.20, changePercent: 0.0987, volume: 5000000, marketCap: 1200000000 },
-    { symbol: 'ABC', name: 'ABC Innovations', price: 120.90, change: 9.50, changePercent: 0.0850, volume: 3500000, marketCap: 5000000000 },
-    { symbol: 'LMN', name: 'LMN Solutions', price: 8.75, change: 0.65, changePercent: 0.0803, volume: 10000000, marketCap: 500000000 },
-    { symbol: 'PQR', name: 'PQR Holdings', price: 75.00, change: 5.50, changePercent: 0.0780, volume: 1200000, marketCap: 3000000000 },
-    { symbol: 'UVW', name: 'UVW Group', price: 25.00, change: 1.80, changePercent: 0.0770, volume: 2000000, marketCap: 800000000 },
-    { symbol: 'DEF', name: 'DEF Tech', price: 50.00, change: 3.50, changePercent: 0.0750, volume: 1800000, marketCap: 1000000000 },
-    { symbol: 'GHI', name: 'GHI Systems', price: 15.00, change: 1.00, changePercent: 0.0714, volume: 1500000, marketCap: 700000000 },
-  ];
-
-  const mockTopLosers = [
-    { symbol: 'QWE', name: 'QWE Systems', price: 55.20, change: -4.80, changePercent: -0.0800, volume: 2500000, marketCap: 2000000000 },
-    { symbol: 'RTY', name: 'RTY Global', price: 15.10, change: -1.20, changePercent: -0.0735, volume: 7000000, marketCap: 800000000 },
-    { symbol: 'UIO', name: 'UIO Enterprises', price: 200.00, change: -15.00, changePercent: -0.0698, volume: 1500000, marketCap: 10000000000 },
-    { symbol: 'JKL', name: 'JKL Industries', price: 30.00, change: -2.00, changePercent: -0.0625, volume: 4000000, marketCap: 1500000000 },
-    { symbol: 'GHI', name: 'GHI Solutions', price: 10.00, change: -0.60, changePercent: -0.0566, volume: 3000000, marketCap: 400000000 },
-    { symbol: 'OPQ', name: 'OPQ Corp', price: 80.00, change: -4.50, changePercent: -0.0530, volume: 2200000, marketCap: 4000000000 },
-    { symbol: 'MNO', name: 'MNO Tech', price: 25.00, change: -1.20, changePercent: -0.0455, volume: 2800000, marketCap: 1100000000 },
-  ];
-  // --- END MOCK 股票数据 ---
-
+  // 根据当前 Tab 动态选择查询键和查询函数
+  const {
+    data: rawData,
+    isLoading, // 整体数据加载状态
+    isFetching, // 后台重新获取数据状态
+    isError,
+    error,
+    refetch // 重新获取数据函数
+  } = useQuery(
+    ['stocks', currentTab], // 查询键，当 currentTab 变化时会重新获取数据
+    () => fetchFunctions.current[currentTab](), // 调用对应的 API 函数
+    {
+      staleTime: 5 * 60 * 1000, // 5 分钟内数据被视为“新鲜”，不会重新获取
+      refetchOnWindowFocus: false, // 窗口聚焦时不重新获取
+      onError: (err) => {
+        toast.error(`Failed to load data: ${err.message}`);
+        console.error("API Fetch Error:", err);
+      },
+      // 首次加载成功后，将数据设置到过滤状态中
+      onSuccess: (data) => {
+        // 当数据成功获取后，将其作为当前 Tab 的基础数据
+        // 这将触发 useEffect 中的搜索/过滤逻辑
+        // 我们不直接在这里设置 currentTabFilteredData，而是让 useEffect 监听 rawData 变化来处理
+      }
+    }
+  );
 
   // 格式化大数字的工具函数 (例如 Volume, Market Cap)
   const formatLargeNumber = (num) => {
     if (num === null || num === undefined) return 'N/A';
-    if (num >= 1000000000000) return (num / 1000000000000).toFixed(2) + 'T'; // Trillions
-    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B'; // Billions
-    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M'; // Millions
-    if (num >= 1000) return (num / 1000).toFixed(2) + 'K'; // Thousands
-    return num.toString();
-  };
+    // 确保 num 是一个数字类型，否则尝试转换
+    const number = Number(num);
+    if (isNaN(number)) return 'N/A';
 
-  // 根据 Tab 索引获取对应的基础 Mock 数据
-  const getBaseDataForTab = (tabIndex) => {
-    switch (tabIndex) {
-      case 0: return mockMostActive;
-      case 1: return mockTrendingNow;
-      case 2: return mockTopGainers;
-      case 3: return mockTopLosers;
-      default: return [];
-    }
+    if (number >= 1000000000000) return (number / 1000000000000).toFixed(2) + 'T'; // Trillions
+    if (number >= 1000000000) return (number / 1000000000).toFixed(2) + 'B'; // Billions
+    if (number >= 1000000) return (number / 1000000).toFixed(2) + 'M'; // Millions
+    if (number >= 1000) return (number / 1000).toFixed(2) + 'K'; // Thousands
+    return number.toString();
   };
 
   // --- 搜索逻辑 ---
@@ -156,21 +130,43 @@ const Stock = () => {
     setIsSearchingInput(true); // 显示搜索输入框的加载指示器
     setHasSearched(true); // 标记已执行过搜索操作
 
-    // 模拟 API 调用或耗时过滤的延迟
-    setTimeout(() => {
-      if (!query) {
-        setCurrentTabFilteredData(baseData);
-      } else {
-        const lowerCaseQuery = query.toLowerCase();
-        const filteredResults = baseData.filter(item =>
-          item?.symbol?.toLowerCase().includes(lowerCaseQuery) ||
-          item?.name?.toLowerCase().includes(lowerCaseQuery)
-        );
+    const array = Array.isArray(baseData) ? baseData : baseData.data || [];
+
+    // 实际的过滤逻辑
+    if (!query) {
+      setCurrentTabFilteredData(array);
+      setIsSearchingInput(false);
+    } else {
+      const lowerCaseQuery = query.toLowerCase();
+      const filteredResults = array.filter(item =>
+        item?.symbol?.toLowerCase().includes(lowerCaseQuery) ||
+        item?.name?.toLowerCase().includes(lowerCaseQuery)
+      );
+      // 模拟一点延迟，让加载指示器更明显
+      setTimeout(() => {
         setCurrentTabFilteredData(filteredResults);
-      }
-      setIsSearchingInput(false); // 隐藏搜索输入框的加载指示器
-    }, 500); // 模拟 500ms 延迟
-  }, []); // useCallback 的依赖为空，表示这个函数只创建一次
+        setIsSearchingInput(false);
+      }, 300); // 模拟 300ms 延迟
+    }
+  }, []);
+
+  // 当 rawData 或 currentTab 变化时，重新应用搜索和过滤
+  useEffect(() => {
+    if (rawData) {
+      // 在这里初始化 currentTabFilteredData 为原始数据
+      // 因为 searchTerm 的 useEffect 会立即触发一次 performSearch
+      // 所以这里设置 rawData 是作为 performSearch 的 baseData
+      setCurrentTabFilteredData(rawData); 
+      // 重置搜索和分页状态，确保每次 Tab 切换时都是干净的
+      setPage(0);
+      setSearchTerm('');
+      setDisplayedSearchTerm('');
+      setHasSearched(false);
+      setIsSearchingInput(false); // 确保在新的Tab数据加载时，搜索指示器是隐藏的
+      setOrderBy('volume'); // Tab 切换时重置排序到默认
+      setOrder('desc');
+    }
+  }, [rawData, currentTab]); // rawData 变化意味着新的数据已经从 API 获取
 
   // 防抖搜索效果
   useEffect(() => {
@@ -178,14 +174,16 @@ const Stock = () => {
       clearTimeout(debounceTimerRef.current);
     }
 
-    const baseData = getBaseDataForTab(currentTab);
-
-    if (displayedSearchTerm.length > 0) {
-      debounceTimerRef.current = setTimeout(() => {
-        performSearch(searchTerm, baseData);
-      }, 500); // 500ms 防抖延迟
-    } else {
-      performSearch('', baseData); // 搜索词清空时立即更新
+    // 只有当 rawData 可用时才进行搜索
+    if (rawData) {
+      if (displayedSearchTerm.length > 0) {
+        debounceTimerRef.current = setTimeout(() => {
+          performSearch(searchTerm, rawData); // 对 rawData 进行搜索
+        }, 500); // 500ms 防抖延迟
+      } else {
+        // 搜索词清空时，显示原始数据（不带过滤）
+        performSearch('', rawData); 
+      }
     }
 
     return () => {
@@ -193,26 +191,7 @@ const Stock = () => {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [searchTerm, currentTab, performSearch, displayedSearchTerm]); // 添加 displayedSearchTerm 作为依赖，确保清空搜索框时能立即触发
-
-  // Tab 切换时的初始加载效果
-  useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const newTabData = getBaseDataForTab(currentTab);
-      setCurrentTabFilteredData(newTabData);
-      setIsLoading(false);
-      setPage(0); // Tab 切换时重置分页
-      setSearchTerm(''); // Tab 切换时重置搜索词
-      setDisplayedSearchTerm('');
-      setHasSearched(false);
-      setIsSearchingInput(false);
-
-      // Tab 切换时重置排序到默认
-      setOrderBy('volume');
-      setOrder('desc');
-    }, 400); // 模拟 Tab 数据获取延迟
-  }, [currentTab]);
+  }, [searchTerm, performSearch, rawData, displayedSearchTerm]); // 依赖 rawData 和 displayedSearchTerm
 
   // --- 排序处理函数 ---
   const handleRequestSort = (property) => {
@@ -223,7 +202,8 @@ const Stock = () => {
   };
 
   // 辅助函数：根据字段和排序方向进行稳定排序
-  const stableSort = (array, comparator) => {
+  const stableSort = (obj, comparator) => {
+    const array = Array.isArray(obj) ? obj : obj.data || [];
     const stabilizedThis = array.map((el, index) => [el, index]);
     stabilizedThis.sort((a, b) => {
       const order = comparator(a[0], b[0]);
@@ -240,10 +220,14 @@ const Stock = () => {
   };
 
   const descendingComparator = (a, b, orderBy) => {
-    if (b[orderBy] < a[orderBy]) {
+    // 处理可能存在的 null/undefined 值，将其视为 0 进行比较
+    const valA = a[orderBy] === null || a[orderBy] === undefined ? 0 : a[orderBy];
+    const valB = b[orderBy] === null || b[orderBy] === undefined ? 0 : b[orderBy];
+
+    if (valB < valA) {
       return -1;
     }
-    if (b[orderBy] > a[orderBy]) {
+    if (valB > valA) {
       return 1;
     }
     return 0;
@@ -261,18 +245,13 @@ const Stock = () => {
   };
   // --- 结束分页处理函数 ---
 
-  // 确定表格中显示的数据：在搜索或加载时保持旧数据，完成后显示新数据
-  const dataToDisplayInTable = (isSearchingInput && hasSearched) || (searchTerm !== '' && isSearchingInput)
-                               ? currentTabFilteredData
-                               : currentTabFilteredData;
-
   // 应用排序
-  const sortedAndFilteredData = stableSort(dataToDisplayInTable, getComparator(order, orderBy));
+  const sortedAndFilteredData = stableSort(currentTabFilteredData, getComparator(order, orderBy));
 
   const renderStockTable = (data) => (
     <Card>
       <CardContent>
-        {isLoading || (isSearchingInput && hasSearched) ? (
+        {isLoading || isFetching ? ( // 使用 react-query 的 isLoading 和 isFetching
           // 主表格加载指示器
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
             <CircularProgress size={40} />
@@ -280,7 +259,21 @@ const Stock = () => {
               Loading stocks...
             </Typography>
           </Box>
-        ) : (
+        ) : isError ? (
+          // 错误提示
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, flexDirection: 'column' }}>
+            <Typography variant="h6" color="error.main">
+              Error loading stock data.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {error?.message || "Please try again later."}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Ensure your backend server is running and accessible.
+            </Typography>
+          </Box>
+        ) : (data && data.length > 0) ? (
+          // 显示数据表格
           <TableContainer>
             <Table>
               <TableHead>
@@ -304,47 +297,44 @@ const Stock = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(data && data.length > 0) ? (
-                  // 应用分页
-                  data
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    .map((stock) => (
-                      <TableRow key={stock.symbol} hover sx={{ cursor: 'pointer' }}>
-                        <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{stock.symbol}</TableCell>
-                        <TableCell>{stock.name}</TableCell>
-                        <TableCell align="right">{formatCurrency(stock.price, 'USD')}</TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ color: getChangeColor(stock.change), fontWeight: 500 }}
-                        >
-                          {formatCurrency(stock.change, 'USD')}
-                        </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ color: getChangeColor(stock.changePercent), fontWeight: 500 }}
-                        >
-                          {formatPercentage(stock.changePercent)}
-                        </TableCell>
-                        <TableCell align="right">{formatLargeNumber(stock.volume)}</TableCell>
-                        <TableCell align="right">{formatLargeNumber(stock.marketCap)}</TableCell>
-                      </TableRow>
-                    ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} sx={{ textAlign: 'center', py: 3 }}>
-                      <Typography color="text.secondary">
-                        No stock data found for this category or your search.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
+                {/* 应用分页 */}
+                {data
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((stock) => (
+                    <TableRow key={stock.symbol} hover sx={{ cursor: 'pointer' }}>
+                      <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{stock.symbol}</TableCell>
+                      <TableCell>{stock.name}</TableCell>
+                      <TableCell align="right">{formatCurrency(stock.price, 'USD')}</TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ color: getChangeColor(stock.change), fontWeight: 500 }}
+                      >
+                        {formatCurrency(stock.change, 'USD')}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ color: getChangeColor(stock.changePercent), fontWeight: 500 }}
+                      >
+                        {formatPercentage(stock.changePercent)}
+                      </TableCell>
+                      <TableCell align="right">{formatLargeNumber(stock.volume)}</TableCell>
+                      <TableCell align="right">{formatLargeNumber(stock.marketCap)}</TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
+        ) : (
+          // 没有数据时的提示
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+            <Typography color="text.secondary">
+              No stock data found for this category or your search.
+            </Typography>
+          </Box>
         )}
       </CardContent>
-      {/* 只有在数据未加载且有数据时才显示分页控件 */}
-      {!(isLoading || isSearchingInput) && (data && data.length > 0) && (
+      {/* 只有在数据未加载、非搜索中且有数据时才显示分页控件 */}
+      {!(isLoading || isFetching) && (data && data.length > 0) && (
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -362,7 +352,8 @@ const Stock = () => {
   // 处理 Tab 改变
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
-    // useEffect 会处理新 Tab 的数据加载和状态重置
+    // useQuery 会在 currentTab 变化时自动重新获取数据
+    // useEffect 会在 rawData 变化时自动重置状态并应用搜索
   };
 
   return (
@@ -375,9 +366,9 @@ const Stock = () => {
         <TextField
           size="small"
           placeholder={`Search ${currentTab === 0 ? 'Most Active' :
-                                  currentTab === 1 ? 'Trending Now' :
-                                  currentTab === 2 ? 'Top Gainers' :
-                                  currentTab === 3 ? 'Top Losers' : ''}...`}
+            currentTab === 1 ? 'Trending Now' :
+            currentTab === 2 ? 'Top Gainers' :
+            currentTab === 3 ? 'Top Losers' : ''}...`}
           value={displayedSearchTerm}
           onChange={(e) => {
             setDisplayedSearchTerm(e.target.value);

@@ -164,7 +164,7 @@ class PortfolioService {
    */
   calculatePortfolioPerformance(holdings, portfolio) {
     const totalCost = holdings.reduce((sum, holding) => 
-      sum + holding.getCostBasis(), 0
+      sum + holding.getTotalCost(), 0
     );
     
     const currentValue = holdings.reduce((sum, holding) => 
@@ -181,11 +181,12 @@ class PortfolioService {
     const sharpeRatio = this.calculateSharpeRatio(holdings);
     
     // 💰 现金比例
-    const cashRatio = parseFloat(portfolio.cash) / (currentValue + parseFloat(portfolio.cash)) * 100;
-
+    const totalValue = currentValue + parseFloat(portfolio.cash || 0);
+    const cashRatio = totalValue > 0 ? (parseFloat(portfolio.cash || 0) / totalValue) * 100 : 0;
+    
     return {
-      totalValue: currentValue + parseFloat(portfolio.cash),
       totalCost,
+      currentValue,
       totalGainLoss,
       totalGainLossPercent,
       cash: parseFloat(portfolio.cash),
@@ -291,7 +292,7 @@ class PortfolioService {
     let totalCost = 0;
     
     holdings.forEach(holding => {
-      const cost = holding.getCostBasis();
+      const cost = holding.getTotalCost();
       const currentValue = holding.getCurrentValue();
       totalReturn += currentValue - cost;
       totalCost += cost;
@@ -430,15 +431,15 @@ class PortfolioService {
     return {
       ...holding.toJSON(),
       currentValue: holding.getCurrentValue(),
-      costBasis: holding.getCostBasis(),
+      costBasis: holding.getTotalCost(),
       gainLoss: holding.getGainLoss(),
       gainLossPercent: holding.getGainLossPercent(),
       priceChange: holding.getPriceChange(),
       // 添加更多计算字段...
       dayChange: 0, // 需要历史数据
       dayChangePercent: 0,
-      weekChange: 0,
-      monthChange: 0
+      volume: 0,
+      marketCap: 0
     };
   }
 
@@ -451,6 +452,81 @@ class PortfolioService {
   calculateMaxDrawdown(holdings) { return 0; }
   calculateRebalancingCost(recommendations) { return 0; }
   assessRebalancingRisk(recommendations) { return 'low'; }
+
+  /**
+   * 获取投资组合摘要数据 (用于AI分析)
+   * @param {number} portfolioId - 投资组合ID
+   * @returns {Object} 投资组合摘要数据
+   */
+  async getPortfolioSummary(portfolioId) {
+    try {
+      // 获取投资组合基本信息
+      const portfolio = await Portfolio.findByPk(portfolioId);
+      if (!portfolio) {
+        throw new Error('Portfolio not found');
+      }
+
+      // 获取资产数据（使用新的Asset表）
+      const assets = await Asset.findAll({
+        where: { 
+          portfolio_id: portfolioId,
+          is_active: true
+        }
+      });
+
+      // 按资产类型分组
+      const assetsByType = {};
+      let totalValue = 0;
+      let totalAssets = assets.length;
+
+      assets.forEach(asset => {
+        const assetType = asset.asset_type || 'stock';
+        const currentValue = asset.getCurrentValue();
+        
+        totalValue += currentValue;
+
+        if (!assetsByType[assetType]) {
+          assetsByType[assetType] = {
+            count: 0,
+            totalValue: 0,
+            assets: []
+          };
+        }
+
+        assetsByType[assetType].count++;
+        assetsByType[assetType].totalValue += currentValue;
+        assetsByType[assetType].assets.push({
+          id: asset.id,
+          symbol: asset.symbol,
+          name: asset.name,
+          asset_type: assetType,
+          quantity: asset.quantity,
+          avg_cost: asset.avg_cost,
+          current_price: asset.current_price,
+          currentValue: currentValue,
+          gainLoss: asset.getGainLoss(),
+          gainLossPercent: asset.getGainLossPercent(),
+          currency: asset.currency || 'USD'
+        });
+      });
+
+      return {
+        success: true,
+        data: {
+          totalValue: totalValue + parseFloat(portfolio.cash || 0),
+          totalAssets,
+          assetsByType
+        }
+      };
+
+    } catch (error) {
+      console.error('Portfolio Summary Error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = new PortfolioService(); 
