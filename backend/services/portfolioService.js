@@ -164,7 +164,7 @@ class PortfolioService {
    */
   calculatePortfolioPerformance(holdings, portfolio) {
     const totalCost = holdings.reduce((sum, holding) => 
-      sum + holding.getCostBasis(), 0
+      sum + holding.getTotalCost(), 0
     );
     
     const currentValue = holdings.reduce((sum, holding) => 
@@ -181,11 +181,12 @@ class PortfolioService {
     const sharpeRatio = this.calculateSharpeRatio(holdings);
     
     // 💰 现金比例
-    const cashRatio = parseFloat(portfolio.cash) / (currentValue + parseFloat(portfolio.cash)) * 100;
-
+    const totalValue = currentValue + parseFloat(portfolio.cash || 0);
+    const cashRatio = totalValue > 0 ? (parseFloat(portfolio.cash || 0) / totalValue) * 100 : 0;
+    
     return {
-      totalValue: currentValue + parseFloat(portfolio.cash),
       totalCost,
+      currentValue,
       totalGainLoss,
       totalGainLossPercent,
       cash: parseFloat(portfolio.cash),
@@ -291,7 +292,7 @@ class PortfolioService {
     let totalCost = 0;
     
     holdings.forEach(holding => {
-      const cost = holding.getCostBasis();
+      const cost = holding.getTotalCost();
       const currentValue = holding.getCurrentValue();
       totalReturn += currentValue - cost;
       totalCost += cost;
@@ -430,15 +431,15 @@ class PortfolioService {
     return {
       ...holding.toJSON(),
       currentValue: holding.getCurrentValue(),
-      costBasis: holding.getCostBasis(),
+      costBasis: holding.getTotalCost(),
       gainLoss: holding.getGainLoss(),
       gainLossPercent: holding.getGainLossPercent(),
       priceChange: holding.getPriceChange(),
       // 添加更多计算字段...
       dayChange: 0, // 需要历史数据
       dayChangePercent: 0,
-      weekChange: 0,
-      monthChange: 0
+      volume: 0,
+      marketCap: 0
     };
   }
 

@@ -103,9 +103,9 @@ const buildPath = path.join(__dirname, '../frontend/build');
 
 if (fs.existsSync(buildPath)) {
   app.use(express.static(buildPath));
-  
+
   // 处理React Router的客户端路由 (放在最后，避免覆盖API路由)
-  app.get('*', (req, res) => {
+app.get('*', (req, res) => {
     // 只处理非API请求
     if (!req.path.startsWith('/api')) {
       res.sendFile(path.join(buildPath, 'index.html'));

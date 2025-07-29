@@ -27,6 +27,7 @@ import {
   Alert
 } from '@mui/material';
 import StockSearchField from '../components/StockSearchField';
+
 import {
   ExpandMore as ExpandMoreIcon,
   Add as AddIcon,
@@ -180,6 +181,8 @@ const Portfolio = () => {
       console.error('Failed to start AI analysis:', error);
     }
   };
+
+
   // - Remove asset
   const handleRemoveAsset = async () => {
     try {
@@ -385,6 +388,7 @@ const Portfolio = () => {
           >
             AI Analysis
           </Button>
+
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -819,6 +823,8 @@ const Portfolio = () => {
           <Button variant="contained" onClick={handleAddAsset}>Add</Button>
         </DialogActions>
       </Dialog>
+
+
     </Box>
   );
 

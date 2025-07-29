@@ -1,0 +1,270 @@
+/* 🌟 科技感光影效果样式 */
+
+/* 全局光效动画 */
+@keyframes glowPulse {
+  0%, 100% { 
+    opacity: 0.5; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8; 
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% { 
+    background-position: -200px 0; 
+  }
+  100% { 
+    background-position: 200px 0; 
+  }
+}
+
+@keyframes floatingGlow {
+  0%, 100% { 
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.3;
+  }
+  33% { 
+    transform: translateY(-10px) translateX(5px);
+    opacity: 0.5;
+  }
+  66% { 
+    transform: translateY(5px) translateX(-3px);
+    opacity: 0.4;
+  }
+}
+
+/* 主容器背景增强 */
+.tech-background {
+  position: relative;
+  background: 
+    radial-gradient(ellipse 1200px 800px at 30% 20%, rgba(120, 70, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 800px 600px at 70% 80%, rgba(80, 120, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 600px 400px at 90% 10%, rgba(255, 100, 150, 0.03) 0%, transparent 50%),
+    linear-gradient(135deg, #000000 0%, #0a0508 25%, #080510 50%, #000000 100%);
+}
+
+.tech-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle 300px at 10% 20%, rgba(120, 70, 255, 0.02) 0%, transparent 50%),
+    radial-gradient(circle 200px at 90% 90%, rgba(80, 120, 255, 0.015) 0%, transparent 50%);
+  animation: floatingGlow 15s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 卡片容器增强效果 */
+.tech-card {
+  position: relative;
+  background: rgba(15, 15, 20, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 
+    0 0 20px rgba(120, 70, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.tech-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(120, 70, 255, 0.3) 20%, 
+    rgba(80, 120, 255, 0.2) 50%,
+    rgba(255, 100, 150, 0.2) 80%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+.tech-card:hover {
+  border-color: rgba(120, 70, 255, 0.15) !important;
+  box-shadow: 
+    0 0 40px rgba(120, 70, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 16px 48px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-4px) !important;
+}
+
+/* 表格行增强效果 */
+.tech-table-row {
+  background: rgba(15, 15, 20, 0.3) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  transition: all 0.2s ease !important;
+}
+
+.tech-table-row:hover {
+  background: rgba(20, 20, 30, 0.5) !important;
+  box-shadow: 
+    0 0 20px rgba(120, 70, 255, 0.05),
+    inset 0 1px 0 rgba(120, 70, 255, 0.1) !important;
+  transform: translateX(2px) !important;
+}
+
+/* 侧边栏增强效果 */
+.tech-sidebar {
+  background: rgba(10, 10, 15, 0.9) !important;
+  backdrop-filter: blur(16px) !important;
+  border-right: 1px solid rgba(120, 70, 255, 0.1) !important;
+  box-shadow: 
+    inset -1px 0 0 rgba(120, 70, 255, 0.05),
+    4px 0 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 侧边栏导航项 */
+.tech-nav-item {
+  position: relative;
+  background: rgba(15, 15, 20, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  transition: all 0.3s ease !important;
+}
+
+.tech-nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, 
+    rgba(120, 70, 255, 0.6) 0%, 
+    rgba(80, 120, 255, 0.4) 50%,
+    rgba(255, 100, 150, 0.3) 100%
+  );
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.tech-nav-item:hover::before,
+.tech-nav-item.active::before {
+  transform: scaleY(1);
+}
+
+.tech-nav-item:hover {
+  background: rgba(20, 20, 30, 0.6) !important;
+  border-color: rgba(120, 70, 255, 0.15) !important;
+  box-shadow: 
+    0 0 20px rgba(120, 70, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  transform: translateX(4px) !important;
+}
+
+/* Header增强效果 */
+.tech-header {
+  background: rgba(10, 10, 15, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(120, 70, 255, 0.08) !important;
+  box-shadow: 
+    0 1px 0 rgba(120, 70, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 输入框增强效果 */
+.tech-input {
+  background: rgba(15, 15, 20, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 15px rgba(120, 70, 255, 0.02) !important;
+}
+
+.tech-input:focus {
+  border-color: rgba(120, 70, 255, 0.3) !important;
+  box-shadow: 
+    0 0 25px rgba(120, 70, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 芯片组件增强 */
+.tech-chip {
+  background: rgba(15, 15, 20, 0.8) !important;
+  border: 1px solid rgba(120, 70, 255, 0.2) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    0 0 15px rgba(120, 70, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 图表容器增强 */
+.tech-chart-container {
+  background: rgba(10, 10, 15, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 
+    0 0 30px rgba(120, 70, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+/* 浮动光效装饰 */
+.floating-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(120, 70, 255, 0.1) 0%, transparent 70%);
+  animation: floatingGlow 20s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.floating-orb-1 {
+  width: 200px;
+  height: 200px;
+  top: 10%;
+  right: 20%;
+  animation-delay: 0s;
+}
+
+.floating-orb-2 {
+  width: 150px;
+  height: 150px;
+  bottom: 20%;
+  left: 15%;
+  animation-delay: -7s;
+  background: radial-gradient(circle, rgba(80, 120, 255, 0.08) 0%, transparent 70%);
+}
+
+.floating-orb-3 {
+  width: 100px;
+  height: 100px;
+  top: 60%;
+  right: 10%;
+  animation-delay: -14s;
+  background: radial-gradient(circle, rgba(255, 100, 150, 0.06) 0%, transparent 70%);
+}
+
+/* 文字发光效果 */
+.glow-text {
+  text-shadow: 
+    0 0 10px rgba(232, 168, 85, 0.3),
+    0 0 20px rgba(232, 168, 85, 0.2),
+    0 0 30px rgba(232, 168, 85, 0.1);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .floating-orb {
+    display: none;
+  }
+  
+  .tech-card {
+    backdrop-filter: blur(8px) !important;
+  }
+  
+  .tech-background::before {
+    animation: none;
+  }
+} 

@@ -1,6 +1,6 @@
 -- =========================================
 -- Portfolio Manager 数据库结构
--- 生成时间: 2025/7/29 14:13:04
+-- 生成时间: 2025/7/29 16:39:52
 -- 数据库: portfolio_manager
 -- 字符集: utf8mb4
 -- =========================================
@@ -468,6 +468,35 @@ INSERT INTO portfolio_history (portfolio_id, date, total_value) VALUES
 (1, '2025-07-26', 136433.48),
 (1, '2025-07-27', 135900.63);
 -- =========================================
+-- 3. AI聊天会话表 (ai_chat_sessions)
+-- =========================================
+CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+  id VARCHAR(255) PRIMARY KEY COMMENT '会话ID',
+  portfolio_id INT COMMENT '关联的投资组合ID',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后活动时间',
+  is_persistent BOOLEAN DEFAULT FALSE COMMENT '是否为持久化会话',
+  portfolio_context JSON COMMENT '投资组合上下文数据',
+  FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE,
+  INDEX idx_portfolio_id (portfolio_id),
+  INDEX idx_last_activity (last_activity)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天会话表';
+
+-- =========================================
+-- 4. AI聊天消息表 (ai_chat_messages)
+-- =========================================
+CREATE TABLE IF NOT EXISTS ai_chat_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT '消息ID',
+  session_id VARCHAR(255) NOT NULL COMMENT '会话ID',
+  role ENUM('user', 'assistant', 'system') NOT NULL COMMENT '消息角色',
+  content TEXT NOT NULL COMMENT '消息内容',
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '消息时间',
+  is_system_update BOOLEAN DEFAULT FALSE COMMENT '是否为系统更新消息',
+  FOREIGN KEY (session_id) REFERENCES ai_chat_sessions(id) ON DELETE CASCADE,
+  INDEX idx_session_timestamp (session_id, timestamp)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天消息表';
+
+-- =========================================
 -- 常用查询示例
 -- =========================================
 
@@ -502,6 +531,29 @@ INSERT INTO portfolio_history (portfolio_id, date, total_value) VALUES
 -- FROM holdings h
 -- WHERE h.portfolio_id = 1;
 
+-- 查看AI聊天会话
+-- SELECT 
+--   s.id,
+--   s.portfolio_id,
+--   s.created_at,
+--   s.last_activity,
+--   s.is_persistent,
+--   COUNT(m.id) as message_count
+-- FROM ai_chat_sessions s
+-- LEFT JOIN ai_chat_messages m ON s.id = m.session_id
+-- GROUP BY s.id
+-- ORDER BY s.last_activity DESC;
+
+-- 查看某个会话的聊天记录
+-- SELECT 
+--   m.role,
+--   m.content,
+--   m.timestamp,
+--   m.is_system_update
+-- FROM ai_chat_messages m
+-- WHERE m.session_id = 'portfolio_1'
+-- ORDER BY m.timestamp ASC;
+
 -- =========================================
 -- 数据库维护
 -- =========================================
@@ -509,10 +561,14 @@ INSERT INTO portfolio_history (portfolio_id, date, total_value) VALUES
 -- 查看表结构
 -- DESCRIBE portfolios;
 -- DESCRIBE holdings;
+-- DESCRIBE ai_chat_sessions;
+-- DESCRIBE ai_chat_messages;
 
 -- 查看索引
 -- SHOW INDEX FROM portfolios;
 -- SHOW INDEX FROM holdings;
+-- SHOW INDEX FROM ai_chat_sessions;
+-- SHOW INDEX FROM ai_chat_messages;
 
 -- 数据库大小
 -- SELECT 

@@ -100,6 +100,7 @@ const Sidebar = ({ onNavigate }) => {
           </Box>
           <Typography
             variant="h6"
+            className="glow-text"
             sx={{
               fontWeight: 600,
               color: 'text.primary',
@@ -129,28 +130,15 @@ const Sidebar = ({ onNavigate }) => {
             <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
                 onClick={() => handleNavigation(item.path)}
+                className={`tech-nav-item ${active ? 'active' : ''}`}
                 sx={{
                   borderRadius: 2,
                   py: 1.5,
                   px: 2,
-                  backgroundColor: active ? 'rgba(232, 168, 85, 0.15)' : 'transparent',
+                  mx: 1,
                   color: active ? 'primary.main' : 'text.primary',
-                  '&:hover': {
-                    backgroundColor: active 
-                      ? 'rgba(232, 168, 85, 0.25)' 
-                      : 'rgba(255, 255, 255, 0.05)',
-                  },
-                  '&:before': active ? {
-                    content: '""',
-                    position: 'absolute',
-                    left: 0,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 3,
-                    height: '70%',
-                    backgroundColor: 'primary.main',
-                    borderRadius: '0 2px 2px 0',
-                  } : {},
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
                 <ListItemIcon
