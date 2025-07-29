@@ -51,12 +51,6 @@ const navigationItems = [
     icon: MarketsIcon,
     children: [
       {
-        id: 'etf',
-        label: 'ETFs',
-        path: '/markets/etf',
-        icon: ETFIcon,
-      },
-      {
         id: 'stocks',
         label: 'Stocks',
         path: '/markets/stock',
@@ -73,6 +67,13 @@ const navigationItems = [
         label: 'Crypto',
         path: '/markets/crypto',
         icon: CryptoIcon,
+      },
+      
+      {
+        id: 'etf',
+        label: 'ETFs',
+        path: '/markets/etf',
+        icon: ETFIcon,
       },
     ],
   },
