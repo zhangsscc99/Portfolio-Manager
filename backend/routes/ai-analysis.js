@@ -23,7 +23,8 @@ router.post('/chat', async (req, res) => {
     const chatResult = await aiChatService.generateChatResponse(
       sessionId, 
       message, 
-      portfolioContext
+      portfolioContext,
+      portfolioId
     );
     
     if (chatResult.success) {
@@ -116,6 +117,19 @@ router.post('/portfolio', async (req, res) => {
     
     console.log('✅ AI analysis completed');
 
+    // Update AI chat memory with new analysis
+    const newPortfolioContext = {
+      portfolioData: portfolioResult.data,
+      analysisData: { ...analysisResult.data, summary },
+      timestamp: new Date().toISOString()
+    };
+    
+    // Notify chat service to update memory for this portfolio
+    const memoryUpdated = aiChatService.updatePortfolioMemory(portfolioId, newPortfolioContext);
+    if (memoryUpdated) {
+      console.log(`🧠 Updated AI assistant memory for portfolio ${portfolioId}`);
+    }
+
     res.json({
       success: true,
       data: {
@@ -171,6 +185,19 @@ router.get('/portfolio/:portfolioId', async (req, res) => {
     // If offline mode, add notice
     if (analysisResult.data.isOffline) {
       responseData.notice = 'Currently using offline analysis mode. Recommend obtaining detailed analysis when network is restored.';
+    }
+
+    // Update AI chat memory with retrieved analysis
+    const newPortfolioContext = {
+      portfolioData: portfolioResult.data,
+      analysisData: responseData,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Notify chat service to update memory for this portfolio
+    const memoryUpdated = aiChatService.updatePortfolioMemory(portfolioId, newPortfolioContext);
+    if (memoryUpdated) {
+      console.log(`🧠 Updated AI assistant memory for portfolio ${portfolioId} (GET)`);
     }
 
     console.log('✅ AI analysis retrieval completed');
