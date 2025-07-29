@@ -7,6 +7,20 @@ class YahooFinanceService {
     this.cacheExpiry = 60000; // 1分钟缓存
   }
 
+  async getTrendingSymbols(region = 'US', options = {}) {
+    try {
+      return yahooFinance.trendingSymbols(region, options)
+        .then((data) => {
+          return data.quotes.map((quote) => ({
+            symbol: quote.symbol,
+          }));
+        })
+    }catch (error) {
+      console.error('❌ 获取热门股票失败:', error);
+      return [];
+    }
+  }
+
   // 📊 获取单个股票实时价格
   async getStockPrice(symbol) {
     try {

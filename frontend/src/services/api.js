@@ -88,6 +88,8 @@ export const marketAPI = {
   
   // Get trending stocks
   getTrending: (limit = 10) => api.get(`/market/trending?limit=${limit}`),
+
+  getMostActive: (limit = 10) => api.get(`/market/most-active?limit=${limit}`),
   
   // Get top gainers
   getGainers: (limit = 5) => api.get(`/market/gainers?limit=${limit}`),

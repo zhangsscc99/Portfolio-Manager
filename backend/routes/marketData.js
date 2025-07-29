@@ -341,24 +341,20 @@ router.get("/trending", async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
+    const queryOptions = { count: 100, lang: "en-US" };
+    const trendingSymbols = await yahooFinanceService.getTrendingSymbols(
+      "US",
+      queryOptions
+    );
     // 热门股票列表
-    const trendingSymbols = [
-      "AAPL",
-      "MSFT",
-      "GOOGL",
-      "AMZN",
-      "TSLA",
-      "META",
-      "NVDA",
-      "NFLX",
-      "AMD",
-      "CRM",
-    ];
     const selectedSymbols = trendingSymbols.slice(0, parseInt(limit));
 
+    console.log("Trending Symbols:", selectedSymbols);
     // 获取实时价格数据
     const stocksData = await yahooFinanceService.getMultipleStockPrices(
-      selectedSymbols
+      selectedSymbols.map((stock) => {
+        return stock.symbol;
+      })
     );
 
     // 格式化数据
