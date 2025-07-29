@@ -1,6 +1,34 @@
 const mysql = require('mysql2/promise');
 const { syncDatabase } = require('../models/index');
 
+const insertMockPortfolioHistory = async (connection, portfolioId = 1, days = 730) => {
+  let baseValue = 100000;
+
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - days + 1);
+
+  const insertSQL = `
+    INSERT INTO portfolio_history (portfolio_id, date, total_value)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE total_value = VALUES(total_value)
+  `;
+
+  for (let i = 0; i < days; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+
+    const dailyChange = (Math.random() * 0.002 - 0.001); // ±0.1%
+    baseValue *= (1 + dailyChange);
+    const totalValue = parseFloat(baseValue.toFixed(2));
+    const formattedDate = date.toISOString().split('T')[0];
+
+    await connection.execute(insertSQL, [portfolioId, formattedDate, totalValue]);
+  }
+
+  console.log(`✅ 插入模拟 portfolio_history 数据 ${days} 条`);
+};
+
 // 🏗️ 数据库初始化脚本 (优化版)
 const initializeDatabase = async () => {
   let connection;
@@ -27,6 +55,20 @@ const initializeDatabase = async () => {
     console.log('🔄 开始同步表结构...');
     await syncDatabase(); // 不强制重建，保留数据
     
+    // 🔍 检查 portfolio_history 是否已有数据
+    const [rows] = await connection.execute(
+      'SELECT COUNT(*) as count FROM portfolio_history WHERE portfolio_id = ?',
+      [1]
+    );
+
+    if (rows[0].count === 0) {
+      console.log('📉 portfolio_history 数据为空，开始插入模拟数据...');
+      await insertMockPortfolioHistory(connection, 1, 730);
+    } else {
+      console.log('📊 portfolio_history 已有数据，跳过插入模拟数据');
+    }
+
+
     console.log('✅ 数据库表结构同步完成!');
     console.log('📋 数据库表:');
     console.log('   - portfolios (投资组合表)');

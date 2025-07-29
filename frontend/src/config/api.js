@@ -24,6 +24,10 @@ export const API_CONFIG = {
 
 // API endpoints
 export const API_ENDPOINTS = {
+  portfolio_history: {
+    portfolio_history: '/portfolio-history',  // 历史数据
+  },
+
   // Portfolio endpoints
   portfolio: {
     getAll: '/portfolio',

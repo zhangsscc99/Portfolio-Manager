@@ -1,7 +1,11 @@
 
 -- =========================================
 -- Portfolio Manager 数据库结构
+<<<<<<< Updated upstream
 -- 生成时间: 28/7/2025 下午5:09:35
+=======
+-- 生成时间: 29/7/2025 上午9:17:27
+>>>>>>> Stashed changes
 -- 数据库: portfolio_manager
 -- 字符集: utf8mb4
 -- =========================================
@@ -53,6 +57,40 @@ CREATE TABLE IF NOT EXISTS holdings (
 -- =========================================
 -- 插入示例数据
 -- =========================================
+
+CREATE TABLE IF NOT EXISTS portfolio_history (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  portfolio_id INT NOT NULL,
+  date DATE NOT NULL,
+  total_value DECIMAL(15, 2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_entry (portfolio_id, date),
+  FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE
+);
+
+-- -- ⚠️ 删除旧数据（可选）
+-- DELETE FROM portfolio_history WHERE portfolio_id = 1;
+
+-- -- 变量设置
+-- SET @start_date = CURDATE() - INTERVAL 729 DAY;
+-- SET @portfolio_id = 1;
+-- SET @base_value = 100000.00; -- 起始资产值
+-- SET @i = 0;
+
+-- -- 插入 730 天的模拟数据
+-- WHILE @i < 730 DO
+--   SET @current_date = DATE_ADD(@start_date, INTERVAL @i DAY);
+  
+--   -- 模拟总价值：每日 0.01% ~ 0.15% 波动增长
+--   SET @daily_growth = (RAND() * 0.0015); -- 0 ~ 0.15%
+--   SET @base_value = ROUND(@base_value * (1 + @daily_growth), 2);
+
+--   INSERT IGNORE INTO portfolio_history (portfolio_id, date, total_value)
+--   VALUES (@portfolio_id, @current_date, @base_value);
+
+--   SET @i = @i + 1;
+-- END WHILE;
+
 
 -- 示例投资组合
 INSERT IGNORE INTO portfolios (id, name, description, total_value, cash, created_at) VALUES 
