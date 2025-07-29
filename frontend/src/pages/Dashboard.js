@@ -55,6 +55,7 @@ ChartJS.register(
 const Dashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
   
   // Fetch portfolio data
   const { data: portfolio, isLoading: portfolioLoading } = useQuery(
@@ -103,13 +104,27 @@ const Dashboard = () => {
       {
         label: 'Portfolio Value',
         data: historicalData.data,
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        borderColor: '#E8A855', // 金色边框
+        backgroundColor: (context) => {
+          // 创建金色渐变
+          if (!context.chart.chartArea) {
+            return 'rgba(232, 168, 85, 0.1)';
+          }
+          const { ctx, chartArea } = context.chart;
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, 'rgba(244, 190, 126, 0.3)'); // 浅金色顶部
+          gradient.addColorStop(0.5, 'rgba(232, 168, 85, 0.2)'); // 中等金色
+          gradient.addColorStop(1, 'rgba(212, 150, 31, 0.1)'); // 深金色底部
+          return gradient;
+        },
         borderWidth: 3,
         fill: true,
         tension: 0.4,
         pointRadius: 0,
         pointHoverRadius: 6,
+        pointHoverBackgroundColor: '#F4BE7E',
+        pointHoverBorderColor: '#D4961F',
+        pointHoverBorderWidth: 2,
       },
     ],
   };
@@ -149,7 +164,7 @@ const Dashboard = () => {
     },
     elements: {
       point: {
-        hoverBackgroundColor: '#6366f1',
+        hoverBackgroundColor: '#D4961F', // 深金色悬停
         hoverBorderColor: '#ffffff',
         hoverBorderWidth: 2,
       },
@@ -168,12 +183,23 @@ const Dashboard = () => {
           10000,
         ],
         backgroundColor: [
-          '#6366f1',
-          '#10b981',
-          '#f59e0b',
-          '#ef4444',
+          
+          '#E8A855', // 金色 - Stocks
+          '#10b981', // 保持绿色 - Cash  
+          '#6366f1',  
+          '#F4BE7E', // 浅金色 - ETFs
+          '#D4961F', // 深金色 - Bonds
         ],
+        hoverBackgroundColor: [
+          '#F4BE7E', // 悬停时的浅金色 - Stocks
+          '#34d399', // 悬停时的浅绿色 - Cash
+          '#F8D5A8', // 悬停时的更浅金色 - ETFs
+          '#E8A855', // 悬停时的中等金色 - Bonds
+        ],
+        
         borderWidth: 0,
+        hoverBorderWidth: 3,
+        hoverBorderColor: '#ffffff',
       },
     ],
   };
@@ -295,10 +321,25 @@ const Dashboard = () => {
                   Portfolio Performance
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Chip label="1M" size="small" />
-                  <Chip label="3M" size="small" />
-                  <Chip label="1Y" size="small" variant="outlined" />
-                  <Chip label="ALL" size="small" />
+                  {['1M', '3M', '1Y', 'ALL'].map((period) => (
+                    <Chip 
+                      key={period}
+                      label={period} 
+                      size="small" 
+                      clickable
+                      color={selectedTimeRange === period ? 'primary' : 'default'}
+                      variant={selectedTimeRange === period ? 'filled' : 'outlined'}
+                      onClick={() => setSelectedTimeRange(period)}
+                      sx={{
+                        fontWeight: selectedTimeRange === period ? 600 : 500,
+                        '&:hover': {
+                          backgroundColor: selectedTimeRange === period 
+                            ? 'primary.dark' 
+                            : 'rgba(232, 168, 85, 0.1)',
+                        },
+                      }}
+                    />
+                  ))}
                 </Box>
               </Box>
               <Box sx={{ height: 300 }}>

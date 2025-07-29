@@ -29,25 +29,25 @@ const navigationItems = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    path: '/dashboard',
+    path: '/app/dashboard',
     icon: DashboardIcon,
   },
   {
     id: 'portfolio',
     label: 'Portfolio',
-    path: '/portfolio',
+    path: '/app/portfolio',
     icon: PortfolioIcon,
   },
   {
     id: 'analytics',
     label: 'Analytics',
-    path: '/analytics',
+    path: '/app/analytics',
     icon: AnalyticsIcon,
   },
   {
     id: 'markets',
     label: 'Markets',
-    path: '/markets', // This path will now primarily be for logic, not direct navigation
+    path: '/markets',
     icon: MarketsIcon,
     children: [
       {
@@ -165,7 +165,7 @@ const Sidebar = ({ onNavigate }) => {
               width: 40,
               height: 40,
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -175,7 +175,7 @@ const Sidebar = ({ onNavigate }) => {
             <Typography
               variant="h6"
               sx={{
-                color: 'white',
+                color: '#1a1a1a', // 深色文字在金色背景上
                 fontWeight: 700,
                 fontSize: '1.2rem',
               }}
@@ -188,7 +188,12 @@ const Sidebar = ({ onNavigate }) => {
             sx={{
               fontWeight: 600,
               color: 'text.primary',
+              cursor: 'pointer',
+              '&:hover': {
+                color: 'primary.main',
+              },
             }}
+            onClick={() => navigate('/')}
           >
             Portfolio Manager
           </Typography>
@@ -205,142 +210,63 @@ const Sidebar = ({ onNavigate }) => {
           const hasChildren = item.children && item.children.length > 0;
 
           return (
-            <React.Fragment key={item.id}>
-              <ListItem disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton
-                  onClick={() => handleNavigation(item)}
+            <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => handleNavigation(item.path)}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.5,
+                  px: 2,
+                  backgroundColor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                  color: active ? 'primary.main' : 'text.primary',
+                  '&:hover': {
+                    backgroundColor: active 
+                      ? 'rgba(99, 102, 241, 0.15)' 
+                      : 'rgba(255, 255, 255, 0.05)',
+                  },
+                  '&:before': active ? {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 3,
+                    height: '70%',
+                    backgroundColor: 'primary.main',
+                    borderRadius: '0 2px 2px 0',
+                  } : {},
+                }}
+              >
+                <ListItemIcon
                   sx={{
-                    borderRadius: 2,
-                    py: 1.5,
-                    px: 2,
-                    // Apply background/color based on 'active' state (which is now always false for 'Markets')
-                    backgroundColor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                    color: active ? 'primary.main' : 'text.primary',
-                    '&:hover': {
-                      backgroundColor: active
-                        ? 'rgba(99, 102, 241, 0.15)'
-                        : 'rgba(255, 255, 255, 0.05)',
-                    },
-                    '&:before': active ? {
-                      content: '""',
-                      position: 'absolute',
-                      left: 0,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: 3,
-                      height: '70%',
-                      backgroundColor: 'primary.main',
-                      borderRadius: '0 2px 2px 0',
-                    } : {},
+                    color: 'inherit',
+                    minWidth: 40,
                   }}
                 >
-                  <ListItemIcon
+                  <Icon />
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: active ? 600 : 500,
+                  }}
+                />
+                {item.badge && (
+                  <Chip
+                    label={item.badge}
+                    size="small"
                     sx={{
-                      color: 'inherit',
-                      minWidth: 40,
-                    }}
-                  >
-                    <Icon />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: '0.875rem',
-                      fontWeight: active ? 600 : 500,
+                      height: 20,
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      bgcolor: 'secondary.main',
+                      color: 'white',
                     }}
                   />
-                  {hasChildren && (
-                    openMarketSubmenu ? <ChevronDownIcon sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon sx={{ color: 'text.secondary' }} />
-                  )}
-                  {item.badge && (
-                    <Chip
-                      label={item.badge}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        bgcolor: 'secondary.main',
-                        color: 'white',
-                      }}
-                    />
-                  )}
-                </ListItemButton>
-              </ListItem>
-
-              {/* Render Children (Sub-menu) if available */}
-              {hasChildren && (
-                <Collapse in={openMarketSubmenu} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding sx={{ pl: 4 }}>
-                    {item.children.map((child) => {
-                      const ChildIcon = child.icon;
-                      const childActive = isSubmenuActive(child.path); // 'childActive' for sub-menu items
-
-                      return (
-                        <ListItem key={child.id} disablePadding sx={{ mb: 0.5 }}>
-                          <ListItemButton
-                            onClick={() => handleNavigation(child)}
-                            sx={{
-                              borderRadius: 2,
-                              py: 1,
-                              px: 2,
-                              // Apply background/color based on 'childActive' state
-                              backgroundColor: childActive ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
-                              color: childActive ? 'primary.light' : 'text.secondary',
-                              '&:hover': {
-                                backgroundColor: childActive
-                                  ? 'rgba(99, 102, 241, 0.1)'
-                                  : 'rgba(255, 255, 255, 0.03)',
-                              },
-                              '&:before': childActive ? {
-                                content: '""',
-                                position: 'absolute',
-                                left: 0,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: 3,
-                                height: '70%',
-                                backgroundColor: 'primary.main',
-                                borderRadius: '0 2px 2px 0',
-                              } : {},
-                            }}
-                          >
-                            <ListItemIcon
-                              sx={{
-                                color: 'inherit',
-                                minWidth: 40,
-                              }}
-                            >
-                              <ChildIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={child.label}
-                              primaryTypographyProps={{
-                                fontSize: '0.8rem',
-                                fontWeight: childActive ? 600 : 400,
-                              }}
-                            />
-                            {child.badge && (
-                              <Chip
-                                label={child.badge}
-                                size="small"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.55rem',
-                                  fontWeight: 600,
-                                  bgcolor: 'info.main',
-                                  color: 'white',
-                                }}
-                              />
-                            )}
-                          </ListItemButton>
-                        </ListItem>
-                      );
-                    })}
-                  </List>
-                </Collapse>
-              )}
-            </React.Fragment>
+                )}
+              </ListItemButton>
+            </ListItem>
           );
         })}
       </List>
