@@ -146,10 +146,11 @@ const HomePage = () => {
             },
           }}
         >
-                     Get Started
+          Get Started
         </Button>
       </Box>
 
+      {/* 其余内容层级提升，确保在视频之上 */}
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 5 }}>
         {/* 主标题区域 */}
         <Box sx={{ 
@@ -158,99 +159,96 @@ const HomePage = () => {
           minHeight: '80vh',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          position: 'relative', // 使视频/图片定位于此区域
         }}>
-          <Fade in timeout={1000}>
-            <Box>
-                             <Typography
-                 variant="h1"
-                 sx={{
-                   fontSize: { xs: '2.5rem', md: '4rem' },
-                   fontWeight: 800,
-                   background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
-                   backgroundClip: 'text',
-                   WebkitBackgroundClip: 'text',
-                   WebkitTextFillColor: 'transparent',
-                   mb: 3,
-                   lineHeight: 1.2,
-                 }}
-               >
-                 Track. Optimize. Invest.
-               </Typography>
-               
-               <Typography
-                 variant="h2"
-                 sx={{
-                   fontSize: { xs: '1.8rem', md: '2.5rem' },
-                   fontWeight: 600,
-                   color: 'white',
-                   mb: 2,
-                   opacity: 0.9,
-                 }}
-               >
-                 The Ultimate Portfolio Manager
-               </Typography>
-
-               <Typography
-                 variant="h6"
-                 sx={{
-                   fontSize: { xs: '1rem', md: '1.25rem' },
-                   color: 'rgba(255, 255, 255, 0.7)',
-                   mb: 6,
-                   maxWidth: 600,
-                   mx: 'auto',
-                   lineHeight: 1.6,
-                 }}
-               >
-                 Portfolio Manager is your professional investment companion. Track real-time market data, analyze performance, optimize asset allocation, and make smarter investment decisions.
-               </Typography>
-
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleGetStarted}
-                  endIcon={<ArrowForward />}
+          {/* 背景视频或帧图片：放在主标题区域的正后方 */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1,
+              overflow: 'hidden',
+              pointerEvents: 'none', // 不影响交互
+            }}
+          >
+            {/* React实现滚动切换视频/图片帧 */}
+            <ScrollVideoOrFrames />
+          </Box>
+          {/* 主标题内容，zIndex提升，确保在视频/图片之上 */}
+          <Box sx={{ position: 'relative', zIndex: 2 }}>
+            <Fade in timeout={0}>
+              <Box>
+                <Typography
+                  variant="h1"
                   sx={{
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1.1rem',
+                    fontSize: { xs: '2.5rem', md: '4rem' },
+                    fontWeight: 800,
                     background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
-                    color: '#1a1a1a',
-                    fontWeight: 600,
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #E8A855 0%, #D4961F 50%, #B8821A 100%)',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 8px 25px rgba(244, 190, 126, 0.4)',
-                    },
-                    transition: 'all 0.3s ease',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 3,
+                    lineHeight: 1.2,
                   }}
-                                 >
-                   Start Your Journey
-                 </Button>
-                 
-                 {/* <Button
-                   variant="outlined"
-                   size="large"
-                   sx={{
-                     px: 4,
-                     py: 1.5,
-                     fontSize: '1.1rem',
-                     borderColor: 'rgba(255, 255, 255, 0.3)',
-                     color: 'white',
-                     '&:hover': {
-                       borderColor: '#E8A855',
-                       backgroundColor: 'rgba(232, 168, 85, 0.1)',
-                     },
-                   }}
-                 >
-                   Learn More
-                 </Button> */}
+                >
+                  Track. Optimize. Invest.
+                </Typography>
+                <Typography
+                  variant="h2"
+                  sx={{
+                    fontSize: { xs: '1.8rem', md: '2.5rem' },
+                    fontWeight: 600,
+                    color: 'white',
+                    mb: 2,
+                    opacity: 0.9,
+                  }}
+                >
+                  The Ultimate Portfolio Manager
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontSize: { xs: '1rem', md: '1.25rem' },
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    mb: 6,
+                    maxWidth: 600,
+                    mx: 'auto',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Portfolio Manager is your professional investment companion. Track real-time market data, analyze performance, optimize asset allocation, and make smarter investment decisions.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleGetStarted}
+                    endIcon={<ArrowForward />}
+                    sx={{
+                      px: 4,
+                      py: 1.5,
+                      fontSize: '1.1rem',
+                      background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
+                      color: '#1a1a1a',
+                      fontWeight: 600,
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #E8A855 0%, #D4961F 50%, #B8821A 100%)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 25px rgba(244, 190, 126, 0.4)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    Start Your Journey
+                  </Button>
+                </Box>
               </Box>
-
-              
-            </Box>
-          </Fade>
+            </Fade>
+          </Box>
         </Box>
 
                  {/* 产品演示视频 */}
@@ -435,5 +433,71 @@ const HomePage = () => {
     </Box>
   );
 };
+
+/**
+ * 根据滚动进度切换显示视频或图片帧
+ */
+function ScrollVideoOrFrames() {
+  // 帧图片总数
+  const TOTAL_FRAMES = 10;
+  // 滚动多少像素后切换为帧图片
+  const SWITCH_SCROLL_Y = 1; // px
+
+  const [scrollY, setScrollY] = React.useState(0);
+
+  React.useEffect(() => {
+    // 滚动事件监听器，带节流
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollY(window.scrollY || window.pageYOffset || document.documentElement.scrollTop);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 判断是否切换为帧图片
+  if (scrollY < SWITCH_SCROLL_Y) {
+    // 显示GIF图片（替代原视频）
+    return (
+      <img
+        src="/rotating-animation.gif"
+        alt="Rotating Animation"
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          filter: 'brightness(0.7) blur(1px)',
+        }}
+        draggable={false}
+      />
+    );
+  } else {
+    // 计算当前帧编号（1 ~ TOTAL_FRAMES）
+    // 滚动区间 [SWITCH_SCROLL_Y, SWITCH_SCROLL_Y+1000] 映射到帧区间
+    const maxScroll = 1000;
+    const progress = Math.min(Math.max(scrollY - SWITCH_SCROLL_Y, 0), maxScroll) / maxScroll;
+    const frameNo = Math.max(1, Math.min(TOTAL_FRAMES, Math.round(progress * (TOTAL_FRAMES - 1)) + 1));
+    const frameSrc = `/frame-extractor-1/Picture${frameNo}.png`;
+    return (
+      <img
+        src={frameSrc}
+        alt={`Frame ${frameNo}`}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          filter: 'brightness(0.7) blur(1px)',
+        }}
+        draggable={false}
+      />
+    );
+  }
+}
 
 export default HomePage; 
