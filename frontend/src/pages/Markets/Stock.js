@@ -1,4 +1,3 @@
-// src/pages/markets/Stocks.jsx
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -60,7 +59,7 @@ function a11yProps(index) {
   };
 }
 
-const Stocks = () => {
+const Stock = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const [isLoading, setIsLoading] = useState(false); // 主内容区域的加载状态
 
@@ -371,7 +370,7 @@ const Stocks = () => {
       {/* 调整标题下方的 margin-bottom，让 Tab 离标题更近 */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Stocks Market
+          Stocks
         </Typography>
         <TextField
           size="small"
@@ -405,95 +404,30 @@ const Stocks = () => {
           variant="scrollable" // 允许在小屏幕上滚动
           scrollButtons="auto" // 自动显示/隐藏滚动按钮
         >
-          {/* 为每个 Tab 添加 hover 效果，并调整其大小 */}
+          {/* 移除 Tab 的 minHeight, padding 和 .MuiTab-wrapper 样式，仅保留 hover 效果 */}
           <Tab
             label="Most Active"
             icon={<ActiveIcon />}
             iconPosition="start"
             {...a11yProps(0)}
-            sx={{
-              minHeight: '40px', // 减小最小高度
-              padding: '6px 16px', // 减小内边距
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)', // 鼠标悬停时的背景色
-              },
-              // 可选：调整图标和文本的间距
-              '& .MuiTab-wrapper': {
-                flexDirection: 'row', // 图标在文本左侧
-                justifyContent: 'center',
-                alignItems: 'center',
-                '& > *:first-of-type': { // 针对图标
-                  marginBottom: '0 !important', // 移除默认的底部间距
-                  marginRight: '6px', // 添加右侧间距
-                }
-              }
-            }}
           />
           <Tab
             label="Trending Now"
             icon={<TrendingIcon />}
             iconPosition="start"
             {...a11yProps(1)}
-            sx={{
-              minHeight: '40px',
-              padding: '6px 16px',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              },
-              '& .MuiTab-wrapper': {
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-                '& > *:first-of-type': {
-                  marginBottom: '0 !important',
-                  marginRight: '6px',
-                }
-              }
-            }}
           />
           <Tab
             label="Top Gainers"
             icon={<TrendingUpIcon />}
             iconPosition="start"
             {...a11yProps(2)}
-            sx={{
-              minHeight: '40px',
-              padding: '6px 16px',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              },
-              '& .MuiTab-wrapper': {
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-                '& > *:first-of-type': {
-                  marginBottom: '0 !important',
-                  marginRight: '6px',
-                }
-              }
-            }}
           />
           <Tab
             label="Top Losers"
             icon={<TrendingDownIcon />}
             iconPosition="start"
             {...a11yProps(3)}
-            sx={{
-              minHeight: '40px',
-              padding: '6px 16px',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              },
-              '& .MuiTab-wrapper': {
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-                '& > *:first-of-type': {
-                  marginBottom: '0 !important',
-                  marginRight: '6px',
-                }
-              }
-            }}
           />
         </Tabs>
       </Box>
@@ -504,4 +438,4 @@ const Stocks = () => {
   );
 };
 
-export default Stocks;
+export default Stock;
