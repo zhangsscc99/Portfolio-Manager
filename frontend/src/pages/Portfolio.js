@@ -56,6 +56,7 @@ const Portfolio = () => {
   const [chartLoading, setChartLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [addAssetOpen, setAddAssetOpen] = useState(false);
+  const [removeAssetOpen, setRemoveAssetOpen] = useState(false);
   const [expandedTypes, setExpandedTypes] = useState({});
   const [newAsset, setNewAsset] = useState({
     symbol: '',
@@ -65,6 +66,12 @@ const Portfolio = () => {
     avg_cost: '',
     currency: 'USD'
   });
+  const [assetToRemove, setAssetToRemove] = useState({
+    symbol: '',
+    name: '',
+    asset_type: 'stock'
+  });
+  const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
 
   // 📊 Fetch portfolio data
   const fetchPortfolioData = async () => {
@@ -182,6 +189,50 @@ const Portfolio = () => {
       console.error('Failed to update prices:', error);
     }
   };
+  // - Remove asset
+  const handleRemoveAsset = async () => {
+    try {
+      // Find the asset ID from the portfolio data
+      const assetType = assetToRemove.asset_type;
+      const assetSymbol = assetToRemove.symbol;
+      
+      const asset = portfolioData?.assetsByType?.[assetType]?.assets?.find(
+        a => a.symbol === assetSymbol
+      );
+      
+      if (!asset) {
+        setRemoveMessage({ type: 'error', text: 'Asset not found in portfolio' });
+        return;
+      }
+      
+      const response = await fetch(`/api/assets/${asset.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        setRemoveMessage({ type: 'success', text: `${asset.symbol} removed successfully` });
+        setTimeout(() => {
+          setRemoveAssetOpen(false);
+          setAssetToRemove({
+            symbol: '',
+            name: '',
+            asset_type: 'stock'
+          });
+          setRemoveMessage({ type: '', text: '' });
+          fetchPortfolioData();
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        setRemoveMessage({ type: 'error', text: errorData.error || 'Failed to remove asset' });
+        console.error('Failed to remove asset:', errorData);
+      }
+    } catch (error) {
+      setRemoveMessage({ type: 'error', text: 'Network error occurred' });
+      console.error('Failed to remove asset:', error);
+    }
+  };
+
 
   // ➕ Add asset
   const handleAddAsset = async () => {
@@ -326,7 +377,8 @@ const Portfolio = () => {
           <Button
             variant="contained"
             startIcon={<RemoveIcon />}
-            onClick={() => setAddAssetOpen(true)}
+            // CHANGE THIS TO REMOVE 
+            onClick={() => setRemoveAssetOpen(true)}
           >
             Remove Asset
           </Button>
@@ -571,6 +623,71 @@ const Portfolio = () => {
           </Card>
         </Grid>
       </Grid>
+      {/* 📝 Remove asset dialog */}
+      <Dialog open={removeAssetOpen} onClose={() => setRemoveAssetOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Remove Asset</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {removeMessage.text && (
+              <Grid item xs={12}>
+                <Alert severity={removeMessage.type === 'success' ? 'success' : 'error'}>
+                  {removeMessage.text}
+                </Alert>
+              </Grid>
+            )}
+            <Grid item xs={12}>
+              <TextField
+                select
+                fullWidth
+                label="Select Asset to Remove"
+                value={`${assetToRemove.asset_type}:${assetToRemove.symbol}`}
+                onChange={(e) => {
+                  const [type, symbol] = e.target.value.split(':');
+                  const asset = portfolioData?.assetsByType?.[type]?.assets?.find(a => a.symbol === symbol);
+                  setAssetToRemove({
+                    symbol: symbol,
+                    name: asset?.name || '',
+                    asset_type: type
+                  });
+                  setRemoveMessage({ type: '', text: '' });
+                }}
+              >
+                {Object.entries(ASSET_TYPES).map(([type, config]) => {
+                  const typeData = portfolioData?.assetsByType?.[type];
+                  if (!typeData?.assets?.length) return null;
+                  
+                  return typeData.assets.map((asset) => (
+                    <MenuItem key={`${type}:${asset.symbol}`} value={`${type}:${asset.symbol}`}>
+                      {config.icon} {asset.symbol} - {asset.name}
+                    </MenuItem>
+                  ));
+                })}
+              </TextField>
+            </Grid>
+            {assetToRemove.symbol && !removeMessage.text && (
+              <Grid item xs={12}>
+                <Alert severity="warning">
+                  Are you sure you want to remove {assetToRemove.symbol} ({assetToRemove.name}) from your portfolio?
+                  This action cannot be undone.
+                </Alert>
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveAssetOpen(false)}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            color="error"
+            onClick={handleRemoveAsset}
+            disabled={!assetToRemove.symbol || removeMessage.type === 'success'}
+          >
+            Remove Asset
+          </Button>
+        </DialogActions>
+      </Dialog>
+          
+
 
       {/* 📝 Add asset dialog */}
       <Dialog open={addAssetOpen} onClose={() => setAddAssetOpen(false)} maxWidth="sm" fullWidth>
@@ -636,6 +753,10 @@ const Portfolio = () => {
       </Dialog>
     </Box>
   );
+
+  
+
+
 };
 
 export default Portfolio; 

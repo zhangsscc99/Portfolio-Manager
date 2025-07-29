@@ -180,3 +180,81 @@ MIT License - feel free to use this project for learning and development purpose
 ---
 
 **Built with ❤️ using React, Node.js, and Material-UI** 
+
+# 1. 构建前端
+cd frontend
+npm run build:prod
+
+# 2. 创建网站目录
+sudo mkdir -p /var/www/portfolio-manager
+sudo cp -r build/* /var/www/portfolio-manager/
+
+# 3. 设置权限
+sudo chown -R www-data:www-data /var/www/portfolio-manager
+sudo chmod -R 755 /var/www/portfolio-manager
+
+# 4. 配置Nginx
+sudo nano /etc/nginx/sites-available/portfolio-manager
+
+server {
+    listen 3050;
+    server_name 47.243.102.28;
+    
+    # 前端静态文件
+    root /var/www/portfolio-manager;
+    index index.html;
+    
+    # 处理React Router的客户端路由
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # 后端API代理
+    location /api {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# 5. 启用配置
+sudo ln -s /etc/nginx/sites-available/portfolio-manager /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+
+# 6. 只启动后端
+cd backend
+pm2 start server.js --name "portfolio-backend"
+
+
+#!/bin/bash
+echo "🚀 部署 Portfolio Manager..."
+
+# 拉取代码
+git pull
+
+# 后端部署
+cd backend
+npm install
+pm2 restart portfolio-backend
+
+# 前端构建和部署
+cd ../frontend
+npm install
+npm run build:prod
+
+# 复制到Nginx目录
+sudo cp -r build/* /var/www/portfolio-manager/
+sudo chown -R www-data:www-data /var/www/portfolio-manager
+
+echo "✅ 部署完成!"
+pm2 status
