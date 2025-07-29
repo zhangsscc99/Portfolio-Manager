@@ -21,11 +21,11 @@ const stock = {
 const mostActiveStockLink =
   "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=200&formatted=true&scrIds=MOST_ACTIVES&sortField=&sortType=&start=0&useRecordsResponse=false&fields=symbol&lang=en-US&region=US";
 const dailyGainersLink =
-  "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=100&formatted=true&scrIds=DAY_GAINERS&sortField=&sortType=&start=0&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US"
+  "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=100&formatted=true&scrIds=DAY_GAINERS&sortField=&sortType=&start=0&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US";
 const dailyLosersLink =
-  "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=100&formatted=true&scrIds=DAY_LOSERS&sortField=&sortType=&start=0&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US"
+  "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=100&formatted=true&scrIds=DAY_LOSERS&sortField=&sortType=&start=0&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US";
 
-  // 📊 GET /api/market/quote/:symbol - 获取单个股票报价
+// 📊 GET /api/market/quote/:symbol - 获取单个股票报价
 router.get("/quote/:symbol", async (req, res) => {
   try {
     const { symbol } = req.params;
@@ -289,8 +289,8 @@ router.delete("/clear-cache", async (req, res) => {
 // 🌟 GET /api/market/most-active - 获取最活跃股票 (增加分页)
 router.get("/most-active", async (req, res) => {
   // 从查询参数获取 page 和 limit，并转换为数字
-  const page = parseInt(req.query.page || '1', 10); // 默认为第1页
-  const limit = parseInt(req.query.limit || '10', 10); // 默认为每页10条
+  const page = parseInt(req.query.page || "1", 10); // 默认为第1页
+  const limit = parseInt(req.query.limit || "10", 10); // 默认为每页10条
 
   // 验证 page 和 limit 是否是有效数字且大于0
   if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
@@ -374,11 +374,10 @@ router.get("/most-active", async (req, res) => {
   }
 });
 
-
 // 🔥 GET /api/market/trending - 获取热门股票 (带分页和总记录数)
 router.get("/trending", async (req, res) => {
-  const page = parseInt(req.query.page || '1', 10); // Default to page 1
-  const limit = parseInt(req.query.limit || '10', 10); // Default to 10 items per page
+  const page = parseInt(req.query.page || "1", 10); // Default to page 1
+  const limit = parseInt(req.query.limit || "10", 10); // Default to 10 items per page
 
   // Input validation for page and limit
   if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
@@ -394,7 +393,7 @@ router.get("/trending", async (req, res) => {
     // We pass an empty options object or just region if the service has its own defaults for count.
     const allTrendingSymbols = await yahooFinanceService.getTrendingSymbols(
       "US", // Assuming "US" is the desired region
-      { lang: "en-US",count: parseInt(300) } // Pass other desired options like language
+      { lang: "en-US", count: parseInt(300) } // Pass other desired options like language
       // NOTE: Do NOT pass count: limit here if you want to paginate the full set.
       // If your service inherently limits, consider modifying the service.
     );
@@ -440,8 +439,8 @@ router.get("/trending", async (req, res) => {
       success: true,
       data: trendingStocks,
       totalRecords: totalRecords, // Provide total records for frontend pagination
-      currentPage: page,         // Provide current page number
-      perPage: limit,            // Provide items per page
+      currentPage: page, // Provide current page number
+      perPage: limit, // Provide items per page
     });
   } catch (error) {
     console.error("获取热门股票失败:", error);
@@ -487,7 +486,6 @@ router.get("/trending", async (req, res) => {
 //     const formattedStocks = rawQuotes.map((item) => {
 //       return item.symbol;
 //     }).slice(0, parseInt(limit));
-    
 
 //     const mostActiveStocks = await yahooFinanceService.getMultipleStockPrices(
 //       formattedStocks
@@ -512,8 +510,8 @@ router.get("/trending", async (req, res) => {
 
 // 📈 GET /api/market/gainers - 获取涨幅榜 (带分页和总记录数)
 router.get("/gainers", async (req, res) => {
-  const page = parseInt(req.query.page || '1', 10); // 默认为第1页
-  const limit = parseInt(req.query.limit || '10', 10); // 默认为每页10条
+  const page = parseInt(req.query.page || "1", 10); // 默认为第1页
+  const limit = parseInt(req.query.limit || "10", 10); // 默认为每页10条
 
   // 验证 page 和 limit 是否是有效数字且大于0
   if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
@@ -585,8 +583,8 @@ router.get("/gainers", async (req, res) => {
       message: "成功获取日涨幅股票数据。",
       data: gainersStocks,
       totalRecords: totalRecords, // 返回总记录数
-      currentPage: page,         // 返回当前页码
-      perPage: limit,            // 返回每页显示数量
+      currentPage: page, // 返回当前页码
+      perPage: limit, // 返回每页显示数量
     });
   } catch (error) {
     console.error("获取日涨幅股票数据时发生错误:", error);
@@ -602,7 +600,7 @@ router.get("/gainers", async (req, res) => {
 // router.get("/losers", async (req, res) => {
 //   const { limit = 100 } = req.query;
 //   try {
-//     const response = await fetch(dailyLosersLink); 
+//     const response = await fetch(dailyLosersLink);
 
 //     if (!response.ok) {
 //       // 如果响应不成功，直接返回错误信息
@@ -632,7 +630,6 @@ router.get("/gainers", async (req, res) => {
 //     const formattedStocks = rawQuotes.map((item) => {
 //       return item.symbol;
 //     }).slice(0, parseInt(limit));
-    
 
 //     const mostActiveStocks = await yahooFinanceService.getMultipleStockPrices(
 //       formattedStocks
@@ -656,8 +653,8 @@ router.get("/gainers", async (req, res) => {
 // });
 // 📉 GET /api/market/losers - 获取跌幅榜 (带分页和总记录数)
 router.get("/losers", async (req, res) => {
-  const page = parseInt(req.query.page || '1', 10); // 默认为第1页
-  const limit = parseInt(req.query.limit || '10', 10); // 默认为每页10条
+  const page = parseInt(req.query.page || "1", 10); // 默认为第1页
+  const limit = parseInt(req.query.limit || "10", 10); // 默认为每页10条
 
   // 验证 page 和 limit 是否是有效数字且大于0
   if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
@@ -729,8 +726,8 @@ router.get("/losers", async (req, res) => {
       message: "成功获取日跌幅股票数据。",
       data: losersStocks,
       totalRecords: totalRecords, // 返回总记录数
-      currentPage: page,         // 返回当前页码
-      perPage: limit,            // 返回每页显示数量
+      currentPage: page, // 返回当前页码
+      perPage: limit, // 返回每页显示数量
     });
   } catch (error) {
     console.error("获取日跌幅股票数据时发生错误:", error);
@@ -774,7 +771,136 @@ router.get("/indices", async (req, res) => {
   }
 });
 
+// router.get("/cryptos", async (req, res) => {
+//   const page = parseInt(req.query.page || "1", 10); // 默认为第1页
+//   const limit = parseInt(req.query.limit || "10", 10); // 默认为每页10条
+
+//   // 验证 page 和 limit 是否是有效数字且大于0
+//   if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "分页参数 page 和 limit 必须是大于0的有效数字。",
+//     });
+//   }
+
+//   try {
+//     const cryptos = await fetch(
+//       `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=MOST_ACTIVES_CRYPTOCURRENCIES&sortField=&sortType=&start=${
+//         limit * page
+//       }&useRecordsResponse=false&fields=ticker%2ClogoUrl%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CmarketCap%2CregularMarketVolume%2Cvolume24Hr%2CvolumeAllCurrencies%2CcirculatingSupply%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`
+//     );
+
+//     if (!cryptos.ok) {
+//       return res.status(cryptos.status).json({
+//         success: false,
+//         message: `HTTP 错误！状态码: ${cryptos.status}`,
+//         error: `Failed to fetch data from crypto endpoint`,
+//       });
+//     }
+//     const responseJson = await cryptos.json();
+
+//     const rawQuotes = responseJson.finance?.result?.[0]?.quotes;
+//     const totalRecords = responseJson.finance?.result?.[0]?.total || 0;
+
+//     const mostActiveCryptos = await yahooFinanceService.getMultipleStockPrices(
+//       rawQuotes.map((item) => item.symbol)
+//     );
+
+//     res.json({
+//       success: true,
+//       data: mostActiveCryptos,
+//     });
+//   } catch (error) {
+//     console.error("获取加密货币数据失败:", error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message,
+//     });
+//   }
+// });
+
 // 辅助函数：获取指数名称
+// crypto 路由
+router.get("/cryptos", async (req, res) => {
+  // 从查询参数获取 page 和 limit，并转换为数字
+  const page = parseInt(req.query.page || "1", 10); // 默认为第1页
+  const limit = parseInt(req.query.limit || "10", 10); // 默认为每页10条
+
+  // 验证 page 和 limit 是否是有效数字且大于0
+  if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "分页参数 page 和 limit 必须是大于0的有效数字。",
+    });
+  }
+
+  try {
+    // 计算起始索引，Yahoo Finance API的start参数通常是0-based offset
+    // 例如，page=1, limit=10 -> start=0
+    // page=2, limit=10 -> start=10
+    const startOffset = (page - 1) * limit;
+
+    // 构建 Yahoo Finance API URL
+    // 注意：这里的count是每页显示的条数，start是起始偏移量
+    const apiUrl = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=MOST_ACTIVES_CRYPTOCURRENCIES&sortField=&sortType=&start=${startOffset}&useRecordsResponse=false&fields=ticker%2ClogoUrl%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CmarketCap%2CregularMarketVolume%2Cvolume24Hr%2CvolumeAllCurrencies%2CcirculatingSupply%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
+
+    const cryptosResponse = await fetch(apiUrl);
+
+    if (!cryptosResponse.ok) {
+      return res.status(cryptosResponse.status).json({
+        success: false,
+        message: `HTTP 错误！状态码: ${cryptosResponse.status}`,
+        error: `Failed to fetch data from crypto endpoint: ${apiUrl}`,
+      });
+    }
+
+    const responseJson = await cryptosResponse.json();
+
+    const rawQuotes = responseJson.finance?.result?.[0]?.quotes || [];
+    // 从API响应中获取总记录数
+    const totalRecords = responseJson.finance?.result?.[0]?.total || 0;
+
+    // 计算总页数
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    // 如果当前页没有数据，但请求的页数超出了总页数
+    if (rawQuotes.length === 0 && page > totalPages && totalRecords > 0) {
+      return res.status(200).json({
+        success: true,
+        message: "当前页没有数据，可能已超出总页数。",
+        data: [],
+        totalRecords: totalRecords,
+        currentPage: page,
+        perPage: limit,
+        totalPages: totalPages,
+      });
+    }
+
+    // 获取当前页加密货币的实时价格数据
+    const mostActiveCryptos = await yahooFinanceService.getMultipleStockPrices(
+      rawQuotes.map((item) => item.symbol)
+    );
+
+    res.json({
+      success: true,
+      message: "成功获取加密货币数据。",
+      data: mostActiveCryptos,
+      totalRecords: totalRecords, // 返回总记录数
+      currentPage: page,         // 返回当前页码
+      perPage: limit,            // 返回每页显示数量
+      totalPages: totalPages,    // 返回总页数
+    });
+  } catch (error) {
+    console.error("获取加密货币数据失败:", error);
+    res.status(500).json({
+      success: false,
+      message: "服务器内部错误，无法获取加密货币数据。",
+      error: error.message,
+    });
+  }
+});
+
+
 function getIndexName(symbol) {
   const indexNames = {
     "^GSPC": "S&P 500",

@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { API_CONFIG } from '../config/api';
+import axios from "axios";
+import { API_CONFIG } from "../config/api";
 
 // Create axios instance with default config
 const api = axios.create(API_CONFIG);
@@ -8,7 +8,7 @@ const api = axios.create(API_CONFIG);
 api.interceptors.request.use(
   (config) => {
     // Add auth token if available
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,7 +25,7 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    console.error('API Error:', error);
+    console.error("API Error:", error);
     return Promise.reject(error);
   }
 );
@@ -33,16 +33,16 @@ api.interceptors.response.use(
 // Portfolio API
 export const portfolioAPI = {
   // Get all portfolios
-  getPortfolios: () => api.get('/portfolio'),
+  getPortfolios: () => api.get("/portfolio"),
 
   // Get current portfolio
-  getCurrentPortfolio: () => api.get('/portfolio/current'),
+  getCurrentPortfolio: () => api.get("/portfolio/current"),
 
   // Get portfolio by ID
   getPortfolio: (id) => api.get(`/portfolio/${id}`),
 
   // Create new portfolio
-  createPortfolio: (data) => api.post('/portfolio', data),
+  createPortfolio: (data) => api.post("/portfolio", data),
 
   // Update portfolio
   updatePortfolio: (id, data) => api.put(`/portfolio/${id}`, data),
@@ -57,13 +57,13 @@ export const portfolioAPI = {
 // Holdings API
 export const holdingsAPI = {
   // Get all holdings
-  getHoldings: () => api.get('/holdings'),
+  getHoldings: () => api.get("/holdings"),
 
   // Get holding by ID
   getHolding: (id) => api.get(`/holdings/${id}`),
 
   // Add new holding
-  addHolding: (data) => api.post('/holdings', data),
+  addHolding: (data) => api.post("/holdings", data),
 
   // Update holding
   updateHolding: (id, data) => api.put(`/holdings/${id}`, data),
@@ -84,44 +84,43 @@ export const marketAPI = {
   getQuote: (symbol) => api.get(`/market/quote/${symbol}`),
 
   // Get multiple quotes
-  getQuotes: (symbols) => api.get(`/market/quotes?symbols=${symbols.join(',')}`),
+  getQuotes: (symbols) =>
+    api.get(`/market/quotes?symbols=${symbols.join(",")}`),
 
   // Get trending stocks
-  getTrending: (page=1) => api.get(`/market/trending?page=${page}`),
+  getTrending: (page = 1) => api.get(`/market/trending?page=${page}`),
 
-  getMostActive: (page=1) => api.get(`/market/most-active?page=${page}`),
-  
+  getMostActive: (page = 1) => api.get(`/market/most-active?page=${page}`),
+
   // Get top gainers
-  getGainers: (page=1) => api.get(`/market/gainers?page=${page}`),
+  getGainers: (page = 1) => api.get(`/market/gainers?page=${page}`),
 
   // Get top losers
-  getLosers: (page=1) => api.get(`/market/losers?page=${page}`),
+  getLosers: (page = 1) => api.get(`/market/losers?page=${page}`),
 
   // Search stocks
-  searchStocks: (query) => api.get(`/market/search?q=${encodeURIComponent(query)}`),
+  searchStocks: (query) =>
+    api.get(`/market/search?q=${encodeURIComponent(query)}`),
 
   // Get market indices
-  getIndices: () => api.get('/market/indices'),
+  getIndices: () => api.get("/market/indices"),
 
   // Get historical data
   getHistory: (symbol) => api.get(`/market/history/${symbol}`),
 
-  /**
-   * Fetches currency (forex) data.
-   * @param {number} limit - The number of currency pairs to retrieve.
-   * @returns {Promise<Array>} A promise that resolves to an array of currency data objects.
-   */
+  getCryptos: (page = 1) => api.get(`/market/cryptos?page=${page}`),
+
   getCurrencies: (limit = 50) => api.get(`/market/currencies?limit=${limit}`),
   // --- END NEW ---
 };
 
 // Utility functions
-export const formatCurrency = (amount, currency = 'USD') => {
+export const formatCurrency = (amount, currency = "USD") => {
   if (amount === undefined || amount === null || isNaN(amount)) {
-    return currency === 'USD' ? '$0.00' : `0.00 ${currency}`;
+    return currency === "USD" ? "$0.00" : `0.00 ${currency}`;
   }
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
     currency: currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 4, // Increased precision for currency display
@@ -130,25 +129,25 @@ export const formatCurrency = (amount, currency = 'USD') => {
 
 export const formatNumber = (number) => {
   if (number === undefined || number === null || isNaN(number)) {
-    return '0';
+    return "0";
   }
-  return new Intl.NumberFormat('en-US').format(number);
+  return new Intl.NumberFormat("en-US").format(number);
 };
 
 export const formatPercentage = (percentage) => {
   if (percentage === undefined || percentage === null || isNaN(percentage)) {
-    return '0.00%';
+    return "0.00%";
   }
-  return `${percentage >= 0 ? '+' : ''}${(percentage * 100).toFixed(2)}%`;
+  return `${percentage >= 0 ? "+" : ""}${(percentage * 100).toFixed(2)}%`;
 };
 
 export const getChangeColor = (change) => {
   if (change === undefined || change === null || isNaN(change)) {
-    return 'text.primary';
+    return "text.primary";
   }
-  if (change > 0) return '#10b981'; // green
-  if (change < 0) return '#ef4444'; // red
-  return '#6b7280'; // gray
+  if (change > 0) return "#10b981"; // green
+  if (change < 0) return "#ef4444"; // red
+  return "#6b7280"; // gray
 };
 
 export default api;
