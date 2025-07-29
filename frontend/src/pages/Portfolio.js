@@ -39,14 +39,14 @@ import {
 import { Line } from 'react-chartjs-2';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
-// 🎯 Asset type configuration
+// 🎯 Asset type configuration - 金色主题
 const ASSET_TYPES = {
-  stock: { name: 'Stocks', icon: '📈', color: '#1976d2' },
-  crypto: { name: 'Cryptocurrency', icon: '₿', color: '#ff9800' },
-  etf: { name: 'ETF Funds', icon: '🏛️', color: '#2e7d32' },
-  bond: { name: 'Bonds', icon: '📜', color: '#5d4037' },
-  cash: { name: 'Cash', icon: '💰', color: '#424242' },
-  commodity: { name: 'Commodities', icon: '🥇', color: '#f57c00' }
+  stock: { name: 'Stocks', icon: '📈', color: '#E8A855' }, // 主金色
+  crypto: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
+  etf: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
+  bond: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
+  cash: { name: 'Cash', icon: '💰', color: '#10b981' }, // 保持绿色 - Cash通常用绿色
+  commodity: { name: 'Commodities', icon: '🥇', color: '#9A6B15' } // 最深金色
 };
 
 const Portfolio = () => {
