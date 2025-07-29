@@ -343,7 +343,7 @@ router.get("/trending", async (req, res) => {
   try {
     const { limit = 100 } = req.query;
 
-    const queryOptions = { count: limit, lang: "en-US" };
+    const queryOptions = { count: parseInt(limit), lang: "en-US" };
     const trendingSymbols = await yahooFinanceService.getTrendingSymbols(
       "US",
       queryOptions
