@@ -2,7 +2,78 @@ const express = require('express');
 const router = express.Router();
 // Use improved AI service with retry mechanism and offline fallback
 const aiAnalysisService = require('../services/aiAnalysisService-improved');
+const aiChatService = require('../services/aiChatService');
 const portfolioService = require('../services/portfolioService');
+
+// 🗣️ POST /api/ai-analysis/chat - AI Assistant Chat
+router.post('/chat', async (req, res) => {
+  try {
+    const { sessionId, message, portfolioId, portfolioContext } = req.body;
+    
+    if (!sessionId || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID and message are required'
+      });
+    }
+
+    console.log(`💬 Chat request for session ${sessionId.substring(0, 8)}: "${message.substring(0, 50)}..."`);
+
+    // Generate AI chat response
+    const chatResult = await aiChatService.generateChatResponse(
+      sessionId, 
+      message, 
+      portfolioContext
+    );
+    
+    if (chatResult.success) {
+      console.log('✅ Chat response generated successfully');
+      res.json({
+        success: true,
+        data: {
+          response: chatResult.response,
+          sessionId: chatResult.sessionId,
+          messageCount: chatResult.messageCount,
+          isOffline: chatResult.isOffline || false,
+          usage: chatResult.usage
+        }
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: chatResult.error || 'Failed to generate chat response'
+      });
+    }
+
+  } catch (error) {
+    console.error('Chat API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error during chat processing'
+    });
+  }
+});
+
+// 📋 GET /api/ai-analysis/chat/session/:sessionId - Get session info
+router.get('/chat/session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const sessionInfo = aiChatService.getSessionInfo(sessionId);
+    
+    res.json({
+      success: true,
+      data: sessionInfo
+    });
+
+  } catch (error) {
+    console.error('Session Info API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get session information'
+    });
+  }
+});
 
 // 🤖 POST /api/ai-analysis/portfolio - Generate AI portfolio analysis report
 router.post('/portfolio', async (req, res) => {
@@ -265,5 +336,10 @@ function generateQuickRecommendations(portfolioData) {
   
   return recommendations;
 }
+
+// 🧹 Cleanup old chat sessions periodically
+setInterval(() => {
+  aiChatService.cleanupOldSessions(24); // Clean sessions older than 24 hours
+}, 60 * 60 * 1000); // Run every hour
 
 module.exports = router; 
