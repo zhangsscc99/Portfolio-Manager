@@ -1,0 +1,198 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Portfolio Manager API",
+    "version": "1.0.0",
+    "description": "投资组合管理系统API"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "本地开发服务器"
+    }
+  ],
+  "paths": {
+    "/api/portfolio": {
+      "get": {
+        "summary": "获取所有投资组合",
+        "tags": ["Portfolio"],
+        "responses": {
+          "200": {
+            "description": "成功获取投资组合列表"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建新的投资组合",
+        "tags": ["Portfolio"],
+        "responses": {
+          "201": {
+            "description": "投资组合创建成功"
+          }
+        }
+      }
+    },
+    "/api/portfolio/current": {
+      "get": {
+        "summary": "获取当前投资组合详情",
+        "tags": ["Portfolio"],
+        "responses": {
+          "200": {
+            "description": "成功获取当前投资组合"
+          }
+        }
+      }
+    },
+    "/api/holdings": {
+      "get": {
+        "summary": "获取所有持仓",
+        "tags": ["Holdings"],
+        "responses": {
+          "200": {
+            "description": "成功获取持仓列表"
+          }
+        }
+      },
+      "post": {
+        "summary": "添加新持仓",
+        "tags": ["Holdings"],
+        "responses": {
+          "201": {
+            "description": "持仓添加成功"
+          }
+        }
+      }
+    },
+    "/api/assets/portfolio/{portfolioId}": {
+      "get": {
+        "summary": "获取投资组合的分类资产",
+        "tags": ["Assets"],
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取资产分类"
+          }
+        }
+      }
+    },
+    "/api/market/quote/{symbol}": {
+      "get": {
+        "summary": "获取单个股票报价",
+        "tags": ["Market Data"],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "AAPL"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取股票报价"
+          }
+        }
+      }
+    },
+    "/api/market/search": {
+      "get": {
+        "summary": "搜索股票",
+        "tags": ["Market Data"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "搜索关键词"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "搜索结果"
+          }
+        }
+      }
+    },
+    "/api/market/trending": {
+      "get": {
+        "summary": "获取热门股票",
+        "tags": ["Market Data"],
+        "responses": {
+          "200": {
+            "description": "热门股票列表"
+          }
+        }
+      }
+    },
+    "/api/market/gainers": {
+      "get": {
+        "summary": "获取涨幅榜",
+        "tags": ["Market Data"],
+        "responses": {
+          "200": {
+            "description": "涨幅榜股票"
+          }
+        }
+      }
+    },
+    "/api/market/losers": {
+      "get": {
+        "summary": "获取跌幅榜",
+        "tags": ["Market Data"],
+        "responses": {
+          "200": {
+            "description": "跌幅榜股票"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "健康检查",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "系统状态正常"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Portfolio",
+      "description": "投资组合管理"
+    },
+    {
+      "name": "Holdings",
+      "description": "持仓管理"
+    },
+    {
+      "name": "Assets",
+      "description": "资产管理"
+    },
+    {
+      "name": "Market Data",
+      "description": "市场数据"
+    },
+    {
+      "name": "System",
+      "description": "系统功能"
+    }
+  ]
+} 

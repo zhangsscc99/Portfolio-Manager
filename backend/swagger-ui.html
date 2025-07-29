@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Manager API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: #6366f1;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .endpoint {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        .get { background-color: #61affe; }
+        .post { background-color: #49cc90; }
+        .put { background-color: #fca130; }
+        .delete { background-color: #f93e3e; }
+        .path {
+            font-family: monospace;
+            font-size: 14px;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .debug {
+            background: #e8f5e8;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            border-left: 4px solid #4caf50;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #f44336;
+        }
+        .tag-group {
+            margin: 20px 0;
+        }
+        .tag-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #6366f1;
+        }
+        .simple-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .api-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .api-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Portfolio Manager API Documentation</h1>
+        <p>Interactive API documentation for the Portfolio Manager backend</p>
+    </div>
+    
+    <div class="content">
+        <div class="simple-list">
+            <h2>📚 API Endpoints</h2>
+            
+            <div class="tag-group">
+                <div class="tag-title">Portfolio Management</div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/portfolio</span>
+                    </div>
+                    <div><strong>Get all portfolios</strong></div>
+                </div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method post">POST</span>
+                        <span class="path">/api/portfolio</span>
+                    </div>
+                    <div><strong>Create new portfolio</strong></div>
+                </div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/portfolio/current</span>
+                    </div>
+                    <div><strong>Get current portfolio details</strong></div>
+                </div>
+            </div>
+
+            <div class="tag-group">
+                <div class="tag-title">Holdings Management</div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/holdings</span>
+                    </div>
+                    <div><strong>Get all holdings</strong></div>
+                </div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method post">POST</span>
+                        <span class="path">/api/holdings</span>
+                    </div>
+                    <div><strong>Add new holding</strong></div>
+                </div>
+            </div>
+
+            <div class="tag-group">
+                <div class="tag-title">Assets Management</div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/assets/portfolio/{portfolioId}</span>
+                    </div>
+                    <div><strong>Get portfolio assets by type</strong></div>
+                    <div style="color: #666; font-size: 14px;">Parameter: portfolioId (path) - Portfolio ID</div>
+                </div>
+            </div>
+
+            <div class="tag-group">
+                <div class="tag-title">Market Data</div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/market/quote/{symbol}</span>
+                    </div>
+                    <div><strong>Get single stock quote</strong></div>
+                    <div style="color: #666; font-size: 14px;">Parameter: symbol (path) - Stock symbol, e.g. AAPL</div>
+                </div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/market/search</span>
+                    </div>
+                    <div><strong>Search stocks</strong></div>
+                    <div style="color: #666; font-size: 14px;">Parameter: q (query) - Search keyword</div>
+                </div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/market/trending</span>
+                    </div>
+                    <div><strong>Get trending stocks</strong></div>
+                </div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/market/gainers</span>
+                    </div>
+                    <div><strong>Get top gainers</strong></div>
+                </div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/market/losers</span>
+                    </div>
+                    <div><strong>Get top losers</strong></div>
+                </div>
+            </div>
+
+            <div class="tag-group">
+                <div class="tag-title">System</div>
+                <div class="endpoint">
+                    <div>
+                        <span class="method get">GET</span>
+                        <span class="path">/api/health</span>
+                    </div>
+                    <div><strong>Health check</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+            <h3>📖 Usage Guide</h3>
+            <ul>
+                <li>All APIs return JSON format data</li>
+                <li>Successful responses usually contain <code>success: true</code> and <code>data</code> fields</li>
+                <li>Error responses contain <code>success: false</code> and <code>error</code> fields</li>
+                <li>BASE URL: <code>http://localhost:5000</code></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 
