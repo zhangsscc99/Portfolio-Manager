@@ -18,14 +18,15 @@ const Header = ({ onOpenAssistant }) => {
 
   return (
     <Box
+      className="tech-header"
       sx={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         py: 2,
         px: 3,
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        backgroundColor: 'background.paper',
+        position: 'relative',
+        zIndex: 10,
       }}
     >
       {/* Left side - Welcome and Date */}

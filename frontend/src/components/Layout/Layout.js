@@ -164,10 +164,11 @@ const Layout = ({ children }) => {
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
                 width: drawerWidth,
-                backgroundColor: 'background.paper',
-                borderRight: '1px solid rgba(255, 255, 255, 0.1)',
                 position: 'relative',
               },
+            }}
+            PaperProps={{
+              className: 'tech-sidebar'
             }}
             open
           >
@@ -179,15 +180,20 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <Box
         component="main"
+        className="tech-background"
         sx={{
           flexGrow: 1,
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
-          bgcolor: 'background.default',
+          position: 'relative',
           mt: isMobile ? '64px' : 0,
         }}
       >
+        {/* 浮动光效装饰 */}
+        <div className="floating-orb floating-orb-1"></div>
+        <div className="floating-orb floating-orb-2"></div>
+        <div className="floating-orb floating-orb-3"></div>
         {!isMobile && <Header onOpenAssistant={handleOpenAssistant} />}
         
         <Box
