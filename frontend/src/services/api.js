@@ -87,9 +87,9 @@ export const marketAPI = {
   getQuotes: (symbols) => api.get(`/market/quotes?symbols=${symbols.join(',')}`),
 
   // Get trending stocks
-  getTrending: (limit = 10) => api.get(`/market/trending?limit=${limit}`),
+  getTrending: (limit = 200) => api.get(`/market/trending?limit=${limit}`),
 
-  getMostActive: (limit = 10) => api.get(`/market/most-active?limit=${limit}`),
+  getMostActive: (limit = 200) => api.get(`/market/most-active?limit=${limit}`),
   
   // Get top gainers
   getGainers: (limit = 5) => api.get(`/market/gainers?limit=${limit}`),
