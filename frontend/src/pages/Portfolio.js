@@ -33,7 +33,7 @@ import {
   Remove as RemoveIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  Refresh as RefreshIcon,
+  Analytics,
   Visibility as WatchIcon
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
@@ -171,24 +171,13 @@ const Portfolio = () => {
     loadData();
   }, []);
 
-  // 🔄 Refresh prices
-  const handleRefreshPrices = async () => {
+  // AI Portfolio Analysis
+  const handleAIAnalysis = async () => {
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.updatePrices), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ portfolioId: 1 })
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchPortfolioData();
-        // Refresh chart data if asset is selected
-        if (selectedAsset) {
-          fetchAssetChartData(selectedAsset);
-        }
-      }
+      // Navigate to AI analysis page with portfolio data
+      window.open(`/app/ai-analysis?portfolioId=1`, '_blank');
     } catch (error) {
-      console.error('Failed to update prices:', error);
+      console.error('Failed to start AI analysis:', error);
     }
   };
   // - Remove asset
@@ -382,10 +371,19 @@ const Portfolio = () => {
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={handleRefreshPrices}
+            startIcon={<Analytics />}
+            onClick={handleAIAnalysis}
+            sx={{
+              background: 'linear-gradient(135deg, rgba(232, 168, 85, 0.1) 0%, rgba(244, 190, 126, 0.1) 100%)',
+              borderColor: '#E8A855',
+              color: '#E8A855',
+              '&:hover': {
+                borderColor: '#F4BE7E',
+                backgroundColor: 'rgba(232, 168, 85, 0.2)',
+              },
+            }}
           >
-            Refresh Prices
+            AI Analysis
           </Button>
           <Button
             variant="contained"

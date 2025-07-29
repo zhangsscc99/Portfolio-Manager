@@ -451,6 +451,81 @@ class PortfolioService {
   calculateMaxDrawdown(holdings) { return 0; }
   calculateRebalancingCost(recommendations) { return 0; }
   assessRebalancingRisk(recommendations) { return 'low'; }
+
+  /**
+   * 获取投资组合摘要数据 (用于AI分析)
+   * @param {number} portfolioId - 投资组合ID
+   * @returns {Object} 投资组合摘要数据
+   */
+  async getPortfolioSummary(portfolioId) {
+    try {
+      // 获取投资组合基本信息
+      const portfolio = await Portfolio.findByPk(portfolioId);
+      if (!portfolio) {
+        throw new Error('Portfolio not found');
+      }
+
+      // 获取资产数据（使用新的Asset表）
+      const assets = await Asset.findAll({
+        where: { 
+          portfolio_id: portfolioId,
+          is_active: true
+        }
+      });
+
+      // 按资产类型分组
+      const assetsByType = {};
+      let totalValue = 0;
+      let totalAssets = assets.length;
+
+      assets.forEach(asset => {
+        const assetType = asset.asset_type || 'stock';
+        const currentValue = asset.getCurrentValue();
+        
+        totalValue += currentValue;
+
+        if (!assetsByType[assetType]) {
+          assetsByType[assetType] = {
+            count: 0,
+            totalValue: 0,
+            assets: []
+          };
+        }
+
+        assetsByType[assetType].count++;
+        assetsByType[assetType].totalValue += currentValue;
+        assetsByType[assetType].assets.push({
+          id: asset.id,
+          symbol: asset.symbol,
+          name: asset.name,
+          asset_type: assetType,
+          quantity: asset.quantity,
+          avg_cost: asset.avg_cost,
+          current_price: asset.current_price,
+          currentValue: currentValue,
+          gainLoss: asset.getGainLoss(),
+          gainLossPercent: asset.getGainLossPercent(),
+          currency: asset.currency || 'USD'
+        });
+      });
+
+      return {
+        success: true,
+        data: {
+          totalValue: totalValue + parseFloat(portfolio.cash || 0),
+          totalAssets,
+          assetsByType
+        }
+      };
+
+    } catch (error) {
+      console.error('Portfolio Summary Error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = new PortfolioService(); 

@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
 import Markets from './pages/Markets';
+import AIAnalysis from './pages/AIAnalysis';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -200,6 +201,7 @@ function App() {
                     <Route path="portfolio" element={<Portfolio />} />
                     <Route path="analytics" element={<Analytics />} />
                     <Route path="markets" element={<Markets />} />
+                    <Route path="ai-analysis" element={<AIAnalysis />} />
                     <Route path="" element={<Dashboard />} /> {/* Default to dashboard */}
                   </Routes>
                 </Layout>
