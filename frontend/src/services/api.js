@@ -87,15 +87,15 @@ export const marketAPI = {
   getQuotes: (symbols) => api.get(`/market/quotes?symbols=${symbols.join(',')}`),
 
   // Get trending stocks
-  getTrending: (limit = 200) => api.get(`/market/trending?limit=${limit}`),
+  getTrending: (page=1) => api.get(`/market/trending?page=${page}`),
 
-  getMostActive: (limit = 200) => api.get(`/market/most-active?limit=${limit}`),
+  getMostActive: (page=1) => api.get(`/market/most-active?page=${page}`),
   
   // Get top gainers
-  getGainers: (limit = 5) => api.get(`/market/gainers?limit=${limit}`),
+  getGainers: (page=1) => api.get(`/market/gainers?page=${page}`),
 
   // Get top losers
-  getLosers: (limit = 5) => api.get(`/market/losers?limit=${limit}`),
+  getLosers: (page=1) => api.get(`/market/losers?page=${page}`),
 
   // Search stocks
   searchStocks: (query) => api.get(`/market/search?q=${encodeURIComponent(query)}`),
