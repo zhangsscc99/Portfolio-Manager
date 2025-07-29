@@ -5,6 +5,21 @@ const scheduledUpdatesService = require('../services/scheduledUpdates');
 const { Holding } = require('../models/index');
 const cron = require('node-cron');
 
+const stock = {
+  symbol: "",
+  name: "",
+  price: 0,
+  change: 0,
+  changePercent: "",
+  volume: "",
+  avgVol: "",
+  marketCap: "",
+  peRatio: "",
+  fiveTwoWeekChange: ""
+}
+
+const mostActiveStockLink = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=200&formatted=true&scrIds=MOST_ACTIVES&sortField=&sortType=&start=0&useRecordsResponse=false&fields=symbol&lang=en-US&region=US";
+
 // 📊 GET /api/market/quote/:symbol - 获取单个股票报价
 router.get('/quote/:symbol', async (req, res) => {
   try {
@@ -253,6 +268,59 @@ router.delete('/clear-cache', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
+      error: error.message
+    });
+  }
+});
+
+
+router.get('/most-active', async (req, res) => {
+  try {
+    const response = await fetch(mostActiveStockLink); // 确保 mostActiveStockLink 已定义
+
+    if (!response.ok) {
+      // 如果响应不成功，直接返回错误信息
+      return res.status(response.status).json({
+        success: false,
+        message: `HTTP 错误！状态码: ${response.status}`,
+        error: `Failed to fetch data from ${mostActiveStockLink}`
+      });
+    }
+
+    const responseJson = await response.json();
+
+    // 安全地访问 quotes 数组
+    const rawQuotes = responseJson.finance?.result?.[0]?.quotes;
+
+    // 如果 quotes 数组不存在或为空，返回一个空数组
+    if (!rawQuotes || !Array.isArray(rawQuotes) || rawQuotes.length === 0) {
+      return res.status(200).json({ // 200 OK，但数据为空
+        success: true,
+        message: "未找到活跃股票数据。",
+        data: []
+      });
+    }
+
+    // 映射并转换每个股票对象到你需要的格式
+    const formattedStocks = rawQuotes.map(item => {
+      return {
+        symbol: item.symbol,
+      };
+    });
+
+    // 返回包含格式化后股票信息的对象
+    return res.status(200).json({
+      success: true,
+      message: "成功获取最活跃股票数据。",
+      data: formattedStocks
+    });
+
+  } catch (error) {
+    console.error('获取最活跃股票数据时发生错误:', error);
+    // 捕获并处理任何在请求或处理过程中发生的网络或其他错误
+    return res.status(500).json({
+      success: false,
+      message: "服务器内部错误，无法获取股票数据。",
       error: error.message
     });
   }
