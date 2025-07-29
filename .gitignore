@@ -3,3 +3,4 @@
 /frontend/build
 /frontend/node_modules
 /node_modules
+backend/scripts/initDB.js
