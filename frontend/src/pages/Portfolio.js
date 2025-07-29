@@ -26,6 +26,7 @@ import {
   MenuItem,
   Alert
 } from '@mui/material';
+import StockSearchField from '../components/StockSearchField';
 import {
   ExpandMore as ExpandMoreIcon,
   Add as AddIcon,
@@ -38,14 +39,14 @@ import {
 import { Line } from 'react-chartjs-2';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
-// 🎯 Asset type configuration
+// 🎯 Asset type configuration - 金色主题
 const ASSET_TYPES = {
-  stock: { name: 'Stocks', icon: '📈', color: '#1976d2' },
-  crypto: { name: 'Cryptocurrency', icon: '₿', color: '#ff9800' },
-  etf: { name: 'ETF Funds', icon: '🏛️', color: '#2e7d32' },
-  bond: { name: 'Bonds', icon: '📜', color: '#5d4037' },
-  cash: { name: 'Cash', icon: '💰', color: '#424242' },
-  commodity: { name: 'Commodities', icon: '🥇', color: '#f57c00' }
+  stock: { name: 'Stocks', icon: '📈', color: '#E8A855' }, // 主金色
+  crypto: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
+  etf: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
+  bond: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
+  cash: { name: 'Cash', icon: '💰', color: '#10b981' }, // 保持绿色 - Cash通常用绿色
+  commodity: { name: 'Commodities', icon: '🥇', color: '#9A6B15' } // 最深金色
 };
 
 const Portfolio = () => {
@@ -66,6 +67,7 @@ const Portfolio = () => {
     avg_cost: '',
     currency: 'USD'
   });
+  const [selectedStock, setSelectedStock] = useState(null);
   const [assetToRemove, setAssetToRemove] = useState({
     symbol: '',
     name: '',
@@ -233,6 +235,31 @@ const Portfolio = () => {
     }
   };
 
+  // 🎯 处理股票选择 - 自动补全功能
+  const handleStockSelect = (stockData) => {
+    console.log('Selected stock:', stockData);
+    setSelectedStock(stockData);
+    setNewAsset(prev => ({
+      ...prev,
+      symbol: stockData.symbol,
+      name: stockData.name,
+      asset_type: stockData.type || prev.asset_type,
+      avg_cost: stockData.price || prev.avg_cost // 如果有当前价格，设为默认成本
+    }));
+  };
+
+  // 🔄 重置添加资产表单
+  const resetAddAssetForm = () => {
+    setNewAsset({
+      symbol: '',
+      name: '',
+      asset_type: 'stock',
+      quantity: '',
+      avg_cost: '',
+      currency: 'USD'
+    });
+    setSelectedStock(null);
+  };
 
   // ➕ Add asset
   const handleAddAsset = async () => {
@@ -250,14 +277,7 @@ const Portfolio = () => {
       
       if (response.ok) {
         setAddAssetOpen(false);
-        setNewAsset({
-          symbol: '',
-          name: '',
-          asset_type: 'stock',
-          quantity: '',
-          avg_cost: '',
-          currency: 'USD'
-        });
+        resetAddAssetForm(); // 使用新的重置函数
         await fetchPortfolioData();
       }
     } catch (error) {
@@ -690,7 +710,7 @@ const Portfolio = () => {
 
 
       {/* 📝 Add asset dialog */}
-      <Dialog open={addAssetOpen} onClose={() => setAddAssetOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={addAssetOpen} onClose={() => { setAddAssetOpen(false); resetAddAssetForm(); }} maxWidth="sm" fullWidth>
         <DialogTitle>Add New Asset</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -700,7 +720,12 @@ const Portfolio = () => {
                 fullWidth
                 label="Asset Type"
                 value={newAsset.asset_type}
-                onChange={(e) => setNewAsset(prev => ({...prev, asset_type: e.target.value}))}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  setNewAsset(prev => ({...prev, asset_type: newType}));
+                  // 清除之前的选择，因为资产类型改变了
+                  setSelectedStock(null);
+                }}
               >
                 {Object.entries(ASSET_TYPES).map(([type, config]) => (
                   <MenuItem key={type} value={type}>
@@ -709,23 +734,68 @@ const Portfolio = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Symbol"
-                placeholder="e.g., AAPL, BTC"
-                value={newAsset.symbol}
-                onChange={(e) => setNewAsset(prev => ({...prev, symbol: e.target.value}))}
-              />
-            </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Asset Name"
-                value={newAsset.name}
-                onChange={(e) => setNewAsset(prev => ({...prev, name: e.target.value}))}
+              <StockSearchField
+                value={selectedStock}
+                onChange={setSelectedStock}
+                onSelectStock={handleStockSelect}
+                assetType={newAsset.asset_type}
+                label={`Search ${ASSET_TYPES[newAsset.asset_type]?.name || 'Assets'}...`}
+                placeholder={
+                  newAsset.asset_type === 'stock' ? "Type 'nvidia' or 'NVDA'" :
+                  newAsset.asset_type === 'crypto' ? "Type 'bitcoin' or 'BTC'" :
+                  newAsset.asset_type === 'etf' ? "Type 'SPY' or 'QQQ'" :
+                  "Type symbol or name"
+                }
               />
             </Grid>
+            
+            {/* 显示选中的股票信息 */}
+            {selectedStock && (
+              <Grid item xs={12}>
+                <Box sx={{ 
+                  p: 2, 
+                  background: 'linear-gradient(135deg, rgba(244, 190, 126, 0.1) 0%, rgba(232, 168, 85, 0.15) 100%)',
+                  borderRadius: 2, 
+                  border: '1px solid',
+                  borderColor: 'primary.main'
+                }}>
+                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
+                    ✅ Selected: {selectedStock.symbol} - {selectedStock.name}
+                  </Typography>
+                  {selectedStock.price && (
+                    <Typography variant="caption" color="text.secondary">
+                      Current Price: ${parseFloat(selectedStock.price).toFixed(2)}
+                    </Typography>
+                  )}
+                </Box>
+              </Grid>
+            )}
+            
+            {/* 手动输入选项（如果需要） */}
+            {!selectedStock && (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Symbol (Manual)"
+                    placeholder="e.g., AAPL, BTC"
+                    value={newAsset.symbol}
+                    onChange={(e) => setNewAsset(prev => ({...prev, symbol: e.target.value}))}
+                    helperText="Or use search above"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Asset Name (Manual)"
+                    value={newAsset.name}
+                    onChange={(e) => setNewAsset(prev => ({...prev, name: e.target.value}))}
+                    helperText="Or use search above"
+                  />
+                </Grid>
+              </>
+            )}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -747,7 +817,7 @@ const Portfolio = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddAssetOpen(false)}>Cancel</Button>
+          <Button onClick={() => { setAddAssetOpen(false); resetAddAssetForm(); }}>Cancel</Button>
           <Button variant="contained" onClick={handleAddAsset}>Add</Button>
         </DialogActions>
       </Dialog>

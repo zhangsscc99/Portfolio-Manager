@@ -1,147 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { Asset, Portfolio, Watchlist } = require('../models/index');
-const yahooFinanceService = require('../services/yahooFinance');
-const cryptoService = require('../services/cryptoService');
-
-// 🎯 支持的资产类型配置
-const ASSET_TYPES = {
-  stock: { name: '股票', icon: '📈', priceSource: 'yahoo_finance' },
-  crypto: { name: '加密货币', icon: '₿', priceSource: 'coingecko' },
-  etf: { name: 'ETF基金', icon: '🏛️', priceSource: 'yahoo_finance' },
-  bond: { name: '债券', icon: '📜', priceSource: 'manual' },
-  cash: { name: '现金', icon: '💰', priceSource: 'manual' },
-  commodity: { name: '商品', icon: '🥇', priceSource: 'manual' }
-};
+const assetController = require('../controllers/assetController');
 
 // 📊 GET /api/assets/portfolio/:portfolioId - 获取投资组合的分类资产
-router.get('/portfolio/:portfolioId', async (req, res) => {
-  try {
-    const { portfolioId } = req.params;
-    
-    // 获取所有资产
-    const assets = await Asset.findAll({
-      where: { 
-        portfolio_id: portfolioId,
-        is_active: true 
-      },
-      order: [['asset_type', 'ASC'], ['symbol', 'ASC']]
-    });
-    
-    // 按资产类型分组
-    const assetsByType = {};
-    let totalValue = 0;
-    
-    Object.keys(ASSET_TYPES).forEach(type => {
-      assetsByType[type] = {
-        ...ASSET_TYPES[type],
-        assets: [],
-        totalValue: 0,
-        totalGainLoss: 0,
-        count: 0
-      };
-    });
-    
-    assets.forEach(asset => {
-      const currentValue = asset.getCurrentValue();
-      const gainLoss = asset.getGainLoss();
-      
-      assetsByType[asset.asset_type].assets.push({
-        ...asset.toJSON(),
-        currentValue,
-        gainLoss,
-        gainLossPercent: asset.getGainLossPercent()
-      });
-      
-      assetsByType[asset.asset_type].totalValue += currentValue;
-      assetsByType[asset.asset_type].totalGainLoss += gainLoss;
-      assetsByType[asset.asset_type].count++;
-      
-      totalValue += currentValue;
-    });
-    
-    res.json({
-      success: true,
-      data: {
-        assetsByType,
-        totalValue,
-        totalAssets: assets.length,
-        summary: Object.keys(assetsByType).map(type => ({
-          type,
-          ...assetsByType[type],
-          assets: undefined // 不在摘要中包含详细资产
-        }))
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+router.get('/portfolio/:portfolioId', assetController.getPortfolioAssets);
 
 // 📝 POST /api/assets - 添加新资产
-router.post('/', async (req, res) => {
-  try {
-    const {
-      symbol,
-      name,
-      asset_type,
-      quantity,
-      avg_cost,
-      current_price,
-      currency = 'USD',
-      exchange,
-      portfolio_id,
-      purchase_date,
-      notes
-    } = req.body;
-    
-    // 验证资产类型
-    if (!ASSET_TYPES[asset_type]) {
-      return res.status(400).json({
-        success: false,
-        error: `不支持的资产类型: ${asset_type}`
-      });
-    }
-    
-    // 根据资产类型设置价格源
-    const priceSource = ASSET_TYPES[asset_type].priceSource;
-    let sourceSymbol = symbol;
-    
-    // 对于加密货币，需要转换symbol
-    if (asset_type === 'crypto') {
-      sourceSymbol = symbol.toLowerCase();
-    }
-    
-    const asset = await Asset.create({
-      symbol: symbol.toUpperCase(),
-      name,
-      asset_type,
-      quantity,
-      avg_cost,
-      current_price: current_price || avg_cost,
-      currency,
-      exchange,
-      price_source: priceSource,
-      source_symbol: sourceSymbol,
-      portfolio_id,
-      purchase_date,
-      notes
-    });
-    
-    res.status(201).json({
-      success: true,
-      data: asset
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+router.post('/', assetController.createAsset);
 
 // 🔄 PUT /api/assets/:id - 更新资产信息
 router.put('/:id', async (req, res) => {
@@ -172,31 +37,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // 🗑️ DELETE /api/assets/:id - 删除资产
-router.delete('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const asset = await Asset.findByPk(id);
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        error: '资产不存在'
-      });
-    }
-    
-    await asset.destroy();
-    
-    res.json({
-      success: true,
-      message: '资产删除成功'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+router.delete('/:id', assetController.deleteAsset);
 
 // 📋 GET /api/assets/watchlist - 获取关注列表
 router.get('/watchlist', async (req, res) => {
