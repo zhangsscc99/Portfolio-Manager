@@ -34,7 +34,7 @@ const Header = () => {
             mb: 0.5,
           }}
         >
-          Welcome back! 👋
+          Welcome back! 
         </Typography>
         <Typography
           variant="body2"

@@ -22,25 +22,25 @@ const navigationItems = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    path: '/dashboard',
+    path: '/app/dashboard',
     icon: DashboardIcon,
   },
   {
     id: 'portfolio',
     label: 'Portfolio',
-    path: '/portfolio',
+    path: '/app/portfolio',
     icon: PortfolioIcon,
   },
   {
     id: 'analytics',
     label: 'Analytics',
-    path: '/analytics',
+    path: '/app/analytics',
     icon: AnalyticsIcon,
   },
   {
     id: 'markets',
     label: 'Markets',
-    path: '/markets',
+    path: '/app/markets',
     icon: MarketsIcon,
   },
 ];
@@ -80,7 +80,7 @@ const Sidebar = ({ onNavigate }) => {
               width: 40,
               height: 40,
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -90,7 +90,7 @@ const Sidebar = ({ onNavigate }) => {
             <Typography
               variant="h6"
               sx={{
-                color: 'white',
+                color: '#1a1a1a', // 深色文字在金色背景上
                 fontWeight: 700,
                 fontSize: '1.2rem',
               }}
@@ -103,7 +103,12 @@ const Sidebar = ({ onNavigate }) => {
             sx={{
               fontWeight: 600,
               color: 'text.primary',
+              cursor: 'pointer',
+              '&:hover': {
+                color: 'primary.main',
+              },
             }}
+            onClick={() => navigate('/')}
           >
             Portfolio Manager
           </Typography>
@@ -128,11 +133,11 @@ const Sidebar = ({ onNavigate }) => {
                   borderRadius: 2,
                   py: 1.5,
                   px: 2,
-                  backgroundColor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                  backgroundColor: active ? 'rgba(232, 168, 85, 0.15)' : 'transparent',
                   color: active ? 'primary.main' : 'text.primary',
                   '&:hover': {
                     backgroundColor: active 
-                      ? 'rgba(99, 102, 241, 0.15)' 
+                      ? 'rgba(232, 168, 85, 0.25)' 
                       : 'rgba(255, 255, 255, 0.05)',
                   },
                   '&:before': active ? {
