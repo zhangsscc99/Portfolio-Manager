@@ -1,6 +1,4 @@
-// src/pages/markets/Currency.jsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Import useRef
 import {
   Box,
   Typography,
@@ -23,6 +21,7 @@ import { formatCurrency, formatPercentage, getChangeColor } from '../../services
 
 const Currency = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [displayedSearchTerm, setDisplayedSearchTerm] = useState(''); // New state for input field
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -31,8 +30,6 @@ const Currency = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10); // Number of rows per page
 
   // --- MOCK CURRENCY DATA FOR STATIC DISPLAY ---
-  // This data simulates what your backend would return.
-  // Removed fiftyTwoWeekLow and fiftyTwoWeekHigh fields.
   const mockCurrencyData = [
     { symbol: 'EURUSD', name: 'Euro/US Dollar', price: 1.0850, change: 0.0025, changePercent: 0.0023 },
     { symbol: 'GBPUSD', name: 'British Pound/US Dollar', price: 1.2720, change: -0.0010, changePercent: -0.0008 },
@@ -57,33 +54,53 @@ const Currency = () => {
   const currencyLoading = false;
   const currencyError = null;
 
-  // Local search function (filters the mock data)
-  const handleSearch = (query) => {
-    // When searching, reset to the first page of search results
-    setPage(0); 
-    if (!query) {
-      setSearchResults([]);
-      return;
-    }
+  // Ref to hold the debounce timer
+  const debounceTimerRef = useRef(null);
 
-    setIsSearching(true);
-    const lowerCaseQuery = query.toLowerCase();
-    const filteredResults = mockCurrencyData.filter(item =>
-      item?.symbol?.toLowerCase().includes(lowerCaseQuery) ||
-      item?.name?.toLowerCase().includes(lowerCaseQuery)
-    );
-    setSearchResults(filteredResults);
-    setIsSearching(false);
+  // Function to perform the actual search (or API call later)
+  const performSearch = (query) => {
+    // When performing a search, reset to the first page of search results
+    setPage(0); 
+    setIsSearching(true); // Show loading spinner
+    
+    // --- Simulate API call delay (for static page) ---
+    setTimeout(() => {
+      const lowerCaseQuery = query.toLowerCase();
+      const filteredResults = mockCurrencyData.filter(item =>
+        item?.symbol?.toLowerCase().includes(lowerCaseQuery) ||
+        item?.name?.toLowerCase().includes(lowerCaseQuery)
+      );
+      setSearchResults(filteredResults);
+      setIsSearching(false); // Hide loading spinner
+    }, 500); // Simulate 500ms API call delay
   };
 
-  // Debounced search for input
+  // Debounced search logic
   useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      handleSearch(searchTerm);
-    }, 300); // 300ms debounce
+    // Clear any existing timer when searchTerm changes
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
 
-    return () => clearTimeout(delayedSearch);
-  }, [searchTerm]); // Only searchTerm is dependency as mockData is constant
+    // Only debounce if there's a search term
+    if (searchTerm) {
+      // Set a new timer
+      debounceTimerRef.current = setTimeout(() => {
+        performSearch(searchTerm);
+      }, 500); // Wait 500ms after last keystroke
+    } else {
+      // If search term is empty, clear results and stop searching
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+
+    // Cleanup function: clear timer if component unmounts or effect re-runs
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchTerm]); // Re-run effect when searchTerm changes
 
   const handleCurrencyClick = (currency) => {
     console.log('Currency clicked:', currency);
@@ -114,7 +131,6 @@ const Currency = () => {
                 <TableCell align="right">Price</TableCell>
                 <TableCell align="right">Change</TableCell>
                 <TableCell align="right">% Change</TableCell>
-                {/* Removed 52 Wk Range TableCell */}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -146,12 +162,10 @@ const Currency = () => {
                       >
                         {formatPercentage(currency?.changePercent)}
                       </TableCell>
-                      {/* Removed 52 Wk Range TableCell */}
                     </TableRow>
                   ))
               ) : (
                 <TableRow>
-                  {/* Updated colSpan from 6 to 5 */}
                   <TableCell colSpan={5} sx={{ textAlign: 'center', py: 3 }}>
                     <Typography color="text.secondary">
                       No currency data available (mock data filtered or empty).
@@ -178,7 +192,7 @@ const Currency = () => {
   );
 
   // Determine whether to display mock data or search results based on search term
-  // This will be the full set of data to be paginated and searched
+  // Note: allDataToDisplay now holds the full set of filtered data
   const allDataToDisplay = searchTerm ? searchResults : mockCurrencyData;
 
   return (
@@ -190,8 +204,13 @@ const Currency = () => {
         <TextField
           size="small"
           placeholder="Search currencies... (e.g., EURUSD, GBPJPY)"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          // Bind to displayedSearchTerm for immediate input feedback
+          value={displayedSearchTerm} 
+          // Update displayedSearchTerm immediately, and searchTerm after debounce
+          onChange={(e) => {
+            setDisplayedSearchTerm(e.target.value);
+            setSearchTerm(e.target.value); 
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
