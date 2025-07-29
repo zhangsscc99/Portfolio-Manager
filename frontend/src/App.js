@@ -15,7 +15,7 @@ import Markets from './pages/Markets'; // This will become a parent route
 
 // New Market Sub-pages (assuming you'll create these files)
 import Stock from './pages/Markets/Stock';
-import Currency from './pages/Markets/Currency';
+import Bonds from './pages/Markets/Bonds';
 import ETF from './pages/Markets/ETF';
 import Crypto from './pages/Markets/Crypto';
 import AIAnalysis from './pages/AIAnalysis';
@@ -209,7 +209,7 @@ function App() {
                     {/* Markets route with nested routes for sub-menus */}
                     <Route path="markets/*" element={<Markets />}>
                       <Route path="stock" element={<Stock />} />
-                    <Route path="currency" element={<Currency />} />
+                    <Route path="bonds" element={<Bonds />} />
                       <Route path="etf" element={<ETF />} />
                       <Route path="crypto" element={<Crypto />} />
                       {/* Redirect from /app/markets to a default sub-page (e.g., stock) */}

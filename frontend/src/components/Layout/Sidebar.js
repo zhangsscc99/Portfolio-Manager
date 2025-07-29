@@ -21,8 +21,8 @@ import {
   ExpandMore as ChevronDownIcon,
   ViewList as ETFIcon,
   AttachMoney as StocksIcon,
-  MonetizationOn as CurrencyIcon,
   CurrencyBitcoin as CryptoIcon,
+  ViewAgenda as BondsIcon,
 } from '@mui/icons-material';
 
 const navigationItems = [
@@ -57,10 +57,10 @@ const navigationItems = [
         icon: StocksIcon,
       },
       {
-        id: 'currency',
-        label: 'Currencies',
-        path: '/app/markets/currency',
-        icon: CurrencyIcon,
+        id: 'bonds',
+        label: 'Bonds',
+        path: '/app/markets/bonds',
+        icon: BondsIcon,
       },
       {
         id: 'crypto',
@@ -68,7 +68,6 @@ const navigationItems = [
         path: '/app/markets/crypto',
         icon: CryptoIcon,
       },
-      
       {
         id: 'etf',
         label: 'ETFs',
@@ -96,7 +95,7 @@ const Sidebar = ({ onNavigate }) => {
       if (isAnyMarketChildActive) {
         setOpenMarketSubmenu(true);
       } else if (location.pathname === marketsItem.path) {
-        // If we are exactly on '/markets', redirect to its first child
+        // If we are exactly on '/app/markets', redirect to its first child
         const firstChildPath = marketsItem.children[0].path;
         navigate(firstChildPath);
         if (onNavigate) {
@@ -106,20 +105,20 @@ const Sidebar = ({ onNavigate }) => {
     }
   }, [location.pathname, navigate, onNavigate, isAnyMarketChildActive]);
 
+
   const handleNavigation = (item) => {
     if (item.children && item.children.length > 0) {
       // If it's a parent item with children (like Markets), toggle its submenu
-      setOpenMarketSubmenu(!openMarketSubmenu);
-      // If it's currently closed and we're opening it, navigate to its first child
-      if (!openMarketSubmenu && !isAnyMarketChildActive) {
-          const firstChildPath = item.children[0].path;
-          navigate(firstChildPath);
-          if (onNavigate) {
-            onNavigate();
-          }
-      } else if (!openMarketSubmenu && isAnyMarketChildActive) {
-        // If opening but a child is already active, stay on active child
-        // No explicit navigation needed here as route is already correct
+      const willOpen = !openMarketSubmenu;
+      setOpenMarketSubmenu(willOpen);
+
+      // If we are opening it and no child is currently active, navigate to its first child
+      if (willOpen && !isAnyMarketChildActive) {
+        const firstChildPath = item.children[0].path;
+        navigate(firstChildPath);
+        if (onNavigate) {
+          onNavigate();
+        }
       }
     } else {
       // If it's a regular item or a sub-item, navigate directly
@@ -130,20 +129,7 @@ const Sidebar = ({ onNavigate }) => {
     }
   };
 
-  // --- MODIFICATION STARTS HERE ---
-  const isActive = (path) => {
-    if (path === '/dashboard') {
-      return location.pathname === '/' || location.pathname === '/dashboard';
-    }
-    // Ensure 'Markets' parent never highlights itself directly
-    const marketsItem = navigationItems.find(item => item.id === 'markets');
-    if (path === marketsItem.path) {
-      return false; // Explicitly set to false so 'Markets' never highlights
-    }
-    return location.pathname === path;
-  };
-  // --- MODIFICATION ENDS HERE ---
-
+  // This function is now only used for sub-menu items to check if they are active
   const isSubmenuActive = (path) => {
     return location.pathname.startsWith(path);
   };
@@ -193,7 +179,7 @@ const Sidebar = ({ onNavigate }) => {
                 color: 'primary.main',
               },
             }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/app/dashboard')}
           >
             Portfolio Manager
           </Typography>
@@ -206,7 +192,10 @@ const Sidebar = ({ onNavigate }) => {
       <List sx={{ flex: 1, py: 0 }}>
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const active = isActive(item.path); // 'active' for parent menu items
+          // --- MODIFICATION START ---
+          // 'Markets' will never be highlighted directly. Other top-level items highlight if their path matches.
+          const active = item.id === 'markets' ? false : location.pathname === item.path;
+          // --- MODIFICATION END ---
           const hasChildren = item.children && item.children.length > 0;
 
           return (
@@ -218,6 +207,7 @@ const Sidebar = ({ onNavigate }) => {
                     borderRadius: 2,
                     py: 1.5,
                     px: 2,
+                    // Use 'active' for overall highlighting
                     backgroundColor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
                     color: active ? 'primary.main' : 'text.primary',
                     '&:hover': {
