@@ -755,10 +755,10 @@ const Portfolio = () => {
               <Grid item xs={12}>
                 <Box sx={{ 
                   p: 2, 
-                  bgcolor: 'primary.50', 
+                  background: 'linear-gradient(135deg, rgba(244, 190, 126, 0.1) 0%, rgba(232, 168, 85, 0.15) 100%)',
                   borderRadius: 2, 
                   border: '1px solid',
-                  borderColor: 'primary.200'
+                  borderColor: 'primary.main'
                 }}>
                   <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
                     ✅ Selected: {selectedStock.symbol} - {selectedStock.name}
