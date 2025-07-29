@@ -10,7 +10,13 @@ import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
-import Markets from './pages/Markets';
+// import Markets from './pages/Markets'; // No longer needed as a standalone page
+
+// Import the new sub-pages for Markets
+import ETF from './pages/Markets/ETF';
+import Stock from './pages/Markets/Stock';
+import Currency from './pages/Markets/Currency_static'; // Use static version for now
+import Crypto from './pages/Markets/Crypto';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -150,7 +156,14 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/analytics" element={<Analytics />} />
-                <Route path="/markets" element={<Markets />} />
+                {/* Remove the standalone /markets route */}
+                {/* <Route path="/markets" element={<Markets />} /> */}
+
+                {/* Add new routes for the Markets sub-pages */}
+                <Route path="/markets/etf" element={<ETF />} />
+                <Route path="/markets/stock" element={<Stock />} />
+                <Route path="/markets/currency" element={<Currency />} />
+                <Route path="/markets/crypto" element={<Crypto />} />
               </Routes>
             </Layout>
             <Toaster
@@ -171,4 +184,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

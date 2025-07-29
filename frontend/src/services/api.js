@@ -34,22 +34,22 @@ api.interceptors.response.use(
 export const portfolioAPI = {
   // Get all portfolios
   getPortfolios: () => api.get('/portfolio'),
-  
+
   // Get current portfolio
   getCurrentPortfolio: () => api.get('/portfolio/current'),
-  
+
   // Get portfolio by ID
   getPortfolio: (id) => api.get(`/portfolio/${id}`),
-  
+
   // Create new portfolio
   createPortfolio: (data) => api.post('/portfolio', data),
-  
+
   // Update portfolio
   updatePortfolio: (id, data) => api.put(`/portfolio/${id}`, data),
-  
+
   // Delete portfolio
   deletePortfolio: (id) => api.delete(`/portfolio/${id}`),
-  
+
   // Get portfolio summary
   getPortfolioSummary: (id) => api.get(`/portfolio/${id}/summary`),
 };
@@ -58,22 +58,22 @@ export const portfolioAPI = {
 export const holdingsAPI = {
   // Get all holdings
   getHoldings: () => api.get('/holdings'),
-  
+
   // Get holding by ID
   getHolding: (id) => api.get(`/holdings/${id}`),
-  
+
   // Add new holding
   addHolding: (data) => api.post('/holdings', data),
-  
+
   // Update holding
   updateHolding: (id, data) => api.put(`/holdings/${id}`, data),
-  
+
   // Delete holding
   deleteHolding: (id) => api.delete(`/holdings/${id}`),
-  
+
   // Buy more shares
   buyShares: (id, data) => api.post(`/holdings/${id}/buy`, data),
-  
+
   // Sell shares
   sellShares: (id, data) => api.post(`/holdings/${id}/sell`, data),
 };
@@ -82,27 +82,35 @@ export const holdingsAPI = {
 export const marketAPI = {
   // Get quote for symbol
   getQuote: (symbol) => api.get(`/market/quote/${symbol}`),
-  
+
   // Get multiple quotes
   getQuotes: (symbols) => api.get(`/market/quotes?symbols=${symbols.join(',')}`),
-  
+
   // Get trending stocks
   getTrending: (limit = 10) => api.get(`/market/trending?limit=${limit}`),
-  
+
   // Get top gainers
   getGainers: (limit = 5) => api.get(`/market/gainers?limit=${limit}`),
-  
+
   // Get top losers
   getLosers: (limit = 5) => api.get(`/market/losers?limit=${limit}`),
-  
+
   // Search stocks
   searchStocks: (query) => api.get(`/market/search?q=${encodeURIComponent(query)}`),
-  
+
   // Get market indices
   getIndices: () => api.get('/market/indices'),
-  
+
   // Get historical data
   getHistory: (symbol) => api.get(`/market/history/${symbol}`),
+
+  /**
+   * Fetches currency (forex) data.
+   * @param {number} limit - The number of currency pairs to retrieve.
+   * @returns {Promise<Array>} A promise that resolves to an array of currency data objects.
+   */
+  getCurrencies: (limit = 50) => api.get(`/market/currencies?limit=${limit}`),
+  // --- END NEW ---
 };
 
 // Utility functions
@@ -114,11 +122,14 @@ export const formatCurrency = (amount, currency = 'USD') => {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 4, // Increased precision for currency display
   }).format(amount);
 };
 
 export const formatNumber = (number) => {
+  if (number === undefined || number === null || isNaN(number)) {
+    return '0';
+  }
   return new Intl.NumberFormat('en-US').format(number);
 };
 
@@ -126,7 +137,7 @@ export const formatPercentage = (percentage) => {
   if (percentage === undefined || percentage === null || isNaN(percentage)) {
     return '0.00%';
   }
-  return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+  return `${percentage >= 0 ? '+' : ''}${(percentage * 100).toFixed(2)}%`;
 };
 
 export const getChangeColor = (change) => {
@@ -138,4 +149,4 @@ export const getChangeColor = (change) => {
   return '#6b7280'; // gray
 };
 
-export default api; 
+export default api;
