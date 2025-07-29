@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script>    
+        function getScrollProgress() {
+            const scrollTop = document.documentElement.scrollTop;
+            return scrollTop % 2;
+        }
+        
+        // Add throttling and proper variable declaration
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            // Throttle scroll events
+            if (scrollTimeout) return;
+            
+            scrollTimeout = setTimeout(() => {
+            const x = document.querySelector("body");
+            x.innerHTML = `<img style="width:50vw" src=cubic-${getScrollProgress()}.jpg>`;
+            scrollTimeout = null;
+            }, 16); // ~60fps
+        });
+    </script>
+</head>
+<body style="height: 1000vh;">
+    
+</body>
+</html>
+

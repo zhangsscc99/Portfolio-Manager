@@ -12,6 +12,8 @@ import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
 import Markets from './pages/Markets';
+import ScrollProgress from './components/ScrollProgress';
+import ParallaxBackground from './components/ParallaxBackground';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -188,6 +190,12 @@ function App() {
         <CssBaseline />
         <Router>
           <div className="App">
+            {/* 全局滚动进度条 */}
+            <ScrollProgress />
+            
+            {/* 视差背景效果 */}
+            <ParallaxBackground />
+            
             <Routes>
               {/* Homepage route - no layout */}
               <Route path="/" element={<HomePage />} />

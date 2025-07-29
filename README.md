@@ -9,7 +9,9 @@ A modern, full-stack portfolio management application built with React and Node.
 - **Portfolio Analytics**: Performance metrics, sector allocation, and benchmarking
 - **Market Data**: Live stock quotes, trending stocks, gainers/losers
 - **Responsive Design**: Optimized for both desktop and mobile devices
-- **Dark Theme**: Modern, professional dark interface
+- **Dark Theme**: Modern, professional dark interface with golden accents
+- **Smooth Scrolling**: Optimized scroll performance with parallax effects
+- **Progress Indicators**: Visual scroll progress bar with golden theme
 
 ## 🏗️ Architecture
 
