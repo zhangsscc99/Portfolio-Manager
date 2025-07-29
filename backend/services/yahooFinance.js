@@ -64,7 +64,7 @@ class YahooFinanceService {
 
       const stockData = {
         symbol: quote.symbol,
-        name: quote.shortName || quote.longName || symbol,
+        name: quote.longName,
         price: quote.regularMarketPrice || 0,
         change: quote.regularMarketChange || 0,
         changePercent: quote.regularMarketChangePercent || 0,
