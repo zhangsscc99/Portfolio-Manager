@@ -22,7 +22,10 @@ const mostActiveStockLink =
   "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=200&formatted=true&scrIds=MOST_ACTIVES&sortField=&sortType=&start=0&useRecordsResponse=false&fields=symbol&lang=en-US&region=US";
 const dailyGainersLink =
   "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=25&formatted=true&scrIds=DAY_GAINERS&sortField=&sortType=&start=0&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US"
-// 📊 GET /api/market/quote/:symbol - 获取单个股票报价
+const dailyLosersLink =
+  "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=25&formatted=true&scrIds=DAY_LOSERS&sortField=&sortType=&start=0&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US"
+
+  // 📊 GET /api/market/quote/:symbol - 获取单个股票报价
 router.get("/quote/:symbol", async (req, res) => {
   try {
     const { symbol } = req.params;
@@ -441,55 +444,56 @@ router.get("/gainers", async (req, res) => {
 
 // 📉 GET /api/market/losers - 获取跌幅榜
 router.get("/losers", async (req, res) => {
+  const { limit = 100 } = req.query;
   try {
-    const { limit = 5 } = req.query;
+    const response = await fetch(dailyLosersLink); 
 
-    // 一些活跃股票列表
-    const activeSymbols = [
-      "AAPL",
-      "MSFT",
-      "GOOGL",
-      "AMZN",
-      "TSLA",
-      "META",
-      "NVDA",
-      "NFLX",
-      "AMD",
-      "CRM",
-      "ADBE",
-      "ORCL",
-      "INTC",
-      "IBM",
-      "CSCO",
-    ];
+    if (!response.ok) {
+      // 如果响应不成功，直接返回错误信息
+      return res.status(response.status).json({
+        success: false,
+        message: `HTTP 错误！状态码: ${response.status}`,
+        error: `Failed to fetch data from ${mostActiveStockLink}`,
+      });
+    }
 
-    // 获取价格数据
-    const stocksData = await yahooFinanceService.getMultipleStockPrices(
-      activeSymbols
+    const responseJson = await response.json();
+
+    // 安全地访问 quotes 数组
+    const rawQuotes = responseJson.finance?.result?.[0]?.quotes;
+
+    // 如果 quotes 数组不存在或为空，返回一个空数组
+    if (!rawQuotes || !Array.isArray(rawQuotes) || rawQuotes.length === 0) {
+      return res.status(200).json({
+        // 200 OK，但数据为空
+        success: true,
+        message: "未找到日跌幅股票数据。",
+        data: [],
+      });
+    }
+
+    // 映射并转换每个股票对象到你需要的格式
+    const formattedStocks = rawQuotes.map((item) => {
+      return item.symbol;
+    }).slice(0, parseInt(limit));
+    
+
+    const mostActiveStocks = await yahooFinanceService.getMultipleStockPrices(
+      formattedStocks
     );
 
-    // 筛选出跌幅最大的股票
-    const losers = stocksData
-      .filter((stock) => !stock.error && stock.changePercent < 0)
-      .sort((a, b) => a.changePercent - b.changePercent)
-      .slice(0, parseInt(limit))
-      .map((stock) => ({
-        symbol: stock.symbol,
-        name: stock.name || `${stock.symbol} Inc.`,
-        price: stock.price || 0,
-        change: stock.change || 0,
-        changePercent: stock.changePercent || 0,
-        volume: stock.volume || 0,
-      }));
-
-    res.json({
+    // 返回包含格式化后股票信息的对象
+    return res.status(200).json({
       success: true,
-      data: losers,
+      message: "成功获取日跌幅股票数据。",
+      data: mostActiveStocks,
     });
   } catch (error) {
-    console.error("获取跌幅榜失败:", error);
-    res.status(500).json({
+    console.error("获取日跌幅股票数据时发生错误:", error);
+    // 捕获并处理任何在请求或处理过程中发生的网络或其他错误
+    return res.status(500).json({
       success: false,
+      message: "服务器内部错误，无法获取股票数据。",
       error: error.message,
     });
   }
