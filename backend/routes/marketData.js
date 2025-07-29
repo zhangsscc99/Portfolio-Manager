@@ -283,6 +283,7 @@ router.delete("/clear-cache", async (req, res) => {
 });
 
 router.get("/most-active", async (req, res) => {
+  const { limit = 100 } = req.query;
   try {
     const response = await fetch(mostActiveStockLink); // 确保 mostActiveStockLink 已定义
 
@@ -313,7 +314,8 @@ router.get("/most-active", async (req, res) => {
     // 映射并转换每个股票对象到你需要的格式
     const formattedStocks = rawQuotes.map((item) => {
       return item.symbol;
-    });
+    }).slice(0, parseInt(limit));
+    
 
     const mostActiveStocks = await yahooFinanceService.getMultipleStockPrices(
       formattedStocks
@@ -339,9 +341,9 @@ router.get("/most-active", async (req, res) => {
 // 🔥 GET /api/market/trending - 获取热门股票
 router.get("/trending", async (req, res) => {
   try {
-    const { limit = 10 } = req.query;
+    const { limit = 100 } = req.query;
 
-    const queryOptions = { count: 100, lang: "en-US" };
+    const queryOptions = { count: limit, lang: "en-US" };
     const trendingSymbols = await yahooFinanceService.getTrendingSymbols(
       "US",
       queryOptions
@@ -349,7 +351,6 @@ router.get("/trending", async (req, res) => {
     // 热门股票列表
     const selectedSymbols = trendingSymbols.slice(0, parseInt(limit));
 
-    console.log("Trending Symbols:", selectedSymbols);
     // 获取实时价格数据
     const stocksData = await yahooFinanceService.getMultipleStockPrices(
       selectedSymbols.map((stock) => {
@@ -383,27 +384,11 @@ router.get("/trending", async (req, res) => {
 // 📈 GET /api/market/gainers - 获取涨幅榜
 router.get("/gainers", async (req, res) => {
   try {
-    const { limit = 5 } = req.query;
-
-    // 一些活跃股票列表
-    const activeSymbols = [
-      "AAPL",
-      "MSFT",
-      "GOOGL",
-      "AMZN",
-      "TSLA",
-      "META",
-      "NVDA",
-      "NFLX",
-      "AMD",
-      "CRM",
-      "ADBE",
-      "ORCL",
-      "INTC",
-      "IBM",
-      "CSCO",
-    ];
-
+    const { limit = 100 } = req.query;
+    const queryOptions = { count: limit, lang: "en-US" };
+    console.log("Query Options:", queryOptions);
+    const activeSymbols = await yahooFinanceService.getDailyGainers("US", queryOptions);
+    console.log("Active Symbols:", activeSymbols);
     // 获取价格数据
     const stocksData = await yahooFinanceService.getMultipleStockPrices(
       activeSymbols

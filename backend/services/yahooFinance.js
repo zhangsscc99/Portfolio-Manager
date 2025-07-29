@@ -1,4 +1,4 @@
-const yahooFinance = require('yahoo-finance2').default;
+const yahooFinance = require("yahoo-finance2").default;
 
 // 🏢 Yahoo Finance API服务
 class YahooFinanceService {
@@ -7,16 +7,23 @@ class YahooFinanceService {
     this.cacheExpiry = 60000; // 1分钟缓存
   }
 
-  async getTrendingSymbols(region = 'US', options = {}) {
+  async getDailyGainers(region = "US", options = {}) {
     try {
-      return yahooFinance.trendingSymbols(region, options)
-        .then((data) => {
-          return data.quotes.map((quote) => ({
-            symbol: quote.symbol,
-          }));
-        })
-    }catch (error) {
-      console.error('❌ 获取热门股票失败:', error);
+      return yahooFinance.dailyGainers(region, options);
+    } catch (error) {
+      console.error("❌ 获取日涨幅榜失败:", error);
+    }
+  }
+
+  async getTrendingSymbols(region = "US", options = {}) {
+    try {
+      return yahooFinance.trendingSymbols(region, options).then((data) => {
+        return data.quotes.map((quote) => ({
+          symbol: quote.symbol,
+        }));
+      });
+    } catch (error) {
+      console.error("❌ 获取热门股票失败:", error);
       return [];
     }
   }
@@ -26,7 +33,7 @@ class YahooFinanceService {
     try {
       const cacheKey = symbol.toUpperCase();
       const now = Date.now();
-      
+
       // 检查缓存
       if (this.cache.has(cacheKey)) {
         const cached = this.cache.get(cacheKey);
@@ -37,22 +44,22 @@ class YahooFinanceService {
       }
 
       console.log(`🔍 获取股票数据: ${symbol}`);
-      
+
       // 从Yahoo Finance获取数据
       const quote = await yahooFinance.quote(symbol, {
         fields: [
-          'regularMarketPrice',
-          'regularMarketChange',
-          'regularMarketChangePercent',
-          'regularMarketDayHigh',
-          'regularMarketDayLow',
-          'regularMarketOpen',
-          'regularMarketPreviousClose',
-          'regularMarketVolume',
-          'marketCap',
-          'shortName',
-          'longName'
-        ]
+          "regularMarketPrice",
+          "regularMarketChange",
+          "regularMarketChangePercent",
+          "regularMarketDayHigh",
+          "regularMarketDayLow",
+          "regularMarketOpen",
+          "regularMarketPreviousClose",
+          "regularMarketVolume",
+          "marketCap",
+          "shortName",
+          "longName",
+        ],
       });
 
       const stockData = {
@@ -67,19 +74,19 @@ class YahooFinanceService {
         previousClose: quote.regularMarketPreviousClose || 0,
         volume: quote.regularMarketVolume || 0,
         marketCap: quote.marketCap || 0,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
 
       // 缓存数据
       this.cache.set(cacheKey, {
         data: stockData,
-        timestamp: now
+        timestamp: now,
       });
 
       return stockData;
     } catch (error) {
       console.error(`❌ 获取股票数据失败 ${symbol}:`, error.message);
-      
+
       // 返回默认数据避免崩溃
       return {
         symbol: symbol.toUpperCase(),
@@ -94,7 +101,7 @@ class YahooFinanceService {
         volume: 0,
         marketCap: 0,
         lastUpdated: new Date().toISOString(),
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -102,23 +109,23 @@ class YahooFinanceService {
   // 📈 批量获取多个股票价格
   async getMultipleStockPrices(symbols) {
     try {
-      const promises = symbols.map(symbol => this.getStockPrice(symbol));
+      const promises = symbols.map((symbol) => this.getStockPrice(symbol));
       const results = await Promise.allSettled(promises);
-      
+
       return results.map((result, index) => {
-        if (result.status === 'fulfilled') {
+        if (result.status === "fulfilled") {
           return result.value;
         } else {
           return {
             symbol: symbols[index],
             name: symbols[index],
             price: 0,
-            error: result.reason.message
+            error: result.reason.message,
           };
         }
       });
     } catch (error) {
-      console.error('❌ 批量获取股票数据失败:', error);
+      console.error("❌ 批量获取股票数据失败:", error);
       throw error;
     }
   }
@@ -128,17 +135,17 @@ class YahooFinanceService {
     try {
       const searchResults = await yahooFinance.search(query, {
         quotesCount: 10,
-        newsCount: 0
+        newsCount: 0,
       });
 
-      return searchResults.quotes.map(quote => ({
+      return searchResults.quotes.map((quote) => ({
         symbol: quote.symbol,
         name: quote.shortname || quote.longname,
         exchange: quote.exchange,
-        type: quote.typeDisp
+        type: quote.typeDisp,
       }));
     } catch (error) {
-      console.error('❌ 搜索股票失败:', error);
+      console.error("❌ 搜索股票失败:", error);
       return [];
     }
   }
@@ -148,18 +155,18 @@ class YahooFinanceService {
     try {
       const news = await yahooFinance.search(symbol, {
         quotesCount: 0,
-        newsCount: count
+        newsCount: count,
       });
 
-      return news.news.map(item => ({
+      return news.news.map((item) => ({
         title: item.title,
         summary: item.summary,
         url: item.link,
         publishTime: new Date(item.providerPublishTime * 1000).toISOString(),
-        source: item.publisher
+        source: item.publisher,
       }));
     } catch (error) {
-      console.error('❌ 获取股票新闻失败:', error);
+      console.error("❌ 获取股票新闻失败:", error);
       return [];
     }
   }
@@ -167,14 +174,14 @@ class YahooFinanceService {
   // 🗑️ 清除缓存
   clearCache() {
     this.cache.clear();
-    console.log('🗑️ 股票数据缓存已清除');
+    console.log("🗑️ 股票数据缓存已清除");
   }
 
   // 📊 获取缓存统计
   getCacheStats() {
     return {
       size: this.cache.size,
-      entries: Array.from(this.cache.keys())
+      entries: Array.from(this.cache.keys()),
     };
   }
 }
@@ -182,4 +189,4 @@ class YahooFinanceService {
 // 创建单例实例
 const yahooFinanceService = new YahooFinanceService();
 
-module.exports = yahooFinanceService; 
+module.exports = yahooFinanceService;
