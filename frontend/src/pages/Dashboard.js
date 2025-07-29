@@ -55,6 +55,7 @@ ChartJS.register(
 const Dashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
   
   // Fetch portfolio data
   const { data: portfolio, isLoading: portfolioLoading } = useQuery(
@@ -295,10 +296,25 @@ const Dashboard = () => {
                   Portfolio Performance
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Chip label="1M" size="small" />
-                  <Chip label="3M" size="small" />
-                  <Chip label="1Y" size="small" variant="outlined" />
-                  <Chip label="ALL" size="small" />
+                  {['1M', '3M', '1Y', 'ALL'].map((period) => (
+                    <Chip 
+                      key={period}
+                      label={period} 
+                      size="small" 
+                      clickable
+                      color={selectedTimeRange === period ? 'primary' : 'default'}
+                      variant={selectedTimeRange === period ? 'filled' : 'outlined'}
+                      onClick={() => setSelectedTimeRange(period)}
+                      sx={{
+                        fontWeight: selectedTimeRange === period ? 600 : 500,
+                        '&:hover': {
+                          backgroundColor: selectedTimeRange === period 
+                            ? 'primary.dark' 
+                            : 'rgba(232, 168, 85, 0.1)',
+                        },
+                      }}
+                    />
+                  ))}
                 </Box>
               </Box>
               <Box sx={{ height: 300 }}>
