@@ -27,7 +27,7 @@ import {
   Alert
 } from '@mui/material';
 import StockSearchField from '../components/StockSearchField';
-import AIAssistantDialog from '../components/AIAssistantDialog';
+
 import {
   ExpandMore as ExpandMoreIcon,
   Add as AddIcon,
@@ -35,8 +35,7 @@ import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   Analytics,
-  Visibility as WatchIcon,
-  Chat as ChatIcon
+  Visibility as WatchIcon
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
@@ -76,7 +75,6 @@ const Portfolio = () => {
     asset_type: 'stock'
   });
   const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
-  const [assistantOpen, setAssistantOpen] = useState(false);
 
   // 📊 Fetch portfolio data
   const fetchPortfolioData = async () => {
@@ -184,14 +182,7 @@ const Portfolio = () => {
     }
   };
 
-  // AI Assistant
-  const handleOpenAssistant = () => {
-    setAssistantOpen(true);
-  };
 
-  const handleCloseAssistant = () => {
-    setAssistantOpen(false);
-  };
   // - Remove asset
   const handleRemoveAsset = async () => {
     try {
@@ -397,24 +388,7 @@ const Portfolio = () => {
           >
             AI Analysis
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<ChatIcon />}
-            onClick={handleOpenAssistant}
-            sx={{
-              background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
-              color: '#1a1a1a',
-              fontWeight: 600,
-              '&:hover': {
-                background: 'linear-gradient(135deg, #E8A855 0%, #D4961F 50%, #B8821A 100%)',
-                transform: 'translateY(-1px)',
-                boxShadow: '0 4px 15px rgba(232, 168, 85, 0.3)',
-              },
-              transition: 'all 0.3s ease',
-            }}
-          >
-            AI Assistant
-          </Button>
+
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -850,32 +824,7 @@ const Portfolio = () => {
         </DialogActions>
       </Dialog>
 
-      {/* AI Assistant Dialog */}
-      <AIAssistantDialog
-        open={assistantOpen}
-        onClose={handleCloseAssistant}
-        portfolioId="1"
-        portfolioData={{
-          totalValue: portfolioData?.totalValue || 0,
-          totalAssets: portfolioData?.assetsByType ? 
-            Object.values(portfolioData.assetsByType).reduce((sum, type) => sum + type.assets.length, 0) : 0,
-          assetDistribution: portfolioData?.assetsByType ? 
-            Object.entries(portfolioData.assetsByType).reduce((acc, [type, data]) => {
-              acc[type] = {
-                value: data.totalValue,
-                percentage: ((data.totalValue / (portfolioData?.totalValue || 1)) * 100).toFixed(2),
-                count: data.assets.length
-              };
-              return acc;
-            }, {}) : {}
-        }}
-        analysisData={{
-          summary: {
-            riskLevel: 'Medium', // Could be calculated or fetched
-            overallScore: 75 // Could be calculated or fetched
-          }
-        }}
-      />
+
     </Box>
   );
 
