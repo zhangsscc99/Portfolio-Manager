@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import VideoPlayer from '../components/VideoPlayer';
 import {
   Box,
   Typography,
@@ -252,8 +253,44 @@ const HomePage = () => {
           </Fade>
         </Box>
 
-        {/* 功能特色区域 */}
-        <Box sx={{ py: 8 }}>
+                 {/* 产品演示视频 */}
+         <Box sx={{ py: 8, textAlign: 'center' }}>
+           <Typography
+             variant="h3"
+             sx={{
+               mb: 6,
+               fontWeight: 700,
+               color: 'white',
+               fontSize: { xs: '2rem', md: '2.5rem' },
+             }}
+           >
+             See It In Action
+           </Typography>
+
+                                   <VideoPlayer
+              src="/pm.mp4"
+              poster="/video-poster.jpg"
+              title="Portfolio Manager"
+              description="Experience the power of professional investment management"
+            />
+
+           <Typography
+             variant="body1"
+             sx={{
+               mt: 4,
+               color: 'rgba(255, 255, 255, 0.7)',
+               fontSize: '1.1rem',
+               maxWidth: 600,
+               mx: 'auto',
+             }}
+           >
+             Watch how Portfolio Manager transforms your investment workflow with real-time tracking, 
+             advanced analytics, and intuitive portfolio management.
+           </Typography>
+         </Box>
+
+         {/* 功能特色区域 */}
+         <Box sx={{ py: 8 }}>
                      <Typography
              variant="h3"
              sx={{

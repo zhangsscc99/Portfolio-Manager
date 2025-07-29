@@ -1,21 +1,8 @@
 // API Configuration
-const getBaseURL = () => {
-  // 优先使用环境变量
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  
-  // 根据环境自动判断
-  if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:5000/api';
-  }
-  
-  // 生产环境默认使用公网IP
-  return 'http://47.243.102.28:5000/api';
-};
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 export const API_CONFIG = {
-  baseURL: getBaseURL(),
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -23,8 +10,12 @@ export const API_CONFIG = {
 };
 
 // API endpoints
+export const buildApiUrl = (endpoint) => {
+  return `${API_BASE_URL}${endpoint}`;
+};
+
 export const API_ENDPOINTS = {
-  // Portfolio endpoints
+  // Portfolio endpoints (保持原有格式)
   portfolio: {
     getAll: '/portfolio',
     getCurrent: '/portfolio/current',
@@ -35,7 +26,7 @@ export const API_ENDPOINTS = {
     getSummary: (id) => `/portfolio/${id}/summary`,
   },
 
-  // Holdings endpoints
+  // Holdings endpoints (保持原有格式)
   holdings: {
     getAll: '/holdings',
     getById: (id) => `/holdings/${id}`,
@@ -46,7 +37,7 @@ export const API_ENDPOINTS = {
     sell: (id) => `/holdings/${id}/sell`,
   },
 
-  // Market data endpoints
+  // Market data endpoints (保持原有格式)
   market: {
     quote: (symbol) => `/market/quote/${symbol}`,
     quotes: (symbols) => `/market/quotes?symbols=${symbols.join(',')}`,
@@ -58,16 +49,35 @@ export const API_ENDPOINTS = {
     history: (symbol) => `/market/history/${symbol}`,
   },
 
-  // Assets endpoints (for Portfolio.js direct calls)
+  // Assets endpoints (保持原有格式，用于Portfolio.js)
   assets: {
     portfolio: (id) => `/assets/portfolio/${id}`,
     watchlist: '/assets/watchlist',
     updatePrices: '/assets/update-prices',
     create: '/assets',
+    list: '/assets',
+    byId: (id) => `/assets/${id}`,
+    byPortfolio: (portfolioId) => `/assets/portfolio/${portfolioId}`,
+    update: (id) => `/assets/${id}`,
+    delete: (id) => `/assets/${id}`,
   },
-};
 
-// Helper function to build full URL
-export const buildApiUrl = (endpoint) => {
-  return `${API_CONFIG.baseURL}${endpoint}`;
+  // AI Analysis endpoints (新功能)
+  aiAnalysis: {
+    portfolio: (id) => `/ai-analysis/portfolio/${id}`,
+    generateReport: '/ai-analysis/portfolio',
+    quickInsights: (id) => `/ai-analysis/quick-insights/${id}`,
+    testConnection: '/ai-analysis/test-connection',
+    
+    // Chat endpoints (新的AI助手功能)
+    chat: '/ai-analysis/chat',
+    sessionInfo: (sessionId) => `/ai-analysis/chat/session/${sessionId}`,
+  },
+
+  // Market data endpoints (新格式，如果需要的话)
+  marketData: {
+    stocks: '/market/stocks',
+    crypto: '/market/crypto',
+    updatePrices: '/market/update-prices',
+  },
 }; 
