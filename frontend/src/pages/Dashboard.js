@@ -57,6 +57,7 @@ const Dashboard = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
 
+
   // const { data: portfolio } = useQuery('currentPortfolio', portfolioAPI.getCurrentPortfolio, {
   //   refetchInterval: 30000,
   // });
@@ -128,6 +129,7 @@ const Dashboard = () => {
           gradient.addColorStop(0, 'rgba(244, 190, 126, 0.3)');
           gradient.addColorStop(0.5, 'rgba(232, 168, 85, 0.2)');
           gradient.addColorStop(1, 'rgba(212, 150, 31, 0.1)');
+
           return gradient;
         },
         borderWidth: 3,
@@ -201,8 +203,26 @@ const Dashboard = () => {
           15000,
           10000,
         ],
-        backgroundColor: ['#E8A855', '#10b981', '#6366f1', '#F4BE7E'],
-        hoverBackgroundColor: ['#F4BE7E', '#34d399', '#F8D5A8', '#E8A855'],
+// <<<<<<< feature_backend1
+//         backgroundColor: ['#E8A855', '#10b981', '#6366f1', '#F4BE7E'],
+//         hoverBackgroundColor: ['#F4BE7E', '#34d399', '#F8D5A8', '#E8A855'],
+// =======
+        backgroundColor: [
+          
+          '#E8A855', // 金色 - Stocks
+          '#10b981', // 保持绿色 - Cash  
+          '#6366f1',  
+          '#F4BE7E', // 浅金色 - ETFs
+          '#D4961F', // 深金色 - Bonds
+        ],
+        hoverBackgroundColor: [
+          '#F4BE7E', // 悬停时的浅金色 - Stocks
+          '#34d399', // 悬停时的浅绿色 - Cash
+          '#F8D5A8', // 悬停时的更浅金色 - ETFs
+          '#E8A855', // 悬停时的中等金色 - Bonds
+        ],
+        
+// >>>>>>> main
         borderWidth: 0,
         hoverBorderWidth: 3,
         hoverBorderColor: '#ffffff',
@@ -251,10 +271,17 @@ const Dashboard = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   {['1M', '3M', '1Y', 'ALL'].map((period) => (
-                    <Chip
+// <<<<<<< feature_backend1
+//                     <Chip
+//                       key={period}
+//                       label={period}
+//                       size="small"
+// =======
+                    <Chip 
                       key={period}
-                      label={period}
-                      size="small"
+                      label={period} 
+                      size="small" 
+// >>>>>>> main
                       clickable
                       color={selectedTimeRange === period ? 'primary' : 'default'}
                       variant={selectedTimeRange === period ? 'filled' : 'outlined'}
@@ -262,8 +289,14 @@ const Dashboard = () => {
                       sx={{
                         fontWeight: selectedTimeRange === period ? 600 : 500,
                         '&:hover': {
-                          backgroundColor:
-                            selectedTimeRange === period ? 'primary.dark' : 'rgba(232, 168, 85, 0.1)',
+// <<<<<<< feature_backend1
+//                           backgroundColor:
+//                             selectedTimeRange === period ? 'primary.dark' : 'rgba(232, 168, 85, 0.1)',
+// =======
+                          backgroundColor: selectedTimeRange === period 
+                            ? 'primary.dark' 
+                            : 'rgba(232, 168, 85, 0.1)',
+// >>>>>>> main
                         },
                       }}
                     />

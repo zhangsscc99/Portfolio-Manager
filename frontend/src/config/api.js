@@ -69,6 +69,13 @@ export const API_ENDPOINTS = {
     updatePrices: '/assets/update-prices',
     create: '/assets',
   },
+
+  // AI Analysis endpoints
+  aiAnalysis: {
+    portfolio: (id) => `/ai-analysis/portfolio/${id}`,
+    generateReport: '/ai-analysis/portfolio',
+    quickInsights: (id) => `/ai-analysis/quick-insights/${id}`,
+  },
 };
 
 // Helper function to build full URL

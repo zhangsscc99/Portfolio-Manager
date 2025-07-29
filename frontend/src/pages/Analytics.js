@@ -27,7 +27,7 @@ const Analytics = () => {
       {
         label: 'Portfolio Performance',
         data: [65, 59, 80, 81, 56, 55],
-        borderColor: '#6366f1',
+        borderColor: '#E8A855',
         backgroundColor: 'rgba(99, 102, 241, 0.1)',
         borderWidth: 2,
         fill: true,
@@ -50,11 +50,13 @@ const Analytics = () => {
         label: 'Allocation %',
         data: [35, 20, 15, 20, 10],
         backgroundColor: [
-          '#6366f1',
           '#10b981',
           '#f59e0b',
           '#ef4444',
           '#8b5cf6',
+          '#E8A855', // 金色 - Stocks 
+          '#F4BE7E', // 浅金色 - ETFs
+          '#D4961F',
         ],
       },
     ],
