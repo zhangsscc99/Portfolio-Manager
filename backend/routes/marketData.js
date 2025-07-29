@@ -945,7 +945,12 @@ router.get("/bonds", async (req, res) => {
 
   try {
     const symbols = [
-      "%5EIRX", "%5EFVX", "%5ETNX", "%5ETYX", "2YY%3DF", "ZN%3DF",
+      "%5EIRX",
+      "%5EFVX",
+      "%5ETNX",
+      "%5ETYX",
+      "2YY%3DF",
+      "ZN%3DF",
     ].join(",");
 
     const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com`;
@@ -1000,7 +1005,6 @@ router.get("/bonds", async (req, res) => {
     });
   }
 });
-
 
 function getIndexName(symbol) {
   const indexNames = {
