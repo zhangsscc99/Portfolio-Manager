@@ -258,3 +258,12 @@ sudo chown -R www-data:www-data /var/www/portfolio-manager
 
 echo "✅ 部署完成!"
 pm2 status
+
+
+提示词
+1前端
+我要做一个homepage展现出来之前的欢迎页/展示页/启动页。就是介绍我们产品的 精美的一个页面 让人很有探索欲望的。这个页面简短地介绍过后，用户点击进入 再进入到主页。
+
+2我想要替换掉紫色的主题色 改成金色 类似于finary那样
+
+3想做一个finary的icon 那种特效
