@@ -32,6 +32,24 @@ app.use('/api/holdings', holdingsRoutes);
 app.use('/api/market', marketDataRoutes);
 app.use('/api/assets', assetsRoutes);
 
+// Swagger API Documentation
+app.get('/api-docs', (req, res) => {
+  res.sendFile(path.join(__dirname, 'swagger-ui.html'));
+});
+
+app.get('/api-docs/swagger.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'swagger.json'));
+});
+
+// 服务前端静态文件
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+// 处理React Router的客户端路由
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -41,35 +59,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Default route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Portfolio Manager API',
-    version: '1.0.0',
-    endpoints: {
-      portfolio: '/api/portfolio',
-      holdings: '/api/holdings',
-      market: '/api/market',
-      assets: '/api/assets',
-      health: '/api/health'
-    }
-  });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     error: 'Something went wrong!',
     message: err.message
-  });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Endpoint not found',
-    message: `Cannot ${req.method} ${req.originalUrl}`
   });
 });
 
