@@ -5,6 +5,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
 import './styles/techEffects.css';
+import './styles/localGlow.css';
 
 // Components
 import Layout from './components/Layout/Layout';
@@ -117,13 +118,13 @@ const darkTheme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          // 创建类似图片中的背景光影效果
-          background: `
-            radial-gradient(ellipse 800px 600px at 50% 0%, rgba(120, 70, 255, 0.08) 0%, transparent 50%),
-            radial-gradient(ellipse 600px 400px at 0% 100%, rgba(80, 120, 255, 0.06) 0%, transparent 50%),
-            radial-gradient(ellipse 400px 300px at 100% 50%, rgba(255, 100, 150, 0.04) 0%, transparent 50%),
-            linear-gradient(135deg, #000000 0%, #0a0508 25%, #080510 50%, #000000 100%)
-          `,
+                     // 使用你的hex颜色创建明显的背景光影效果
+           background: `
+             radial-gradient(ellipse 1200px 800px at 50% 0%, #7e7d8c40 0%, #69677930 30%, transparent 60%),
+             radial-gradient(ellipse 800px 500px at 20% 20%, #53516625 0%, #3d3c5320 40%, transparent 70%),
+             radial-gradient(ellipse 600px 400px at 80% 80%, #28264020 0%, #24223a15 50%, transparent 80%),
+             linear-gradient(135deg, #000000 0%, #0a0510 25%, #050308 50%, #000000 100%)
+           `,
           backgroundAttachment: 'fixed',
           minHeight: '100vh',
           scrollbarColor: 'rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05)',

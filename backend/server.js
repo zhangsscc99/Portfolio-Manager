@@ -17,7 +17,7 @@ const marketDataRoutes = require('./routes/marketData');
 const assetsRoutes = require('./routes/assets');
 const aiAnalysisRoutes = require('./routes/ai-analysis');
 const portfolioHistoryRoutes = require('./routes/portfolioHistory');
-// const aiAnalysisRoutes = require('./routes/ai-analysis');
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,6 +36,7 @@ app.use('/api/market', marketDataRoutes);
 app.use('/api/assets', assetsRoutes);
 app.use('/api/ai-analysis', aiAnalysisRoutes);
 app.use('/api/portfolio-history', portfolioHistoryRoutes);
+
 
 // Swagger API Documentation
 app.get('/api-docs', (req, res) => {
@@ -112,10 +113,10 @@ const startServer = async () => {
     const { initializeDatabase } = require('./scripts/initDB');
     await initializeDatabase();
     
-    // // 3. 生成SQL结构文件
-    // console.log('📄 生成SQL结构文件...');
-    // const { generateSQLSchema } = require('./scripts/generateSQL');
-    // await generateSQLSchema();
+    // 3. 生成SQL结构文件
+    console.log('📄 生成SQL结构文件...');
+    const { generateSQLSchema } = require('./scripts/generateSQL');
+    await generateSQLSchema();
     
             // 4. 启动HTTP服务器
         app.listen(PORT, () => {

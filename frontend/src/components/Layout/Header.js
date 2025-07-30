@@ -18,7 +18,7 @@ const Header = ({ onOpenAssistant }) => {
 
   return (
     <Box
-      className="tech-header"
+      className="tech-header local-top-glow"
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -35,8 +35,12 @@ const Header = ({ onOpenAssistant }) => {
           variant="h5"
           sx={{
             fontWeight: 600,
-            color: 'text.primary',
             mb: 0.5,
+            background: 'linear-gradient(90deg, #9CA8DA 0%, #C49A71 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            textFillColor: 'transparent',
           }}
         >
           Welcome back! 

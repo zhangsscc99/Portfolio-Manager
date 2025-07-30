@@ -129,7 +129,11 @@ const HomePage = () => {
               P
             </Typography>
           </Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'white' }}>
+          <Typography 
+            variant="h5" 
+            className="gradient-text"
+            sx={{ fontWeight: 700 }}
+          >
             Portfolio Manager
           </Typography>
         </Box>
@@ -187,22 +191,22 @@ const HomePage = () => {
                   sx={{
                     fontSize: { xs: '2.5rem', md: '4rem' },
                     fontWeight: 800,
+                    mb: 3,
+                    lineHeight: 1.2,
                     background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    mb: 3,
-                    lineHeight: 1.2,
                   }}
                 >
                   Track. Optimize. Invest.
                 </Typography>
                 <Typography
                   variant="h2"
+                  className="gradient-text"
                   sx={{
                     fontSize: { xs: '1.8rem', md: '2.5rem' },
                     fontWeight: 600,
-                    color: 'white',
                     mb: 2,
                     opacity: 0.9,
                   }}
@@ -255,10 +259,10 @@ const HomePage = () => {
          <Box sx={{ py: 8, textAlign: 'center' }}>
            <Typography
              variant="h3"
+             className="gradient-text"
              sx={{
                mb: 6,
                fontWeight: 700,
-               color: 'white',
                fontSize: { xs: '2rem', md: '2.5rem' },
              }}
            >
@@ -291,11 +295,11 @@ const HomePage = () => {
          <Box sx={{ py: 8 }}>
                      <Typography
              variant="h3"
+             className="gradient-text"
              sx={{
                textAlign: 'center',
                mb: 6,
                fontWeight: 700,
-               color: 'white',
                fontSize: { xs: '2rem', md: '2.5rem' },
              }}
            >
@@ -336,9 +340,9 @@ const HomePage = () => {
                       </Box>
                       <Typography
                         variant="h6"
+                        className="gradient-text"
                         sx={{
                           fontWeight: 600,
-                          color: 'white',
                           mb: 2,
                         }}
                       >
@@ -372,9 +376,9 @@ const HomePage = () => {
         }}>
                      <Typography
              variant="h4"
+             className="gradient-text"
              sx={{
                fontWeight: 700,
-               color: 'white',
                mb: 2,
                fontSize: { xs: '1.75rem', md: '2.25rem' },
              }}
