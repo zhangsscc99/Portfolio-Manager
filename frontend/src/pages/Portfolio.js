@@ -17,7 +17,6 @@ import {
   TableRow,
   Paper,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -34,8 +33,7 @@ import {
   Remove as RemoveIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  Analytics,
-  Visibility as WatchIcon
+  Analytics
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
@@ -52,7 +50,7 @@ const ASSET_TYPES = {
 
 const Portfolio = () => {
   const [portfolioData, setPortfolioData] = useState(null);
-  const [watchlist, setWatchlist] = useState({});
+
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [assetChartData, setAssetChartData] = useState(null);
   const [chartLoading, setChartLoading] = useState(false);
@@ -89,18 +87,7 @@ const Portfolio = () => {
     }
   };
 
-  // 📋 Fetch watchlist
-  const fetchWatchlist = async () => {
-    try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.watchlist));
-      const data = await response.json();
-      if (data.success) {
-        setWatchlist(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch watchlist:', error);
-    }
-  };
+
 
   // 📈 Fetch asset chart data
   const fetchAssetChartData = async (asset) => {
@@ -166,7 +153,7 @@ const Portfolio = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchPortfolioData(), fetchWatchlist()]);
+      await fetchPortfolioData();
       setLoading(false);
     };
     loadData();
@@ -445,7 +432,7 @@ const Portfolio = () => {
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <TableContainer component={Paper} variant="outlined">
+                  <TableContainer component={Paper} variant="outlined" className="portfolio-table-container table-container">
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -513,7 +500,7 @@ const Portfolio = () => {
           })}
         </Grid>
 
-        {/* 📋 Sidebar: Watchlist and charts */}
+        {/* 📋 Sidebar: Asset charts */}
         <Grid item xs={12} lg={4}>
           {/* Selected asset trend chart */}
           {selectedAsset && (
@@ -583,72 +570,7 @@ const Portfolio = () => {
             </Card>
           )}
 
-          {/* Watchlist */}
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
-                  Watchlist
-                </Typography>
-                <IconButton size="small">
-                  <WatchIcon />
-                </IconButton>
-              </Box>
-              
-              {Object.entries(watchlist).map(([type, data]) => {
-                if (!data.items?.length) return null;
-                
-                return (
-                  <Box key={type} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                      {ASSET_TYPES[type]?.icon} {ASSET_TYPES[type]?.name}
-                    </Typography>
-                    {data.items.map((item) => (
-                      <Box
-                        key={item.id}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          py: 1,
-                          borderBottom: '1px solid',
-                          borderColor: 'divider'
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {item.symbol}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {item.name}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ textAlign: 'right' }}>
-                          <Typography variant="body2">
-                            {formatCurrency(item.current_price)}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: item.price_change_percent >= 0 ? 'success.main' : 'error.main'
-                            }}
-                          >
-                            {formatPercent(item.price_change_percent)}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                );
-              })}
-              
-              {Object.values(watchlist).every(data => !data.items?.length) && (
-                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                  No assets in watchlist
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
+
         </Grid>
       </Grid>
       {/* 📝 Remove asset dialog */}

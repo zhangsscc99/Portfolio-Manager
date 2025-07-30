@@ -165,7 +165,7 @@ const HomePage = () => {
           flexDirection: 'column',
           justifyContent: 'center',
           position: 'relative', // 使视频/图片定位于此区域
-        }}>
+        }} className="homepage-hero">
           {/* 背景视频或帧图片：放在主标题区域的正后方 */}
           <Box
             sx={{
@@ -269,12 +269,14 @@ const HomePage = () => {
              See It In Action
            </Typography>
 
-                                   <VideoPlayer
+          <Box className="homepage-video-container">
+            <VideoPlayer
               src="/pm.mp4"
               poster="/video-poster.jpg"
               title="Portfolio Manager"
               description="Experience the power of professional investment management"
             />
+          </Box>
 
            <Typography
              variant="body1"
@@ -306,7 +308,7 @@ const HomePage = () => {
              Why Choose Us?
            </Typography>
 
-          <Grid container spacing={4}>
+          <Grid container spacing={4} className="homepage-features-grid">
             {features.map((feature, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <Slide direction="up" in timeout={800 + index * 200}>

@@ -1,6 +1,6 @@
 -- =========================================
 -- Portfolio Manager 数据库结构
--- 生成时间: 2025/7/29 16:39:52
+-- 生成时间: 2025/7/30 10:49:21
 -- 数据库: portfolio_manager
 -- 字符集: utf8mb4
 -- =========================================
@@ -65,6 +65,7 @@ INSERT IGNORE INTO holdings (symbol, name, type, quantity, avg_price, current_pr
 ('AMZN', 'Amazon.com Inc.', 'stock', 2.00000000, 3200.00, 3150.80, 1, NOW());
 
 -- =========================================
+
 -- 3. AI聊天会话表 (ai_chat_sessions)
 -- =========================================
 CREATE TABLE IF NOT EXISTS ai_chat_sessions (
@@ -498,7 +499,7 @@ INSERT INTO portfolio_history (portfolio_id, date, total_value) VALUES
 (1, '2025-07-26', 136433.48),
 (1, '2025-07-27', 135900.63);
 
--- =========================================
+
 -- 常用查询示例
 -- =========================================
 
@@ -533,29 +534,6 @@ INSERT INTO portfolio_history (portfolio_id, date, total_value) VALUES
 -- FROM holdings h
 -- WHERE h.portfolio_id = 1;
 
--- 查看AI聊天会话
--- SELECT 
---   s.id,
---   s.portfolio_id,
---   s.created_at,
---   s.last_activity,
---   s.is_persistent,
---   COUNT(m.id) as message_count
--- FROM ai_chat_sessions s
--- LEFT JOIN ai_chat_messages m ON s.id = m.session_id
--- GROUP BY s.id
--- ORDER BY s.last_activity DESC;
-
--- 查看某个会话的聊天记录
--- SELECT 
---   m.role,
---   m.content,
---   m.timestamp,
---   m.is_system_update
--- FROM ai_chat_messages m
--- WHERE m.session_id = 'portfolio_1'
--- ORDER BY m.timestamp ASC;
-
 -- =========================================
 -- 数据库维护
 -- =========================================
@@ -563,14 +541,10 @@ INSERT INTO portfolio_history (portfolio_id, date, total_value) VALUES
 -- 查看表结构
 -- DESCRIBE portfolios;
 -- DESCRIBE holdings;
--- DESCRIBE ai_chat_sessions;
--- DESCRIBE ai_chat_messages;
 
 -- 查看索引
 -- SHOW INDEX FROM portfolios;
 -- SHOW INDEX FROM holdings;
--- SHOW INDEX FROM ai_chat_sessions;
--- SHOW INDEX FROM ai_chat_messages;
 
 -- 数据库大小
 -- SELECT 

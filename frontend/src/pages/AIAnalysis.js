@@ -37,11 +37,9 @@ import {
   Share,
   Refresh,
   WifiOff,
-  CloudOff,
-  Chat as ChatIcon
+  CloudOff
 } from '@mui/icons-material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
-import AIAssistantDialog from '../components/AIAssistantDialog';
 
 const AIAnalysis = () => {
   const [searchParams] = useSearchParams();
@@ -52,7 +50,7 @@ const AIAnalysis = () => {
   const [error, setError] = useState(null);
   const [analysisData, setAnalysisData] = useState(null);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
+
 
   useEffect(() => {
     if (portfolioId) {
@@ -89,13 +87,7 @@ const AIAnalysis = () => {
     fetchAnalysis();
   };
 
-  const handleOpenAssistant = () => {
-    setAssistantOpen(true);
-  };
 
-  const handleCloseAssistant = () => {
-    setAssistantOpen(false);
-  };
 
   const getRiskColor = (risk) => {
     switch (risk) {
@@ -247,20 +239,6 @@ const AIAnalysis = () => {
         </Box>
         
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="contained"
-            startIcon={<ChatIcon />}
-            onClick={handleOpenAssistant}
-            sx={{
-              background: 'linear-gradient(135deg, #4caf50 0%, #45a049 50%, #3e8e41 100%)',
-              color: 'white',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #45a049 0%, #3e8e41 50%, #2e7d32 100%)',
-              },
-            }}
-          >
-            AI Assistant
-          </Button>
           {isOfflineMode && (
             <Button
               variant="outlined"
@@ -561,14 +539,7 @@ const AIAnalysis = () => {
         </Typography>
       </Box>
 
-      {/* AI Assistant Dialog */}
-      <AIAssistantDialog
-        open={assistantOpen}
-        onClose={handleCloseAssistant}
-        portfolioId={portfolioId}
-        portfolioData={portfolioSnapshot}
-        analysisData={analysisData}
-      />
+
     </Box>
   );
 };

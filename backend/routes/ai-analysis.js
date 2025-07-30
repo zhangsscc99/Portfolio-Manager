@@ -5,6 +5,7 @@ const aiAnalysisService = require('../services/aiAnalysisService-improved');
 const aiChatService = require('../services/aiChatService');
 const aiIntegrationService = require('../services/aiIntegrationService');
 const portfolioService = require('../services/portfolioService');
+const aiAnalysisHistoryService = require('../services/aiAnalysisHistoryService');
 
 // 🗣️ POST /api/ai-analysis/chat - AI Assistant Chat
 router.post('/chat', async (req, res) => {
@@ -129,6 +130,23 @@ router.post('/portfolio', async (req, res) => {
     } catch (error) {
       console.warn('Failed to update AI Assistant memory:', error.message);
       // Don't fail the request if memory update fails
+    }
+
+    // Save analysis report to history database
+    try {
+      const historyResult = await aiAnalysisHistoryService.saveAnalysisReport(
+        portfolioId,
+        { ...analysisResult.data, summary },
+        portfolioResult.data
+      );
+      if (historyResult.success) {
+        console.log(`📝 Analysis report saved to history - Report ID: ${historyResult.reportId}`);
+      } else {
+        console.warn('Failed to save analysis report to history:', historyResult.error);
+      }
+    } catch (error) {
+      console.warn('Failed to save analysis report to history:', error.message);
+      // Don't fail the request if history save fails
     }
 
     res.json({
@@ -364,6 +382,80 @@ function generateQuickRecommendations(portfolioData) {
   
   return recommendations;
 }
+
+// 📊 GET /api/ai-analysis/history - Get AI analysis reports history
+router.get('/history', async (req, res) => {
+  try {
+    const { portfolioId, limit = 20 } = req.query;
+    
+    console.log(`📋 Fetching analysis history for portfolio ${portfolioId || 'all'}, limit: ${limit}`);
+
+    const historyResult = await aiAnalysisHistoryService.getAnalysisHistory(
+      portfolioId ? parseInt(portfolioId) : null,
+      parseInt(limit)
+    );
+
+    if (historyResult.success) {
+      console.log(`✅ Found ${historyResult.data.length} analysis reports`);
+      res.json({
+        success: true,
+        data: historyResult.data
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: historyResult.error,
+        data: []
+      });
+    }
+
+  } catch (error) {
+    console.error('Get Analysis History API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while fetching analysis history',
+      data: []
+    });
+  }
+});
+
+// 📄 GET /api/ai-analysis/report/:reportId - Get specific analysis report
+router.get('/report/:reportId', async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    
+    if (!reportId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Report ID is required'
+      });
+    }
+
+    console.log(`📋 Fetching analysis report ${reportId}`);
+
+    const reportResult = await aiAnalysisHistoryService.getAnalysisReport(parseInt(reportId));
+
+    if (reportResult.success) {
+      console.log(`✅ Found analysis report ${reportId}`);
+      res.json({
+        success: true,
+        data: reportResult.data
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: reportResult.error
+      });
+    }
+
+  } catch (error) {
+    console.error('Get Analysis Report API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while fetching analysis report'
+    });
+  }
+});
 
 // 🧹 Cleanup old chat sessions periodically
 setInterval(() => {

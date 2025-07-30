@@ -261,7 +261,7 @@ const Markets = () => {
       </Box>
 
       {/* Market Indices */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }} className="market-overview-grid">
         {indicesLoading ? (
           // 加载状态
           Array.from({ length: 4 }).map((_, index) => (
