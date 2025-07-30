@@ -41,6 +41,11 @@ const Asset = sequelize.define('Asset', {
     defaultValue: 0,
     comment: '当前市场价格'
   },
+  historical_avg_price: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: true,
+    comment: '历史平均价格 (30天)'
+  },
   
   // 市场信息
   currency: {

@@ -34,7 +34,8 @@ import {
   Remove as RemoveIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  Analytics
+  Analytics,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
@@ -88,6 +89,37 @@ const Portfolio = () => {
       }
     } catch (error) {
       console.error('Failed to fetch portfolio data:', error);
+    }
+  };
+
+  // 🔄 手动更新价格
+  const handleUpdatePrices = async () => {
+    try {
+      console.log('🔄 手动更新资产价格...');
+      const response = await fetch(buildApiUrl('/assets/update-prices'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ portfolioId: 1 })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ 价格更新成功:', result);
+        await fetchPortfolioData(); // 刷新数据
+        
+        if (result.updatedCount > 0) {
+          alert(`✅ ${result.message}\n📊 总计: ${result.totalCount} 个资产\n🔄 更新: ${result.updatedCount} 个\n✓ 无变化: ${result.successCount - result.updatedCount} 个`);
+        } else {
+          alert(`ℹ️ 价格更新完成\n所有 ${result.totalCount} 个资产价格均为最新`);
+        }
+      } else {
+        console.error('❌ 价格更新失败:', result.error);
+        alert('❌ 价格更新失败: ' + result.error);
+      }
+    } catch (error) {
+      console.error('❌ 价格更新网络错误:', error);
+      alert('❌ 网络错误: ' + error.message);
     }
   };
 
@@ -333,16 +365,91 @@ const Portfolio = () => {
   };
 
   // 🎯 处理股票选择 - 自动补全功能
-  const handleStockSelect = (stockData) => {
-    console.log('Selected stock:', stockData);
-    setSelectedStock(stockData);
-    setNewAsset(prev => ({
-      ...prev,
-      symbol: stockData.symbol,
-      name: stockData.name,
-      asset_type: stockData.type || prev.asset_type,
-      avg_cost: stockData.price || prev.avg_cost // 如果有当前价格，设为默认成本
-    }));
+  const handleStockSelect = async (stockData) => {
+    console.log('🎯 选择股票:', stockData);
+    setSelectedStock({ ...stockData, loading: true });
+    
+    try {
+      // 🔍 获取实时价格和历史数据
+      const [realTimePrice, historyData] = await Promise.all([
+        fetchRealTimePrice(stockData.symbol),
+        fetchMarketHistory(stockData.symbol)
+      ]);
+      
+      // 📊 计算历史平均价格
+      let avgHistoricalPrice = null;
+      if (historyData && historyData.length > 0) {
+        const totalPrice = historyData.reduce((sum, point) => sum + point.price, 0);
+        avgHistoricalPrice = totalPrice / historyData.length;
+        console.log(`📈 ${stockData.symbol} 历史平均价格: $${avgHistoricalPrice.toFixed(2)} (基于${historyData.length}个数据点)`);
+      }
+      
+      // 🎯 更新选中的股票信息
+      const enhancedStockData = {
+        ...stockData,
+        realTimePrice: realTimePrice,
+        avgHistoricalPrice: avgHistoricalPrice,
+        loading: false
+      };
+      
+      setSelectedStock(enhancedStockData);
+      setNewAsset(prev => ({
+        ...prev,
+        symbol: stockData.symbol,
+        name: stockData.name,
+        asset_type: stockData.type || prev.asset_type,
+        avg_cost: realTimePrice || stockData.price || '' // 🔥 自动填充实时价格
+      }));
+      
+    } catch (error) {
+      console.error('❌ 获取股票数据失败:', error);
+      setSelectedStock({ ...stockData, loading: false, error: error.message });
+      setNewAsset(prev => ({
+        ...prev,
+        symbol: stockData.symbol,
+        name: stockData.name,
+        asset_type: stockData.type || prev.asset_type,
+        avg_cost: stockData.price || '' // 兜底使用搜索结果中的价格
+      }));
+    }
+  };
+
+  // 🔍 获取实时价格
+  const fetchRealTimePrice = async (symbol) => {
+    try {
+      console.log(`🔍 获取 ${symbol} 实时价格...`);
+      const response = await fetch(buildApiUrl(`/market/test/${symbol}`));
+      const result = await response.json();
+      
+      if (response.ok && result.success && result.price && result.price > 0) {
+        console.log(`✅ ${symbol} 实时价格: $${result.price} (${result.currency || 'USD'})`);
+        return parseFloat(result.price);
+      }
+      
+      console.warn(`⚠️ ${symbol} 价格获取失败:`, result.error || '无效的价格数据');
+      return null;
+    } catch (error) {
+      console.warn(`⚠️ 获取 ${symbol} 实时价格失败:`, error);
+      return null;
+    }
+  };
+
+  // 📊 获取历史数据（用于计算平均价格）
+  const fetchMarketHistory = async (symbol) => {
+    try {
+      console.log(`📊 获取 ${symbol} 历史数据...`);
+      const response = await fetch(buildApiUrl(`/market/history/${symbol}`));
+      const data = await response.json();
+      
+      if (response.ok && data.success && data.data && data.data.length > 0) {
+        console.log(`✅ ${symbol} 历史数据: ${data.data.length} 个数据点`);
+        return data.data;
+      }
+      return [];
+    } catch (error) {
+      console.warn(`⚠️ 获取 ${symbol} 历史数据失败:`, error);
+      return [];
+    }
   };
 
   // 🔄 重置添加资产表单
@@ -368,7 +475,11 @@ const Portfolio = () => {
           ...newAsset,
           portfolio_id: 1,
           quantity: parseFloat(newAsset.quantity),
-          avg_cost: parseFloat(newAsset.avg_cost)
+          avg_cost: parseFloat(newAsset.avg_cost),
+          // 使用获取到的实时价格，而不是搜索结果中的价格
+          current_price: selectedStock?.realTimePrice || selectedStock?.price || null,
+          // 添加30天历史平均价格
+          historical_avg_price: selectedStock?.avgHistoricalPrice || null
         })
       });
       
@@ -523,6 +634,14 @@ const Portfolio = () => {
             onClick={() => setRemoveAssetOpen(true)}
           >
             Remove Asset
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={handleUpdatePrices}
+            sx={{ ml: 1 }}
+          >
+            Update Prices
           </Button>
         </Box>
       </Box>
@@ -860,15 +979,47 @@ const Portfolio = () => {
                   background: 'linear-gradient(135deg, rgba(244, 190, 126, 0.1) 0%, rgba(232, 168, 85, 0.15) 100%)',
                   borderRadius: 2, 
                   border: '1px solid',
-                  borderColor: 'primary.main'
+                  borderColor: selectedStock.loading ? 'warning.main' : selectedStock.error ? 'error.main' : 'primary.main'
                 }}>
-                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
-                    ✅ Selected: {selectedStock.symbol} - {selectedStock.name}
+                  <Typography variant="body2" color={selectedStock.error ? 'error.main' : 'primary.main'} sx={{ fontWeight: 600 }}>
+                    {selectedStock.loading ? '🔄 Loading...' : selectedStock.error ? '❌ Error:' : '✅ Selected:'} {selectedStock.symbol} - {selectedStock.name}
                   </Typography>
-                  {selectedStock.price && (
-                    <Typography variant="caption" color="text.secondary">
-                      Current Price: ${parseFloat(selectedStock.price).toFixed(2)}
+                  
+                  {selectedStock.loading && (
+                    <Typography variant="caption" color="warning.main">
+                      🔍 Fetching real-time price and market history...
                     </Typography>
+                  )}
+                  
+                  {selectedStock.error && (
+                    <Typography variant="caption" color="error.main">
+                      {selectedStock.error}
+                    </Typography>
+                  )}
+                  
+                  {!selectedStock.loading && !selectedStock.error && (
+                    <Box sx={{ mt: 1 }}>
+                      {/* 实时价格 */}
+                      {selectedStock.realTimePrice && (
+                        <Typography variant="caption" color="success.main" sx={{ display: 'block', fontWeight: 600 }}>
+                          📈 Real-time Price: ${selectedStock.realTimePrice.toFixed(2)}
+                        </Typography>
+                      )}
+                      
+                      {/* 历史平均价格 */}
+                      {selectedStock.avgHistoricalPrice && (
+                        <Typography variant="caption" color="info.main" sx={{ display: 'block' }}>
+                          📊 30-Day Avg: ${selectedStock.avgHistoricalPrice.toFixed(2)}
+                        </Typography>
+                      )}
+                      
+                      {/* 原始搜索价格（作为备用参考） */}
+                      {selectedStock.price && !selectedStock.realTimePrice && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          📋 Search Price: ${parseFloat(selectedStock.price).toFixed(2)}
+                        </Typography>
+                      )}
+                    </Box>
                   )}
                 </Box>
               </Grid>
@@ -910,10 +1061,28 @@ const Portfolio = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Average Cost"
+                label="Purchase Price"
                 type="number"
                 value={newAsset.avg_cost}
                 onChange={(e) => setNewAsset(prev => ({...prev, avg_cost: e.target.value}))}
+                helperText={(() => {
+                  if (selectedStock?.loading) return "🔄 Loading real-time price...";
+                  if (selectedStock?.error) return "⚠️ Price data unavailable - enter manually";
+                  if (selectedStock?.realTimePrice && selectedStock?.avgHistoricalPrice) {
+                    return `💡 Real-time: $${selectedStock.realTimePrice.toFixed(2)} | 30-day avg: $${selectedStock.avgHistoricalPrice.toFixed(2)}`;
+                  }
+                  if (selectedStock?.realTimePrice) {
+                    return `📈 Real-time price: $${selectedStock.realTimePrice.toFixed(2)} (auto-filled)`;
+                  }
+                  if (selectedStock?.price) {
+                    return `📋 Search price: $${parseFloat(selectedStock.price).toFixed(2)} (auto-filled)`;
+                  }
+                  return "Enter the price you paid for this asset";
+                })()}
+                InputProps={{
+                  startAdornment: <Typography sx={{ mr: 1, color: 'text.secondary' }}>$</Typography>
+                }}
+                disabled={selectedStock?.loading}
               />
             </Grid>
           </Grid>

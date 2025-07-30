@@ -3,6 +3,7 @@ const router = express.Router();
 const assetController = require('../controllers/assetController');
 const { Asset, Watchlist } = require('../models/index');
 const { ASSET_TYPES } = require('../services/assetService');
+const yahooFinanceService = require('../services/yahooFinance');
 
 // 📊 GET /api/assets/portfolio/:portfolioId - 获取投资组合的分类资产
 router.get('/portfolio/:portfolioId', assetController.getPortfolioAssets);
@@ -40,6 +41,100 @@ router.put('/:id', async (req, res) => {
 
 // 💰 PUT /api/assets/:id/sell - 部分卖出资产
 router.put('/:id/sell', assetController.sellAsset);
+
+// 🔧 POST /api/assets/fix-prices - 修复现有资产的价格问题
+router.post('/fix-prices', async (req, res) => {
+  try {
+    const { portfolioId } = req.body;
+    console.log(`🔧 开始修复投资组合 ${portfolioId} 的资产价格...`);
+    
+    // 获取所有资产
+    const assets = await Asset.findAll({
+      where: { 
+        portfolio_id: portfolioId || 1,
+        is_active: true 
+      }
+    });
+
+    let fixCount = 0;
+    const results = [];
+
+    for (const asset of assets) {
+      try {
+        // 检查是否平均成本等于当前价格（说明需要修复）
+        if (Math.abs(asset.avg_cost - asset.current_price) < 0.01) {
+          console.log(`🔍 发现需要修复的资产: ${asset.symbol}`);
+          
+          // 获取实时价格
+          let realCurrentPrice = asset.current_price;
+          
+          if (asset.price_source === 'yahoo_finance') {
+            const priceData = await yahooFinanceService.getStockPrice(asset.source_symbol);
+            if (priceData && priceData.price && priceData.price > 0) {
+              realCurrentPrice = parseFloat(priceData.price);
+            }
+          }
+          
+          // 只有当实时价格与平均成本不同时才更新
+          if (Math.abs(realCurrentPrice - asset.avg_cost) > 0.01) {
+            await asset.update({
+              current_price: realCurrentPrice
+            });
+            
+            console.log(`✅ 修复 ${asset.symbol}: 平均成本 $${asset.avg_cost} → 当前价格 $${realCurrentPrice}`);
+            fixCount++;
+            
+            results.push({
+              symbol: asset.symbol,
+              avgCost: asset.avg_cost,
+              oldCurrentPrice: asset.current_price,
+              newCurrentPrice: realCurrentPrice,
+              fixed: true
+            });
+          } else {
+            results.push({
+              symbol: asset.symbol,
+              avgCost: asset.avg_cost,
+              currentPrice: realCurrentPrice,
+              fixed: false,
+              reason: 'Real-time price same as avg cost'
+            });
+          }
+        } else {
+          results.push({
+            symbol: asset.symbol,
+            avgCost: asset.avg_cost,
+            currentPrice: asset.current_price,
+            fixed: false,
+            reason: 'No fix needed'
+          });
+        }
+      } catch (error) {
+        console.error(`❌ 修复 ${asset.symbol} 失败:`, error.message);
+        results.push({
+          symbol: asset.symbol,
+          fixed: false,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `价格修复完成，共修复 ${fixCount} 个资产`,
+      fixedCount: fixCount,
+      totalAssets: assets.length,
+      results: results
+    });
+
+  } catch (error) {
+    console.error('❌ 价格修复失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 // 🗑️ DELETE /api/assets/:id - 删除资产
 router.delete('/:id', assetController.deleteAsset);

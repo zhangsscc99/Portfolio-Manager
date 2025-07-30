@@ -554,6 +554,43 @@ router.get("/indices", async (req, res) => {
   }
 });
 
+// 🧪 GET /api/market/test/:symbol - 测试股票价格获取
+router.get('/test/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    console.log(`🧪 测试获取 ${symbol} 价格...`);
+    
+    const priceData = await yahooFinanceService.getStockPrice(symbol);
+    
+    if (priceData && priceData.price && priceData.price > 0) {
+      res.json({
+        success: true,
+        symbol: symbol.toUpperCase(),
+        price: parseFloat(priceData.price),
+        currency: priceData.currency || 'USD',
+        marketTime: priceData.regularMarketTime || new Date().toISOString(),
+        data: priceData, // 保留完整数据以备调试
+        message: `成功获取 ${symbol} 的价格信息`
+      });
+    } else {
+      res.json({
+        success: false,
+        symbol: symbol.toUpperCase(),
+        error: `无法获取 ${symbol} 的有效价格`,
+        data: priceData
+      });
+    }
+    
+  } catch (error) {
+    console.error(`❌ 测试获取 ${symbol} 价格失败:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      symbol: req.params.symbol
+    });
+  }
+});
+
 // 📈 GET /api/market/history/:symbol - 获取股票历史数据
 router.get('/history/:symbol', async (req, res) => {
   try {

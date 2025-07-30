@@ -2,6 +2,41 @@ const mysql = require('mysql2/promise');
 const { syncDatabase } = require('../models/index');
 const db = require('../db');
 
+// 添加历史平均价格字段到Assets表
+const addHistoricalAvgPriceField = async () => {
+  try {
+    // 检查字段是否已存在
+    const checkFieldQuery = `
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = 'portfolio_manager' 
+      AND TABLE_NAME = 'assets' 
+      AND COLUMN_NAME = 'historical_avg_price'
+    `;
+    
+    const [rows] = await db.execute(checkFieldQuery);
+    
+    if (rows.length === 0) {
+      // 字段不存在，添加它
+      const addFieldQuery = `
+        ALTER TABLE assets 
+        ADD COLUMN historical_avg_price DECIMAL(12,2) NULL 
+        COMMENT '历史平均价格 (30天)' 
+        AFTER current_price
+      `;
+      
+      await db.execute(addFieldQuery);
+      console.log('✅ 添加 historical_avg_price 字段到 assets 表成功');
+    } else {
+      console.log('ℹ️  historical_avg_price 字段已存在，跳过添加');
+    }
+    
+  } catch (error) {
+    console.error('❌ 添加历史平均价格字段失败:', error);
+    // 不抛出错误，让其他功能正常工作
+  }
+};
+
 // 创建AI聊天相关表
 const createAIChatTables = async () => {
   try {
@@ -74,13 +109,18 @@ const initializeDatabase = async () => {
     console.log('🔄 开始同步表结构...');
     await syncDatabase(); // 不强制重建，保留数据
     
-    // 5. 创建AI聊天相关表
+    // 5. 添加历史平均价格字段
+    console.log('📊 添加历史平均价格字段...');
+    await addHistoricalAvgPriceField();
+    
+    // 6. 创建AI聊天相关表
     console.log('🤖 创建AI聊天历史表...');
     await createAIChatTables();
     
     console.log('✅ 数据库表结构同步完成!');
     console.log('📋 数据库表:');
     console.log('   - portfolios (投资组合表)');
+    console.log('   - assets (资产表) - 包含历史平均价格字段');
     console.log('   - holdings (持仓表)');
     console.log('   - ai_chat_sessions (AI聊天会话表)');
     console.log('   - ai_chat_messages (AI聊天消息表)');
