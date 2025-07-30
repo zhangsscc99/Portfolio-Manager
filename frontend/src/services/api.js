@@ -108,15 +108,15 @@ export const marketAPI = {
   // Get historical data
   getHistory: (symbol) => api.get(`/market/history/${symbol}`),
 
-  getCryptos: (page = 1) => api.get(`/market/cryptos?page=${page}`),
+  getCryptos: (page = 1, rowsPerPage = 10) => api.get(`/market/crypto?page=${page}&limit=${rowsPerPage}`),
 
-  getETFsMostActive: (page = 1) => api.get(`/market/etfs/most-active?page=${page}`),
+  getETFsMostActive: (page = 1, rowsPerPage = 10) => api.get(`/market/etfs/most-active?page=${page}&limit=${rowsPerPage}`),
 
-  getETFGainers: (page = 1) => api.get(`/market/etfs/gainers?page=${page}`),  
+  getETFGainers: (page = 1, rowsPerPage = 10) => api.get(`/market/etfs/gainers?page=${page}&limit=${rowsPerPage}`),  
 
-  getETFLosers: (page = 1) => api.get(`/market/etfs/losers?page=${page}`),
+  getETFLosers: (page = 1, rowsPerPage = 10) => api.get(`/market/etfs/losers?page=${page}&limit=${rowsPerPage}`),
 
-  getETFtrending: (page = 1) => api.get(`/market/etfs/trending?page=${page}`),
+  getETFtrending: (page = 1, rowsPerPage = 10) => api.get(`/market/etfs/trending?page=${page}&limit=${rowsPerPage}`),
 
   getBonds: (page = 1) => api.get(`/market/bonds?page=${page}`),
   // --- END NEW ---

@@ -16,7 +16,6 @@ import {
   TablePagination,
   TableSortLabel,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 // Ensure marketAPI.js still parses string numbers to actual numbers!
@@ -24,9 +23,6 @@ import { formatCurrency, getPercentageColorFromString, getChangeColor, marketAPI
 import toast from 'react-hot-toast';
 
 const Bonds = () => {
-  const [displayedSearchTerm, setDisplayedSearchTerm] = useState('');
-  // We will still filter on the frontend for the current page's data
-  const [filterSearchTerm, setFilterSearchTerm] = useState('');
   const debounceTimerRef = useRef(null);
 
   // --- Backend Pagination States ---
@@ -72,23 +68,6 @@ const Bonds = () => {
   const bonds = apiResponse?.data || [];
   const totalRecords = apiResponse?.totalRecords || 0; // Use totalRecords from API for TablePagination count
 
-  // --- Search Logic (Frontend Filtering of current page's data) ---
-  // Note: If you want server-side search, your backend API needs to support a search parameter.
-  // For now, this searches only the current page's data.
-  const handleSearchChange = (event) => {
-    const value = event.target.value;
-    setDisplayedSearchTerm(value);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      setFilterSearchTerm(value);
-      // No need to reset page here, as filtering is only on the current page.
-      // If you implement server-side search, then you'd reset page to 0.
-    }, 500);
-  };
-
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -96,16 +75,6 @@ const Bonds = () => {
       }
     };
   }, []);
-
-  // --- Filtering Data (Frontend for the current page) ---
-  const filteredBonds = (bonds || []).filter(bond => {
-    if (!filterSearchTerm) return true;
-    const lowerCaseSearchTerm = filterSearchTerm.toLowerCase();
-    return (
-      bond.symbol?.toLowerCase().includes(lowerCaseSearchTerm) ||
-      bond.name?.toLowerCase().includes(lowerCaseSearchTerm)
-    );
-  });
 
   // --- Sorting Handlers (Frontend Sorting for current page) ---
   // If you want server-side sorting, your backend API needs to support sort parameters.
@@ -152,8 +121,8 @@ const Bonds = () => {
     }
     return 0;
   };
-  // Apply frontend sorting to the filtered data (which is just the current page's data)
-  const sortedBonds = stableSort(filteredBonds, getComparator(order, orderBy));
+  
+  const sortedBonds = stableSort(bonds, getComparator(order, orderBy));
 
 
   // --- Pagination Handlers (Backend Pagination triggered by state changes) ---
@@ -266,13 +235,13 @@ const Bonds = () => {
                       align="right"
                       sx={{ color: getChangeColor(bond?.change), fontWeight: 500 }}
                     >
-                      {formatCurrency(bond?.change, 'USD')}
+                      {bond.change.startsWith('-') ? bond.change : '+' + bond.change}
                     </TableCell>
                     <TableCell
                       align="right"
                       sx={{ color: getPercentageColorFromString(bond?.changePercent), fontWeight: 500 }}
                     >
-                      {bond?.changePercent}
+                      {bond.changePercent.startsWith('-') ? bond.changePercent : '+' + bond.changePercent}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -282,7 +251,7 @@ const Bonds = () => {
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
             <Typography color="text.secondary">
-              No bond data available or found matching your search.
+              No bond data available.
             </Typography>
           </Box>
         )}
@@ -290,7 +259,7 @@ const Bonds = () => {
       {/* Table Pagination Component - now uses totalRecords from API for count */}
       {!(isLoading || isError) && (totalRecords > 0) && (
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]} // Keep options, but backend will only return `perPage` items
+          rowsPerPageOptions={[5, 10, 25]} // Keep options, but backend will only return `perPage` items
           component="div"
           count={totalRecords} // Use totalRecords from the API response
           rowsPerPage={rowsPerPage}
@@ -309,25 +278,6 @@ const Bonds = () => {
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           Bonds
         </Typography>
-        <TextField
-          size="small"
-          placeholder="Search bonds..."
-          value={displayedSearchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            endAdornment: isFetching && (
-              <InputAdornment position="end">
-                <CircularProgress size={20} color="inherit" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 300 }}
-        />
       </Box>
 
       {renderBondsTable()}

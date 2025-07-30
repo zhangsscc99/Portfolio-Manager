@@ -23,7 +23,6 @@ import {
   TrendingDown as TrendingDownIcon,
   LocalFireDepartment as ActiveIcon,
   Star as TrendingIcon,
-  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
@@ -62,8 +61,6 @@ function a11yProps(index) {
 
 const Stock = () => {
   const [currentTab, setCurrentTab] = useState(0);
-  const [displayedSearchTerm, setDisplayedSearchTerm] = useState('');
-  const [actualSearchTerm, setActualSearchTerm] = useState('');
 
   const debounceTimerRef = useRef(null);
 
@@ -86,8 +83,8 @@ const Stock = () => {
     isError,
     error,
   } = useQuery(
-    ['stocks', currentTab, page + 1, rowsPerPage, actualSearchTerm],
-    () => fetchFunctions.current[currentTab](page + 1, rowsPerPage, actualSearchTerm),
+    ['stocks', currentTab, page + 1, rowsPerPage],
+    () => fetchFunctions.current[currentTab](page + 1, rowsPerPage),
     {
       staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
@@ -101,26 +98,9 @@ const Stock = () => {
   const stockData = baseData?.data || [];
   const totalRecords = baseData?.totalRecords || 0;
 
-  // --- Search Logic ---
-  const handleSearchChange = (event) => {
-    const value = event.target.value;
-    setDisplayedSearchTerm(value);
-    setPage(0); // Reset page to first page when searching
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      setActualSearchTerm(value);
-    }, 500);
-  };
-
-  // Reset states when tab changes (including search and pagination)
   useEffect(() => {
     setPage(0);
     // setRowsPerPage(10);
-    setActualSearchTerm('');
-    setDisplayedSearchTerm('');
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
@@ -190,12 +170,12 @@ const Stock = () => {
                   <TableRow key={stock.symbol} hover sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{stock.symbol}</TableCell>
                     <TableCell>{stock.name}</TableCell>
-                    <TableCell align="right">{formatCurrency(stock.price, 'USD')}</TableCell>
+                    <TableCell align="right">{stock.price}</TableCell>
                     <TableCell
                       align="right"
                       sx={{ color: getChangeColor(stock.change), fontWeight: 500 }}
                     >
-                      {formatCurrency(stock.change, 'USD')}
+                      {stock.change.startsWith('-') ? stock.change : '+' + stock.change}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -203,7 +183,7 @@ const Stock = () => {
                       sx={{ color: getPercentageColorFromString(stock.changePercent), fontWeight: 500 }}
                     >
                       {/* Display the raw string percentage directly */}
-                      {stock.changePercent}
+                      {stock.changePercent.startsWith('-') ? stock.changePercent : '+' + stock.changePercent}
                     </TableCell>
                     <TableCell align="right">{stock.volume}</TableCell>
                     {currentTab !== 1 && (
@@ -217,7 +197,7 @@ const Stock = () => {
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
             <Typography color="text.secondary">
-              No stock data found for this category or your search.
+              No stock data found.
             </Typography>
           </Box>
         )}
@@ -247,28 +227,6 @@ const Stock = () => {
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           Stocks
         </Typography>
-        <TextField
-          size="small"
-          placeholder={`Search ${currentTab === 0 ? 'Most Active' :
-            currentTab === 1 ? 'Trending Now' :
-            currentTab === 2 ? 'Top Gainers' :
-            currentTab === 3 ? 'Top Losers' : ''}...`}
-          value={displayedSearchTerm}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            endAdornment: isFetching && (
-              <InputAdornment position="end">
-                <CircularProgress size={20} color="inherit" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 300 }}
-        />
       </Box>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
