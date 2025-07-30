@@ -118,7 +118,7 @@ const Stock = () => {
   // Reset states when tab changes (including search and pagination)
   useEffect(() => {
     setPage(0);
-    setRowsPerPage(10);
+    // setRowsPerPage(10);
     setActualSearchTerm('');
     setDisplayedSearchTerm('');
     if (debounceTimerRef.current) {
