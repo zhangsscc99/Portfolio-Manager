@@ -251,7 +251,7 @@ const Bonds = () => {
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
             <Typography color="text.secondary">
-              No bond data available.
+              No bonds data available.
             </Typography>
           </Box>
         )}
