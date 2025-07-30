@@ -1,0 +1,91 @@
+/* 局部顶部光影效果 - 增强可见性 */
+.local-top-glow {
+  position: relative;
+  background: linear-gradient(180deg, 
+    #7e7d8c60 0%, 
+    #69677950 30%, 
+    #53516630 50%,
+    transparent 80%
+  );
+}
+
+.local-top-glow::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: 0%;
+  right: 0%;
+  height: 120px;
+  background: radial-gradient(
+    ellipse 800px 120px at 50% 0%, 
+    #7e7d8c80 0%, 
+    #69677960 25%, 
+    #53516640 50%, 
+    #3d3c5320 75%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 更小的中心光影 - 增强版 */
+.local-top-glow::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 20%;
+  right: 20%;
+  height: 80px;
+  background: radial-gradient(
+    ellipse 400px 80px at 50% 0%, 
+    #3d3c5360 0%, 
+    #28264040 40%, 
+    #24223a25 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 渐变文字效果 - 蓝到金渐变（30%亮度起） */
+.gradient-text {
+  background: linear-gradient(90deg, 
+    #4a5a8f 0%, 
+    #5a6a9f 25%, 
+    #6a7aaf 50%, 
+    #D4961F 75%, 
+    #F4BE7E 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+  font-weight: 600;
+}
+
+/* 动态渐变文字 - 蓝到金动画渐变（30%亮度起） */
+.gradient-text-animated {
+  background: linear-gradient(90deg, 
+    #4a5a8f 0%, 
+    #5a6a9f 25%, 
+    #6a7aaf 50%, 
+    #D4961F 75%, 
+    #F4BE7E 100%
+  );
+  background-size: 200% 200%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+  font-weight: 600;
+  animation: gradientShift 4s ease-in-out infinite alternate;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+} 

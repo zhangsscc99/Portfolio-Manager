@@ -248,7 +248,11 @@ const Dashboard = () => {
           <Card sx={{ height: 400 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography 
+                  variant="h6" 
+                  className="gradient-text"
+                  sx={{ fontWeight: 600 }}
+                >
                   Portfolio Performance
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -296,7 +300,11 @@ const Dashboard = () => {
         <Grid item xs={12} lg={4}>
           <Card sx={{ height: 400 }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+              <Typography 
+                variant="h6" 
+                className="gradient-text"
+                sx={{ fontWeight: 600, mb: 3 }}
+              >
                 Asset Allocation
               </Typography>
               <Box sx={{ height: 300 }}>

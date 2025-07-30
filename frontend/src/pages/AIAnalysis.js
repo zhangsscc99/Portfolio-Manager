@@ -224,7 +224,11 @@ const AIAnalysis = () => {
           </Avatar>
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              <Typography 
+                variant="h4" 
+                className="gradient-text"
+                sx={{ fontWeight: 700 }}
+              >
                 AI Portfolio Analysis Report
               </Typography>
               {isOfflineMode && (

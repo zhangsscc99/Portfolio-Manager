@@ -100,13 +100,12 @@ const Sidebar = ({ onNavigate }) => {
           </Box>
           <Typography
             variant="h6"
-            className="glow-text"
+            className="glow-text gradient-text"
             sx={{
               fontWeight: 600,
-              color: 'text.primary',
               cursor: 'pointer',
               '&:hover': {
-                color: 'primary.main',
+                filter: 'brightness(1.2)',
               },
             }}
             onClick={() => navigate('/')}
