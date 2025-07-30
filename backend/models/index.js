@@ -3,6 +3,7 @@ const Portfolio = require('./Portfolio');
 const Holding = require('./Holding');
 const Asset = require('./Asset');
 const Watchlist = require('./Watchlist');
+const AIAnalysisReport = require('./AIAnalysisReport');
 
 // 🔗 定义模型关联关系 - 支持多种资产类型
 // 一个投资组合可以有多个持仓 (1:N关系)
@@ -27,6 +28,17 @@ Asset.belongsTo(Portfolio, {
   as: 'portfolio'
 });
 
+// 一个投资组合可以有多个AI分析报告 (1:N关系)
+Portfolio.hasMany(AIAnalysisReport, {
+  foreignKey: 'portfolio_id',
+  as: 'analysisReports',
+  onDelete: 'CASCADE'
+});
+AIAnalysisReport.belongsTo(Portfolio, {
+  foreignKey: 'portfolio_id',
+  as: 'portfolio'
+});
+
 // 💾 数据库同步函数 - 自动创建表结构
 const syncDatabase = async (force = false) => {
   try {
@@ -36,6 +48,9 @@ const syncDatabase = async (force = false) => {
       await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
       await Holding.drop({ cascade: true });
       console.log('✅ Holdings表删除成功');
+      
+      await AIAnalysisReport.drop({ cascade: true });
+      console.log('✅ AI分析报告历史表删除成功');
       
       await Portfolio.drop({ cascade: true });
       console.log('✅ Portfolios表删除成功');
@@ -53,6 +68,9 @@ const syncDatabase = async (force = false) => {
     
     await Asset.sync();
     console.log('✅ Assets表创建成功');
+    
+    await AIAnalysisReport.sync();
+    console.log('✅ AI分析报告历史表创建成功');
     
     await Watchlist.sync();
     console.log('✅ Watchlist表创建成功');
@@ -78,5 +96,6 @@ module.exports = {
   Holding,
   Asset,
   Watchlist,
+  AIAnalysisReport,
   syncDatabase
 }; 

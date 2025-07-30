@@ -46,6 +46,8 @@ const createAIChatTables = async () => {
   }
 };
 
+
+
 // 🏗️ 数据库初始化脚本 (优化版)
 const initializeDatabase = async () => {
   let connection;
@@ -82,6 +84,7 @@ const initializeDatabase = async () => {
     console.log('   - holdings (持仓表)');
     console.log('   - ai_chat_sessions (AI聊天会话表)');
     console.log('   - ai_chat_messages (AI聊天消息表)');
+    console.log('   - ai_analysis_reports (AI分析报告历史表)');
     
     return true;
   } catch (error) {

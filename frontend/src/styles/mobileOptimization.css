@@ -1,0 +1,396 @@
+/* 📱 移动端优化样式 - 确保所有内容在手机屏幕上完整显示 */
+
+/* 全局移动端基础设置 */
+@media (max-width: 900px) {
+  /* 确保页面不会被缩放 */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-size: 14px; /* 调整基础字体大小 */
+  }
+
+  body {
+    overflow-x: hidden;
+    min-width: 320px; /* 最小宽度保证内容可见 */
+    font-size: 0.875rem;
+  }
+
+  /* 主要布局调整 */
+  .MuiContainer-root {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    max-width: 100% !important;
+  }
+
+  /* 卡片组件移动端优化 */
+  .MuiCard-root {
+    margin: 4px !important;
+    border-radius: 8px !important;
+  }
+
+  /* 表格移动端优化 */
+  .MuiTable-root {
+    font-size: 0.75rem;
+  }
+
+  .MuiTableCell-root {
+    padding: 4px 8px !important;
+    font-size: 0.75rem;
+  }
+
+  .MuiTableCell-head {
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  /* 按钮移动端优化 */
+  .MuiButton-root {
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    min-height: 32px;
+  }
+
+  .MuiFab-root {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* 输入框移动端优化 */
+  .MuiTextField-root {
+    margin-bottom: 8px;
+  }
+
+  .MuiInputBase-root {
+    font-size: 0.875rem;
+  }
+
+  /* 标题字体调整 */
+  .MuiTypography-h1 {
+    font-size: 1.75rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .MuiTypography-h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .MuiTypography-h3 {
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .MuiTypography-h4 {
+    font-size: 1.125rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .MuiTypography-h5 {
+    font-size: 1rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .MuiTypography-h6 {
+    font-size: 0.875rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Grid系统移动端优化 */
+  .MuiGrid-container {
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .MuiGrid-item {
+    padding: 4px !important;
+  }
+
+  /* 侧边栏移动端优化 */
+  .MuiDrawer-paper {
+    width: 260px !important;
+  }
+
+  /* AppBar移动端优化 */
+  .MuiAppBar-root {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  }
+
+  .MuiToolbar-root {
+    min-height: 56px !important;
+    padding: 0 8px !important;
+  }
+}
+
+/* 超小屏幕设备 (320px - 480px) */
+@media (max-width: 480px) {
+  html {
+    font-size: 12px;
+  }
+
+  body {
+    font-size: 0.75rem;
+  }
+
+  /* 更紧凑的布局 */
+  .MuiContainer-root {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  .MuiCard-root {
+    margin: 2px !important;
+    padding: 8px !important;
+  }
+
+  /* 表格在超小屏幕上的处理 */
+  .MuiTable-root {
+    font-size: 0.625rem;
+  }
+
+  .MuiTableCell-root {
+    padding: 2px 4px !important;
+    font-size: 0.625rem;
+  }
+
+  /* 按钮更小 */
+  .MuiButton-root {
+    font-size: 0.625rem;
+    padding: 4px 8px;
+    min-height: 28px;
+  }
+
+  /* 标题进一步缩小 */
+  .MuiTypography-h1 {
+    font-size: 1.5rem !important;
+  }
+
+  .MuiTypography-h2 {
+    font-size: 1.25rem !important;
+  }
+
+  .MuiTypography-h3 {
+    font-size: 1.125rem !important;
+  }
+
+  .MuiTypography-h4 {
+    font-size: 1rem !important;
+  }
+
+  .MuiTypography-h5 {
+    font-size: 0.875rem !important;
+  }
+
+  .MuiTypography-h6 {
+    font-size: 0.75rem !important;
+  }
+
+  /* Grid间距更紧凑 */
+  .MuiGrid-item {
+    padding: 2px !important;
+  }
+
+  /* 图表容器优化 */
+  .recharts-wrapper {
+    font-size: 0.625rem !important;
+  }
+
+  .recharts-cartesian-axis-tick-value {
+    font-size: 0.5rem !important;
+  }
+
+  .recharts-legend-wrapper {
+    font-size: 0.625rem !important;
+  }
+}
+
+/* 横屏模式优化 */
+@media (max-width: 900px) and (orientation: landscape) {
+  /* 横屏时调整高度相关样式 */
+  .MuiAppBar-root {
+    height: 48px;
+  }
+
+  .MuiToolbar-root {
+    min-height: 48px !important;
+  }
+
+  /* 减少垂直间距 */
+  .MuiBox-root {
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .MuiCard-root {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+  }
+}
+
+/* 特定组件的移动端优化 */
+
+/* Dashboard页面优化 */
+@media (max-width: 768px) {
+  /* 统计卡片移动端布局 */
+  .dashboard-stats-grid .MuiGrid-item {
+    flex-basis: 50% !important;
+    max-width: 50% !important;
+  }
+
+  /* 图表容器调整 */
+  .chart-container {
+    height: 250px !important;
+    margin: 8px 0 !important;
+  }
+
+  /* Portfolio页面优化 */
+  .portfolio-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .portfolio-table-container .MuiTable-root {
+    min-width: 600px;
+  }
+}
+
+/* AI Assistant Dialog移动端优化 */
+@media (max-width: 768px) {
+  .MuiDialog-paper {
+    margin: 8px !important;
+    width: calc(100% - 16px) !important;
+    max-width: none !important;
+    max-height: calc(100vh - 16px) !important;
+  }
+
+  .MuiDialogContent-root {
+    padding: 8px !important;
+  }
+
+  .MuiDialogTitle-root {
+    padding: 8px 16px !important;
+    font-size: 1rem !important;
+  }
+
+  .MuiDialogActions-root {
+    padding: 8px !important;
+  }
+}
+
+/* Analytics页面移动端优化 */
+@media (max-width: 768px) {
+  .analytics-chart-grid .MuiGrid-item {
+    flex-basis: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .analytics-report-list .MuiListItem-root {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .analytics-report-list .MuiListItemSecondaryAction-root {
+    position: relative !important;
+    transform: none !important;
+    margin-top: 8px !important;
+  }
+}
+
+/* Markets页面移动端优化 */
+@media (max-width: 768px) {
+  .market-overview-grid .MuiGrid-item {
+    flex-basis: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* HomePage移动端优化 */
+@media (max-width: 768px) {
+  .homepage-hero {
+    padding: 16px 8px !important;
+    text-align: center !important;
+  }
+
+  .homepage-features-grid .MuiGrid-item {
+    flex-basis: 100% !important;
+    max-width: 100% !important;
+    margin-bottom: 16px !important;
+  }
+
+  .homepage-video-container {
+    height: 200px !important;
+    margin: 16px 0 !important;
+  }
+}
+
+/* 确保所有可滚动区域在移动端正常工作 */
+@media (max-width: 768px) {
+  .scrollable-content {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+  }
+
+  /* 表格水平滚动 */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-container::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    background: rgba(232, 168, 85, 0.5);
+    border-radius: 3px;
+  }
+}
+
+/* 防止内容被挤压 */
+@media (max-width: 768px) {
+  .prevent-shrink {
+    flex-shrink: 0 !important;
+    min-width: 0 !important;
+  }
+
+  /* 确保文本不会溢出 */
+  .text-container {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  /* 图片响应式 */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* 触摸友好的交互元素 */
+@media (max-width: 768px) {
+  /* 增加触摸目标的最小尺寸 */
+  .MuiIconButton-root {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .MuiButton-root {
+    min-height: 44px !important;
+  }
+
+  /* 确保链接和按钮有足够的点击区域 */
+  .clickable-area {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+} 

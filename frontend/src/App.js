@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
 import './styles/techEffects.css';
 import './styles/localGlow.css';
+import './styles/mobileOptimization.css';
 
 // Components
 import Layout from './components/Layout/Layout';
@@ -29,6 +30,76 @@ const queryClient = new QueryClient({
 
 // Create Material-UI dark theme
 const darkTheme = createTheme({
+  // 📱 移动端响应式断点优化
+  breakpoints: {
+    values: {
+      xs: 0,      // 超小屏 (手机竖屏)
+      sm: 480,    // 小屏 (手机横屏)
+      md: 768,    // 中屏 (平板竖屏)
+      lg: 1024,   // 大屏 (平板横屏/小桌面)
+      xl: 1200,   // 超大屏 (桌面)
+    },
+  },
+  // 📐 移动端排版优化
+  typography: {
+    // 基础字体大小调整
+    fontSize: 14,
+    // 标题字体在移动端的响应式设置
+    h1: {
+      fontSize: '1.75rem',
+      '@media (min-width:768px)': {
+        fontSize: '2.5rem',
+      },
+      '@media (min-width:1024px)': {
+        fontSize: '3rem',
+      },
+    },
+    h2: {
+      fontSize: '1.5rem',
+      '@media (min-width:768px)': {
+        fontSize: '2rem',
+      },
+      '@media (min-width:1024px)': {
+        fontSize: '2.25rem',
+      },
+    },
+    h3: {
+      fontSize: '1.25rem',
+      '@media (min-width:768px)': {
+        fontSize: '1.75rem',
+      },
+    },
+    h4: {
+      fontSize: '1.125rem',
+      '@media (min-width:768px)': {
+        fontSize: '1.5rem',
+      },
+    },
+    h5: {
+      fontSize: '1rem',
+      '@media (min-width:768px)': {
+        fontSize: '1.25rem',
+      },
+    },
+    h6: {
+      fontSize: '0.875rem',
+      '@media (min-width:768px)': {
+        fontSize: '1rem',
+      },
+    },
+    body1: {
+      fontSize: '0.875rem',
+      '@media (min-width:768px)': {
+        fontSize: '1rem',
+      },
+    },
+    body2: {
+      fontSize: '0.75rem',
+      '@media (min-width:768px)': {
+        fontSize: '0.875rem',
+      },
+    },
+  },
   palette: {
     mode: 'dark',
     primary: {

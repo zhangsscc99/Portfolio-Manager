@@ -69,6 +69,10 @@ export const API_ENDPOINTS = {
     quickInsights: (id) => `/ai-analysis/quick-insights/${id}`,
     testConnection: '/ai-analysis/test-connection',
     
+    // History endpoints (分析历史功能)
+    history: '/ai-analysis/history',
+    report: (reportId) => `/ai-analysis/report/${reportId}`,
+    
     // Chat endpoints (新的AI助手功能)
     chat: '/ai-analysis/chat',
     sessionInfo: (sessionId) => `/ai-analysis/chat/session/${sessionId}`,
