@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Removed useCallback
 import {
   Box,
   Typography,
@@ -16,7 +16,7 @@ import {
   TextField,
   InputAdornment,
   TablePagination,
-  TableSortLabel,
+  // Removed TableSortLabel
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -28,7 +28,7 @@ import {
 import { useQuery } from 'react-query';
 
 // Ensure these paths are correct
-import { formatCurrency, formatPercentage, getChangeColor, marketAPI } from '../../services/api';
+import { formatCurrency, getPercentageColorFromString, getChangeColor, marketAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 // Tab Panel Helper Component (No change)
@@ -62,20 +62,14 @@ function a11yProps(index) {
 
 const Stock = () => {
   const [currentTab, setCurrentTab] = useState(0);
-  // displayedSearchTerm will only be for the input field
   const [displayedSearchTerm, setDisplayedSearchTerm] = useState('');
-  // actualSearchTerm will be debounced and used in useQuery
   const [actualSearchTerm, setActualSearchTerm] = useState('');
 
-  const debounceTimerRef = useRef(null); // Debounce timer reference
+  const debounceTimerRef = useRef(null);
 
   // Pagination states
-  const [page, setPage] = useState(0); // Current page (0-indexed for TablePagination)
-  const [rowsPerPage, setRowsPerPage] = useState(10); // Rows per page
-
-  // Sorting states (frontend sort assumed here; if backend sorts, modify API and useQuery)
-  const [orderBy, setOrderBy] = useState('volume'); // Default sort field
-  const [order, setOrder] = useState('desc'); // Default sort direction ('asc' or 'desc')
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // --- useQuery for data fetching ---
   const fetchFunctions = useRef([
@@ -85,21 +79,18 @@ const Stock = () => {
     marketAPI.getLosers,
   ]);
 
-  // Dynamic query key and function based on currentTab, page, rowsPerPage, and actualSearchTerm
   const {
-    data: baseData, // rawData now includes { data: [], currentPage, perPage, totalRecords }
+    data: baseData,
     isLoading,
     isFetching,
     isError,
     error,
   } = useQuery(
-    // The query key now depends on actualSearchTerm
     ['stocks', currentTab, page + 1, rowsPerPage, actualSearchTerm],
-    // Note: TablePagination's 0-indexed page is converted to 1-indexed for backend API
     () => fetchFunctions.current[currentTab](page + 1, rowsPerPage, actualSearchTerm),
     {
-      staleTime: 5 * 60 * 1000, // Data considered "fresh" for 5 minutes
-      refetchOnWindowFocus: false, // Don't refetch on window focus
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
       onError: (err) => {
         toast.error(`Failed to load data: ${err.message}`);
         console.error("API Fetch Error:", err);
@@ -107,91 +98,39 @@ const Stock = () => {
     }
   );
 
-  // Extract actual stock data and total records from baseData
   const stockData = baseData?.data || [];
   const totalRecords = baseData?.totalRecords || 0;
 
-  // Utility function to format large numbers (e.g., Volume, Market Cap)
-  const formatLargeNumber = (num) => {
-    if (num === null || num === undefined) return 'N/A';
-    const number = Number(num);
-    if (isNaN(number)) return 'N/A';
-    if (number >= 1_000_000_000_000) return (number / 1_000_000_000_000).toFixed(2) + 'T'; // Trillions
-    if (number >= 1_000_000_000) return (number / 1_000_000_000).toFixed(2) + 'B'; // Billions
-    if (number >= 1_000_000) return (number / 1_000_000).toFixed(2) + 'M'; // Millions
-    if (number >= 1_000) return (number / 1_000).toFixed(2) + 'K'; // Thousands
-    return number.toString();
-  };
-
   // --- Search Logic ---
-  // Updates displayedSearchTerm immediately, and triggers debounce for actualSearchTerm
   const handleSearchChange = (event) => {
     const value = event.target.value;
-    setDisplayedSearchTerm(value); // Update displayed search term immediately
+    setDisplayedSearchTerm(value);
     setPage(0); // Reset page to first page when searching
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    // Debounce setting the actual search term, which triggers the useQuery re-fetch
     debounceTimerRef.current = setTimeout(() => {
-      setActualSearchTerm(value); // This will update the query key and trigger re-fetch
-    }, 500); // 500ms debounce delay
+      setActualSearchTerm(value);
+    }, 500);
   };
 
   // Reset states when tab changes (including search and pagination)
   useEffect(() => {
-    setPage(0); // Go back to first page on tab change
-    setRowsPerPage(10); // Reset rows per page
-    setActualSearchTerm(''); // Clear actual search term, triggering useQuery refetch
-    setDisplayedSearchTerm(''); // Clear displayed search term
-    setOrderBy('volume'); // Reset sort to default
-    setOrder('desc');
-    // Clear any pending debounce on tab change
+    setPage(0);
+    setRowsPerPage(10);
+    setActualSearchTerm('');
+    setDisplayedSearchTerm('');
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
   }, [currentTab]);
 
-  // --- Sorting Handlers (Frontend Sorting) ---
-  const handleRequestSort = useCallback((property) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
-    setOrderBy(property);
-    setPage(0); // Go back to first page after sorting
-  }, [orderBy, order]);
-
-  // Helper function for stable sorting
-  const stableSort = useCallback((array, comparator) => {
-    const stabilizedThis = array.map((el, index) => [el, index]);
-    stabilizedThis.sort((a, b) => {
-      const order = comparator(a[0], b[0]);
-      if (order !== 0) return order;
-      return a[1] - b[1]; // Maintain original relative order
-    });
-    return stabilizedThis.map((el) => el[0]);
-  }, []);
-
-  const getComparator = useCallback((order, orderBy) => {
-    return order === 'desc'
-      ? (a, b) => descendingComparator(a, b, orderBy)
-      : (a, b) => -descendingComparator(a, b, orderBy);
-  }, []);
-
-  const descendingComparator = (a, b, orderBy) => {
-    // Handle null/undefined values by treating them as 0 for comparison
-    const valA = a[orderBy] === null || a[orderBy] === undefined ? 0 : a[orderBy];
-    const valB = b[orderBy] === null || b[orderBy] === undefined ? 0 : b[orderBy];
-
-    if (valB < valA) {
-      return -1;
-    }
-    if (valB > valA) {
-      return 1;
-    }
-    return 0;
-  };
-  // --- End Sorting Handlers ---
+  // --- Sorting Handlers REMOVED ---
+  // const handleRequestSort = useCallback((property) => { ... }, [orderBy, order]);
+  // const stableSort = useCallback((array, comparator) => { ... }, []);
+  // const getComparator = useCallback((order, orderBy) => { ... }, []);
+  // const descendingComparator = (a, b, orderBy) => { ... };
 
   // --- Pagination Handlers ---
   const handleChangePage = (event, newPage) => {
@@ -200,18 +139,17 @@ const Stock = () => {
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // Reset to first page when rows per page changes
+    setPage(0);
   };
   // --- End Pagination Handlers ---
 
-  // Apply frontend sorting to the currently fetched (paginated) data
-  const sortedStockData = stableSort(stockData, getComparator(order, orderBy));
+  // No frontend sorting needed anymore. Use stockData directly.
+  const displayedStockData = stockData;
 
   const renderStockTable = (data) => (
     <Card>
       <CardContent>
         {isLoading || isFetching ? (
-          // Loading indicator
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
             <CircularProgress size={40} />
             <Typography variant="body1" color="text.secondary" sx={{ ml: 2 }}>
@@ -219,7 +157,6 @@ const Stock = () => {
             </Typography>
           </Box>
         ) : isError ? (
-          // Error message
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, flexDirection: 'column' }}>
             <Typography variant="h6" color="error.main">
               Error loading stock data.
@@ -232,7 +169,6 @@ const Stock = () => {
             </Typography>
           </Box>
         ) : (data && data.length > 0) ? (
-          // Display data table
           <TableContainer>
             <Table>
               <TableHead>
@@ -241,25 +177,15 @@ const Stock = () => {
                   <TableCell>Name</TableCell>
                   <TableCell align="right">Price</TableCell>
                   <TableCell align="right">Change</TableCell>
-                  <TableCell align="right">% Change</TableCell>
-                  {/* Volume column with sort */}
-                  <TableCell align="right" sortDirection={orderBy === 'volume' ? order : false}>
-                    <TableSortLabel
-                      active={orderBy === 'volume'}
-                      direction={orderBy === 'volume' ? order : 'asc'}
-                      onClick={() => handleRequestSort('volume')}
-                    >
-                      Volume
-                    </TableSortLabel>
-                  </TableCell>
-                  {/* Conditionally render Market Cap column */}
-                  {currentTab !== 1 && ( // Only show if NOT "Trending Now" tab (index 1)
+                  <TableCell align="right">Change %</TableCell>
+                  <TableCell align="right">Volume</TableCell>
+                  {currentTab !== 1 && (
                     <TableCell align="right">Market Cap</TableCell>
                   )}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {/* Render data directly from backend's paginated response */}
+                {/* Use displayedStockData directly */}
                 {data.map((stock) => (
                   <TableRow key={stock.symbol} hover sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{stock.symbol}</TableCell>
@@ -273,14 +199,15 @@ const Stock = () => {
                     </TableCell>
                     <TableCell
                       align="right"
-                      sx={{ color: getChangeColor(stock.changePercent), fontWeight: 500 }}
+                      // Keep using getPercentageColorFromString for the string percentage
+                      sx={{ color: getPercentageColorFromString(stock.changePercent), fontWeight: 500 }}
                     >
-                      {formatPercentage(stock.changePercent)}
+                      {/* Display the raw string percentage directly */}
+                      {stock.changePercent}
                     </TableCell>
-                    <TableCell align="right">{formatLargeNumber(stock.volume)}</TableCell>
-                    {/* Conditionally render Market Cap cell */}
-                    {currentTab !== 1 && ( // Only show if NOT "Trending Now" tab (index 1)
-                      <TableCell align="right">{formatLargeNumber(stock.marketCap)}</TableCell>
+                    <TableCell align="right">{stock.volume}</TableCell>
+                    {currentTab !== 1 && (
+                      <TableCell align="right">{stock.marketCap}</TableCell> 
                     )}
                   </TableRow>
                 ))}
@@ -288,7 +215,6 @@ const Stock = () => {
             </Table>
           </TableContainer>
         ) : (
-          // No data found message
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
             <Typography color="text.secondary">
               No stock data found for this category or your search.
@@ -296,12 +222,11 @@ const Stock = () => {
           </Box>
         )}
       </CardContent>
-      {/* Show pagination only if data is loaded and there are records */}
       {!(isLoading || isFetching) && (totalRecords > 0) && (
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={totalRecords} // Use total records from backend
+          count={totalRecords}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
@@ -312,10 +237,8 @@ const Stock = () => {
     </Card>
   );
 
-  // Handle Tab change (No change)
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
-    // useQuery will automatically refetch data when currentTab changes
   };
 
   return (
@@ -330,15 +253,15 @@ const Stock = () => {
             currentTab === 1 ? 'Trending Now' :
             currentTab === 2 ? 'Top Gainers' :
             currentTab === 3 ? 'Top Losers' : ''}...`}
-          value={displayedSearchTerm} // Binds to displayedSearchTerm
-          onChange={handleSearchChange} // Triggers debounce and updates actualSearchTerm
+          value={displayedSearchTerm}
+          onChange={handleSearchChange}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
                 <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
               </InputAdornment>
             ),
-            endAdornment: isFetching && ( // Use isFetching from useQuery
+            endAdornment: isFetching && (
               <InputAdornment position="end">
                 <CircularProgress size={20} color="inherit" />
               </InputAdornment>
@@ -384,8 +307,7 @@ const Stock = () => {
         </Tabs>
       </Box>
 
-      {/* Render current Tab content using data from useQuery */}
-      {renderStockTable(sortedStockData)}
+      {renderStockTable(displayedStockData)}
     </Box>
   );
 };
