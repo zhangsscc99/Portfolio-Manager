@@ -38,7 +38,7 @@ const Layout = ({ children }) => {
   // Fetch portfolio data for AI Assistant
   const fetchPortfolioData = async () => {
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1)));
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.portfolio.getById(1)));
       const data = await response.json();
       if (data.success) {
         setPortfolioData(data.data);

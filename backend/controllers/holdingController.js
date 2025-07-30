@@ -3,6 +3,7 @@ const yahooFinance = require('yahoo-finance2').default;
 
 exports.createHolding = async (req, res) => {
   const { portfolio_id, asset_id, quantity, avg_cost } = req.body;
+  console.log("req.body", req.body);
   if (!portfolio_id || !asset_id || !quantity || !avg_cost) {
     return res.status(400).json({ success: false, error: 'portfolio_id, asset_id, quantity, avg_cost required' });
   }

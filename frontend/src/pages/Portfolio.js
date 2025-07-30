@@ -41,7 +41,7 @@ import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 // 🎯 Asset type configuration - 金色主题
 const ASSET_TYPES = {
-  stock: { name: 'Stocks', icon: '📈', color: '#E8A855' }, // 主金色
+  EQUITY: { name: 'Stocks', icon: '📈', color: '#E8A855' }, // 主金色
   crypto: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
   etf: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
   bond: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
@@ -81,15 +81,15 @@ const Portfolio = () => {
     if (assetPrices[symbol]) return;
 
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.search(symbol)));
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.bySymbol(symbol)));
       const result = await response.json();
-
-      if (result.success && result.data && result.data.length > 0) {
-        const assetData = result.data[0];
+      console.log("result", result);
+      if (result.success && result.data) {
+        const assetData = result.data; // 移除 [0]
         setAssetPrices(prev => ({
           ...prev,
           [symbol]: {
-            price: assetData.price
+            price: assetData.current_price
           }
         }));
       }
@@ -393,8 +393,56 @@ const Portfolio = () => {
   };
 
   // ➕ Add asset
+  // const handleAddAsset = async () => {
+  //   console.log("assetResponse");
+  //   try {
+  //     const assetResponse = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         symbol: newAsset.symbol,
+  //       })
+  //     });
+  //     const assetResult = await assetResponse.json();
+
+  //     const response = await fetch(buildApiUrl(API_ENDPOINTS.holdings.create), {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         portfolio_id: 1,
+  //         asset_id: assetResult.data.asset_id,
+  //         quantity: newAsset.quantity,
+  //         avg_cost: newAsset.avg_cost
+  //       })
+  //     });
+
+
+
+  //     const result = await response.json();
+
+  //     if (response.ok) {
+  //       // 显示成功消息
+  //       console.log(`✅ Asset ${newAsset.symbol} added/updated successfully`);
+  //       setAddAssetOpen(false);
+  //       resetAddAssetForm(); // 使用新的重置函数
+  //       await fetchPortfolioData();
+  //     } else {
+  //       // 显示错误消息
+  //       console.error('Failed to add asset:', result.error);
+  //       alert(`Failed to add asset: ${result.error}`);
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to add asset:', error);
+  //     alert('Network error occurred while adding asset');
+  //   }
+  // };
+
+  // 📈 Format numbers
+
   const handleAddAsset = async () => {
+    console.log("assetResponse");
     try {
+      // 1. 创建资产
       const assetResponse = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -402,13 +450,15 @@ const Portfolio = () => {
           symbol: newAsset.symbol,
         })
       });
+      const assetResult = await assetResponse.json();
 
+      // 2. 创建持仓
       const response = await fetch(buildApiUrl(API_ENDPOINTS.holdings.create), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           portfolio_id: 1,
-          asset_id: assetResponse.id,
+          asset_id: assetResult.data.asset_id,
           quantity: newAsset.quantity,
           avg_cost: newAsset.avg_cost
         })
@@ -416,14 +466,33 @@ const Portfolio = () => {
 
       const result = await response.json();
 
+      // 3. 获取实时价格并创建交易记录
       if (response.ok) {
-        // 显示成功消息
+        const quoteResponse = await fetch(buildApiUrl(`/assets/quote?symbol=${newAsset.symbol}`));
+        const quoteResult = await quoteResponse.json();
+        const currentPrice = quoteResult.success ? quoteResult.data.current_price : newAsset.avg_cost;
+        const transactionResponse = await fetch(buildApiUrl(API_ENDPOINTS.transactions.create), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            holding_id: result.data.holding_id,
+            trade_type: 'buy',
+            quantity: newAsset.quantity,
+            price: currentPrice, // 使用实时价格
+            trade_time: new Date().toISOString()
+          })
+        });
+
+        const transactionResult = await transactionResponse.json();
+        console.log('Transaction created:', transactionResult);
+      }
+
+      if (response.ok) {
         console.log(`✅ Asset ${newAsset.symbol} added/updated successfully`);
         setAddAssetOpen(false);
-        resetAddAssetForm(); // 使用新的重置函数
+        resetAddAssetForm();
         await fetchPortfolioData();
       } else {
-        // 显示错误消息
         console.error('Failed to add asset:', result.error);
         alert(`Failed to add asset: ${result.error}`);
       }
@@ -432,8 +501,6 @@ const Portfolio = () => {
       alert('Network error occurred while adding asset');
     }
   };
-
-  // 📈 Format numbers
   const formatCurrency = (value, currency = 'USD') => {
     if (value === undefined || value === null || isNaN(value)) {
       return currency === 'USD' ? '$0.00' : `0.00 ${currency}`;
@@ -578,6 +645,7 @@ const Portfolio = () => {
 
           {Object.entries(ASSET_TYPES).map(([type, config]) => {
             const typeData = portfolioData?.assetsByType?.[type];
+            console.log("portfolioData", portfolioData);
             const hasAssets = typeData?.count > 0;
 
             return (
@@ -664,11 +732,10 @@ const Portfolio = () => {
                       <TableBody>
                         {typeData?.assets?.map((asset) => {
                           const currentPrice = assetPrices[asset.symbol]?.price;
-                          const avgCost = asset.avg_cost || (asset.cost_price / asset.quantity);
+                          const avgCost = asset.cost_price / asset.quantity;
                           const currentValue = currentPrice ? currentPrice * asset.quantity : null;
                           const gainLoss = currentPrice ? currentPrice - avgCost : null;
-                          const gainLossPercent = gainLoss ? (gainLoss / avgCost) * 100 : null;
-
+                          const gainLossPercent = (gainLoss !== null && avgCost > 0) ? (gainLoss / avgCost) * 100 : null;
                           return (
                             <TableRow
                               key={asset.symbol}

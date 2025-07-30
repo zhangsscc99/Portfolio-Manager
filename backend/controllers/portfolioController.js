@@ -17,30 +17,42 @@ exports.getPortfolioById = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Portfolio not found' });
     }
 
+    // 手动查询 holdings
     const holdings = await Holding.findAll({
-      where: { portfolio_id: portfolio.portfolio_id },
-      include: [
-        { model: Asset, as: 'asset' },
-        { model: Transaction, as: 'transactions' }
-      ]
+      where: { portfolio_id: portfolio.portfolio_id }
+    });
+
+    // 获取所有相关的 asset_id 和 holding_id
+    const assetIds = holdings.map(h => h.asset_id);
+    const holdingIds = holdings.map(h => h.holding_id);
+
+    // 批量查询 assets 和 transactions
+    const assets = await Asset.findAll({ where: { asset_id: assetIds } });
+    const transactions = await Transaction.findAll({
+      where: { holding_id: holdingIds },
+      order: [['trade_time', 'ASC']]
     });
 
     const assetsByType = {};
 
     for (const holding of holdings) {
-      const asset = holding.asset;
+      // 找到对应的 asset
+      const asset = assets.find(a => a.asset_id === holding.asset_id);
       if (!asset) continue;
 
-      // 方法1：基于交易类型计算成本价格
+      // 找到该 holding 的所有交易
+      const holdingTransactions = transactions.filter(t => t.holding_id === holding.holding_id);
+
+      // 基于交易类型计算成本价格
       let costPrice = 0;
       let totalQuantity = 0;
 
-      if (holding.transactions && holding.transactions.length > 0) {
-        for (const transaction of holding.transactions) {
-          if (transaction.type === 'buy') {
-            costPrice += transaction.amount;
+      if (holdingTransactions && holdingTransactions.length > 0) {
+        for (const transaction of holdingTransactions) {
+          if (transaction.trade_type === 'buy') {
+            costPrice += transaction.price * transaction.quantity;
             totalQuantity += transaction.quantity;
-          } else if (transaction.type === 'sell') {
+          } else if (transaction.trade_type === 'sell') {
             const sellRatio = transaction.quantity / totalQuantity;
             costPrice -= (costPrice * sellRatio);
             totalQuantity -= transaction.quantity;
@@ -70,7 +82,7 @@ exports.getPortfolioById = async (req, res) => {
 
     res.json({
       success: true,
-      data: assetsByType  // 直接返回 assetsByType，不要包在对象里
+      data: { assetsByType: assetsByType }
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

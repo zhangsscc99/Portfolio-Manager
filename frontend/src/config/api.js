@@ -55,6 +55,7 @@ export const API_ENDPOINTS = {
 
   // Assets endpoints (保持原有格式，用于Portfolio.js)
   assets: {
+    bySymbol: (symbol) => `/assets/quote?symbol=${symbol}`,
     portfolio: (id) => `/assets/portfolio/${id}`,
     watchlist: '/assets/watchlist',
     updatePrices: '/assets/update-prices',
@@ -64,6 +65,10 @@ export const API_ENDPOINTS = {
     byPortfolio: (portfolioId) => `/assets/portfolio/${portfolioId}`,
     update: (id) => `/assets/${id}`,
     delete: (id) => `/assets/${id}`,
+  },
+
+  transactions: {
+    create: '/transaction',
   },
 
   // AI Analysis endpoints (新功能)
