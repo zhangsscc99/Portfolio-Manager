@@ -72,7 +72,9 @@ const Portfolio = () => {
   const [assetToRemove, setAssetToRemove] = useState({
     symbol: '',
     name: '',
-    asset_type: 'stock'
+    asset_type: 'stock',
+    quantity: '',
+    maxQuantity: 0
   });
   const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
 
@@ -97,29 +99,87 @@ const Portfolio = () => {
     
     setChartLoading(true);
     try {
-      // Generate mock historical data for demo
-      const days = 30;
-      const currentPrice = parseFloat(asset.current_price);
-      const volatility = 0.02; // 2% daily volatility
+      // Fetch real historical data from API
+      const response = await fetch(buildApiUrl(`/market/history/${asset.symbol}?period=1mo`));
+      const result = await response.json();
       
-      const chartData = [];
+      if (result.success && result.data && result.data.length > 0) {
+        // Use real historical data
+        const historyData = result.data;
+        
+        const labels = historyData.map(item => {
+          const date = new Date(item.date);
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        
+        const chartData = historyData.map(item => parseFloat(item.price || item.close || 0));
+        
+        const data = {
+          labels,
+          datasets: [
+            {
+              label: `${asset.symbol} Price`,
+              data: chartData,
+              borderColor: ASSET_TYPES[asset.asset_type]?.color || '#1976d2',
+              backgroundColor: `${ASSET_TYPES[asset.asset_type]?.color || '#1976d2'}20`,
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+            },
+          ],
+        };
+        
+        setAssetChartData(data);
+      } else {
+        // Fallback: If no historical data available, show current price as flat line
+        console.warn(`No historical data available for ${asset.symbol}, using current price`);
+        const currentPrice = parseFloat(asset.current_price);
+        const days = 30;
+        const labels = [];
+        const chartData = [];
+        
+        for (let i = days; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+          chartData.push(currentPrice);
+        }
+        
+        const data = {
+          labels,
+          datasets: [
+            {
+              label: `${asset.symbol} Price`,
+              data: chartData,
+              borderColor: ASSET_TYPES[asset.asset_type]?.color || '#1976d2',
+              backgroundColor: `${ASSET_TYPES[asset.asset_type]?.color || '#1976d2'}20`,
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+            },
+          ],
+        };
+        
+        setAssetChartData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch real chart data:', error);
+      // Fallback: Show current price as flat line
+      const currentPrice = parseFloat(asset.current_price || 0);
+      const days = 30;
       const labels = [];
-      let price = currentPrice * 0.95; // Start 5% lower than current
+      const chartData = [];
       
       for (let i = days; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
-        
-        // Random walk with slight upward trend
-        const change = (Math.random() - 0.48) * volatility; // Slight positive bias
-        price = price * (1 + change);
-        
         labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-        chartData.push(parseFloat(price.toFixed(2)));
+        chartData.push(currentPrice);
       }
-      
-      // Ensure the last price matches current price
-      chartData[chartData.length - 1] = currentPrice;
       
       const data = {
         labels,
@@ -139,8 +199,6 @@ const Portfolio = () => {
       };
       
       setAssetChartData(data);
-    } catch (error) {
-      console.error('Failed to fetch chart data:', error);
     } finally {
       setChartLoading(false);
     }
@@ -183,12 +241,13 @@ const Portfolio = () => {
   };
 
 
-  // - Remove asset
+  // - Remove asset (支持部分卖出)
   const handleRemoveAsset = async () => {
     try {
       // Find the asset ID from the portfolio data
       const assetType = assetToRemove.asset_type;
       const assetSymbol = assetToRemove.symbol;
+      const sellQuantity = parseFloat(assetToRemove.quantity);
       
       const asset = portfolioData?.assetsByType?.[assetType]?.assets?.find(
         a => a.symbol === assetSymbol
@@ -199,27 +258,73 @@ const Portfolio = () => {
         return;
       }
       
-      const response = await fetch(`/api/assets/${asset.id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
-      });
+      // 验证卖出数量
+      if (!sellQuantity || sellQuantity <= 0) {
+        setRemoveMessage({ type: 'error', text: 'Please enter a valid quantity to sell' });
+        return;
+      }
       
-      if (response.ok) {
-        setRemoveMessage({ type: 'success', text: `${asset.symbol} removed successfully` });
-        setTimeout(() => {
-          setRemoveAssetOpen(false);
-          setAssetToRemove({
-            symbol: '',
-            name: '',
-            asset_type: 'stock'
-          });
-          setRemoveMessage({ type: '', text: '' });
-          fetchPortfolioData();
-        }, 1500);
+      if (sellQuantity > asset.quantity) {
+        setRemoveMessage({ type: 'error', text: `Cannot sell more than ${asset.quantity} shares` });
+        return;
+      }
+      
+      // 如果卖出全部，使用DELETE请求
+      if (sellQuantity >= asset.quantity) {
+        const response = await fetch(`/api/assets/${asset.id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          setRemoveMessage({ type: 'success', text: `${asset.symbol} completely sold (${sellQuantity} shares)` });
+          // 成功时延迟重置表单并刷新数据
+          setTimeout(() => {
+            setRemoveAssetOpen(false);
+            setAssetToRemove({
+              symbol: '',
+              name: '',
+              asset_type: 'stock',
+              quantity: '',
+              maxQuantity: 0
+            });
+            setRemoveMessage({ type: '', text: '' });
+            fetchPortfolioData();
+          }, 1500);
+        } else {
+          const errorData = await response.json();
+          setRemoveMessage({ type: 'error', text: errorData.error || 'Failed to sell asset' });
+        }
       } else {
-        const errorData = await response.json();
-        setRemoveMessage({ type: 'error', text: errorData.error || 'Failed to remove asset' });
-        console.error('Failed to remove asset:', errorData);
+        // 部分卖出，使用PUT请求更新数量
+        const response = await fetch(`/api/assets/${asset.id}/sell`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sellQuantity: sellQuantity
+          })
+        });
+        
+        if (response.ok) {
+          const newQuantity = asset.quantity - sellQuantity;
+          setRemoveMessage({ type: 'success', text: `Sold ${sellQuantity} shares of ${asset.symbol}. Remaining: ${newQuantity}` });
+          // 成功时延迟重置表单并刷新数据
+          setTimeout(() => {
+            setRemoveAssetOpen(false);
+            setAssetToRemove({
+              symbol: '',
+              name: '',
+              asset_type: 'stock',
+              quantity: '',
+              maxQuantity: 0
+            });
+            setRemoveMessage({ type: '', text: '' });
+            fetchPortfolioData();
+          }, 1500);
+        } else {
+          const errorData = await response.json();
+          setRemoveMessage({ type: 'error', text: errorData.error || 'Failed to sell asset' });
+        }
       }
     } catch (error) {
       setRemoveMessage({ type: 'error', text: 'Network error occurred' });
@@ -267,13 +372,22 @@ const Portfolio = () => {
         })
       });
       
+      const result = await response.json();
+      
       if (response.ok) {
+        // 显示成功消息
+        console.log(`✅ Asset ${newAsset.symbol} added/updated successfully`);
         setAddAssetOpen(false);
         resetAddAssetForm(); // 使用新的重置函数
         await fetchPortfolioData();
+      } else {
+        // 显示错误消息
+        console.error('Failed to add asset:', result.error);
+        alert(`Failed to add asset: ${result.error}`);
       }
     } catch (error) {
       console.error('Failed to add asset:', error);
+      alert('Network error occurred while adding asset');
     }
   };
 
@@ -610,7 +724,9 @@ const Portfolio = () => {
                   setAssetToRemove({
                     symbol: symbol,
                     name: asset?.name || '',
-                    asset_type: type
+                    asset_type: type,
+                    quantity: '',
+                    maxQuantity: asset?.quantity || 0
                   });
                   setRemoveMessage({ type: '', text: '' });
                 }}
@@ -627,13 +743,50 @@ const Portfolio = () => {
                 })}
               </TextField>
             </Grid>
-            {assetToRemove.symbol && !removeMessage.text && (
-              <Grid item xs={12}>
-                <Alert severity="warning">
-                  Are you sure you want to remove {assetToRemove.symbol} ({assetToRemove.name}) from your portfolio?
-                  This action cannot be undone.
-                </Alert>
-              </Grid>
+            {assetToRemove.symbol && (
+              <>
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    p: 2, 
+                    background: 'linear-gradient(135deg, rgba(244, 190, 126, 0.1) 0%, rgba(232, 168, 85, 0.15) 100%)',
+                    borderRadius: 2, 
+                    border: '1px solid',
+                    borderColor: 'primary.main'
+                  }}>
+                    <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
+                      📊 Current Holdings: {assetToRemove.maxQuantity} shares of {assetToRemove.symbol}
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Quantity to Sell"
+                    type="number"
+                    value={assetToRemove.quantity}
+                    onChange={(e) => setAssetToRemove(prev => ({ ...prev, quantity: e.target.value }))}
+                    inputProps={{ 
+                      min: 0.01, 
+                      max: assetToRemove.maxQuantity,
+                      step: 0.01
+                    }}
+                    helperText={`Enter quantity to sell (max: ${assetToRemove.maxQuantity})`}
+                    error={assetToRemove.quantity && (parseFloat(assetToRemove.quantity) > assetToRemove.maxQuantity || parseFloat(assetToRemove.quantity) <= 0)}
+                  />
+                </Grid>
+                
+                {assetToRemove.quantity && !removeMessage.text && (
+                  <Grid item xs={12}>
+                    <Alert severity="warning">
+                      {parseFloat(assetToRemove.quantity) >= assetToRemove.maxQuantity 
+                        ? `You are selling ALL ${assetToRemove.maxQuantity} shares of ${assetToRemove.symbol}. This will completely remove the asset from your portfolio.`
+                        : `You are selling ${assetToRemove.quantity} shares of ${assetToRemove.symbol}. You will have ${(assetToRemove.maxQuantity - parseFloat(assetToRemove.quantity)).toFixed(2)} shares remaining.`
+                      }
+                    </Alert>
+                  </Grid>
+                )}
+              </>
             )}
           </Grid>
         </DialogContent>
@@ -643,9 +796,15 @@ const Portfolio = () => {
             variant="contained" 
             color="error"
             onClick={handleRemoveAsset}
-            disabled={!assetToRemove.symbol || removeMessage.type === 'success'}
+            disabled={
+              !assetToRemove.symbol || 
+              !assetToRemove.quantity || 
+              parseFloat(assetToRemove.quantity) <= 0 || 
+              parseFloat(assetToRemove.quantity) > assetToRemove.maxQuantity ||
+              removeMessage.type === 'success'
+            }
           >
-            Remove Asset
+            Sell Asset
           </Button>
         </DialogActions>
       </Dialog>

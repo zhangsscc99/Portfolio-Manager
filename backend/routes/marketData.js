@@ -399,6 +399,42 @@ router.get('/indices', async (req, res) => {
   }
 });
 
+// 📈 GET /api/market/history/:symbol - 获取股票历史数据
+router.get('/history/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { period = '1mo' } = req.query; // 默认1个月
+    
+    console.log(`📊 API请求历史数据: ${symbol} (${period})`);
+    
+    const historyData = await yahooFinanceService.getStockHistory(symbol, period);
+    
+    if (historyData.length === 0) {
+      return res.json({
+        success: false,
+        message: `No historical data found for ${symbol}`,
+        data: []
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: historyData,
+      symbol: symbol.toUpperCase(),
+      period: period,
+      count: historyData.length
+    });
+    
+  } catch (error) {
+    console.error(`❌ 历史数据API错误 (${req.params.symbol}):`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: []
+    });
+  }
+});
+
 // 辅助函数：获取指数名称
 function getIndexName(symbol) {
   const indexNames = {
