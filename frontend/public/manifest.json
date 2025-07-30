@@ -1,0 +1,44 @@
+{
+  "short_name": "Portfolio Manager",
+  "name": "Portfolio Manager - AI-Powered Investment Tracking",
+  "description": "Track and manage your investment portfolio with AI-powered insights and analysis",
+  "icons": [
+    {
+      "src": "finance_app2.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "finance_app2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "finance_app2.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple-touch-icon"
+    },
+    {
+      "src": "finance_app2.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "finance_app2.png",
+      "sizes": "16x16", 
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#E8A855",
+  "background_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["finance", "business", "productivity"],
+  "screenshots": []
+} 

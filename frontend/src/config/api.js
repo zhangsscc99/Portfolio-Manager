@@ -15,7 +15,11 @@ export const buildApiUrl = (endpoint) => {
 };
 
 export const API_ENDPOINTS = {
-  // Portfolio endpoints (保持原有格式)
+  portfolio_history: {
+    portfolio_history: '/portfolio-history',  // 历史数据
+  },
+
+  // Portfolio endpoints
   portfolio: {
     getAll: '/portfolio',
     getCurrent: '/portfolio/current',
@@ -68,6 +72,10 @@ export const API_ENDPOINTS = {
     generateReport: '/ai-analysis/portfolio',
     quickInsights: (id) => `/ai-analysis/quick-insights/${id}`,
     testConnection: '/ai-analysis/test-connection',
+    
+    // History endpoints (分析历史功能)
+    history: '/ai-analysis/history',
+    report: (reportId) => `/ai-analysis/report/${reportId}`,
     
     // Chat endpoints (新的AI助手功能)
     chat: '/ai-analysis/chat',

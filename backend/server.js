@@ -16,6 +16,8 @@ const holdingsRoutes = require('./routes/holdings');
 const marketDataRoutes = require('./routes/marketData');
 const assetsRoutes = require('./routes/assets');
 const aiAnalysisRoutes = require('./routes/ai-analysis');
+const portfolioHistoryRoutes = require('./routes/portfolioHistory');
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +35,8 @@ app.use('/api/holdings', holdingsRoutes);
 app.use('/api/market', marketDataRoutes);
 app.use('/api/assets', assetsRoutes);
 app.use('/api/ai-analysis', aiAnalysisRoutes);
+app.use('/api/portfolio-history', portfolioHistoryRoutes);
+
 
 // Swagger API Documentation
 app.get('/api-docs', (req, res) => {

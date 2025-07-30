@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -17,7 +18,6 @@ import {
   TableRow,
   Paper,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,16 +27,14 @@ import {
   Alert
 } from '@mui/material';
 import StockSearchField from '../components/StockSearchField';
-import AIAssistantDialog from '../components/AIAssistantDialog';
+
 import {
   ExpandMore as ExpandMoreIcon,
   Add as AddIcon,
   Remove as RemoveIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  Analytics,
-  Visibility as WatchIcon,
-  Chat as ChatIcon
+  Analytics
 } from '@mui/icons-material';
 import { Line } from 'react-chartjs-2';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
@@ -52,8 +50,9 @@ const ASSET_TYPES = {
 };
 
 const Portfolio = () => {
+  const navigate = useNavigate();
   const [portfolioData, setPortfolioData] = useState(null);
-  const [watchlist, setWatchlist] = useState({});
+
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [assetChartData, setAssetChartData] = useState(null);
   const [chartLoading, setChartLoading] = useState(false);
@@ -76,7 +75,6 @@ const Portfolio = () => {
     asset_type: 'stock'
   });
   const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
-  const [assistantOpen, setAssistantOpen] = useState(false);
 
   // 📊 Fetch portfolio data
   const fetchPortfolioData = async () => {
@@ -91,18 +89,7 @@ const Portfolio = () => {
     }
   };
 
-  // 📋 Fetch watchlist
-  const fetchWatchlist = async () => {
-    try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.watchlist));
-      const data = await response.json();
-      if (data.success) {
-        setWatchlist(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch watchlist:', error);
-    }
-  };
+
 
   // 📈 Fetch asset chart data
   const fetchAssetChartData = async (asset) => {
@@ -168,30 +155,34 @@ const Portfolio = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchPortfolioData(), fetchWatchlist()]);
+      await fetchPortfolioData();
       setLoading(false);
     };
     loadData();
   }, []);
 
-  // AI Portfolio Analysis
+  // AI Portfolio Analysis - Navigate to Analytics page and scroll to AI Analysis section
   const handleAIAnalysis = async () => {
     try {
-      // Navigate to AI analysis page with portfolio data
-      window.open(`/app/ai-analysis?portfolioId=1`, '_blank');
+      // Navigate to analytics page
+      navigate('/analytics');
+      
+      // Wait for navigation and then scroll to AI Analysis section
+      setTimeout(() => {
+        const element = document.getElementById('ai-analysis-reports-section');
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      }, 300);
     } catch (error) {
-      console.error('Failed to start AI analysis:', error);
+      console.error('Failed to navigate to AI analysis:', error);
     }
   };
 
-  // AI Assistant
-  const handleOpenAssistant = () => {
-    setAssistantOpen(true);
-  };
 
-  const handleCloseAssistant = () => {
-    setAssistantOpen(false);
-  };
   // - Remove asset
   const handleRemoveAsset = async () => {
     try {
@@ -373,7 +364,13 @@ const Portfolio = () => {
       {/* 📊 Header statistics */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+          <Typography 
+            variant="h4" 
+            className="gradient-text"
+            sx={{ 
+              fontWeight: 600 
+            }}
+          >
             Portfolio Overview
           </Typography>
           <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mt: 1 }}>
@@ -397,24 +394,7 @@ const Portfolio = () => {
           >
             AI Analysis
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<ChatIcon />}
-            onClick={handleOpenAssistant}
-            sx={{
-              background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
-              color: '#1a1a1a',
-              fontWeight: 600,
-              '&:hover': {
-                background: 'linear-gradient(135deg, #E8A855 0%, #D4961F 50%, #B8821A 100%)',
-                transform: 'translateY(-1px)',
-                boxShadow: '0 4px 15px rgba(232, 168, 85, 0.3)',
-              },
-              transition: 'all 0.3s ease',
-            }}
-          >
-            AI Assistant
-          </Button>
+
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -465,7 +445,7 @@ const Portfolio = () => {
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <TableContainer component={Paper} variant="outlined">
+                  <TableContainer component={Paper} variant="outlined" className="portfolio-table-container table-container">
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -533,7 +513,7 @@ const Portfolio = () => {
           })}
         </Grid>
 
-        {/* 📋 Sidebar: Watchlist and charts */}
+        {/* 📋 Sidebar: Asset charts */}
         <Grid item xs={12} lg={4}>
           {/* Selected asset trend chart */}
           {selectedAsset && (
@@ -603,72 +583,7 @@ const Portfolio = () => {
             </Card>
           )}
 
-          {/* Watchlist */}
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
-                  Watchlist
-                </Typography>
-                <IconButton size="small">
-                  <WatchIcon />
-                </IconButton>
-              </Box>
-              
-              {Object.entries(watchlist).map(([type, data]) => {
-                if (!data.items?.length) return null;
-                
-                return (
-                  <Box key={type} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                      {ASSET_TYPES[type]?.icon} {ASSET_TYPES[type]?.name}
-                    </Typography>
-                    {data.items.map((item) => (
-                      <Box
-                        key={item.id}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          py: 1,
-                          borderBottom: '1px solid',
-                          borderColor: 'divider'
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {item.symbol}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {item.name}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ textAlign: 'right' }}>
-                          <Typography variant="body2">
-                            {formatCurrency(item.current_price)}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: item.price_change_percent >= 0 ? 'success.main' : 'error.main'
-                            }}
-                          >
-                            {formatPercent(item.price_change_percent)}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                );
-              })}
-              
-              {Object.values(watchlist).every(data => !data.items?.length) && (
-                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                  No assets in watchlist
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
+
         </Grid>
       </Grid>
       {/* 📝 Remove asset dialog */}
@@ -850,32 +765,7 @@ const Portfolio = () => {
         </DialogActions>
       </Dialog>
 
-      {/* AI Assistant Dialog */}
-      <AIAssistantDialog
-        open={assistantOpen}
-        onClose={handleCloseAssistant}
-        portfolioId="1"
-        portfolioData={{
-          totalValue: portfolioData?.totalValue || 0,
-          totalAssets: portfolioData?.assetsByType ? 
-            Object.values(portfolioData.assetsByType).reduce((sum, type) => sum + type.assets.length, 0) : 0,
-          assetDistribution: portfolioData?.assetsByType ? 
-            Object.entries(portfolioData.assetsByType).reduce((acc, [type, data]) => {
-              acc[type] = {
-                value: data.totalValue,
-                percentage: ((data.totalValue / (portfolioData?.totalValue || 1)) * 100).toFixed(2),
-                count: data.assets.length
-              };
-              return acc;
-            }, {}) : {}
-        }}
-        analysisData={{
-          summary: {
-            riskLevel: 'Medium', // Could be calculated or fetched
-            overallScore: 75 // Could be calculated or fetched
-          }
-        }}
-      />
+
     </Box>
   );
 

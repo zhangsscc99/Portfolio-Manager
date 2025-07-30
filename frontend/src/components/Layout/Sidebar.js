@@ -171,12 +171,12 @@ const Sidebar = ({ onNavigate }) => {
           </Box>
           <Typography
             variant="h6"
+            className="glow-text gradient-text"
             sx={{
               fontWeight: 600,
-              color: 'text.primary',
               cursor: 'pointer',
               '&:hover': {
-                color: 'primary.main',
+                filter: 'brightness(1.2)',
               },
             }}
             onClick={() => navigate('/app/dashboard')}
@@ -203,6 +203,22 @@ const Sidebar = ({ onNavigate }) => {
               <ListItem disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   onClick={() => handleNavigation(item)}
+
+            <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => handleNavigation(item.path)}
+                className={`tech-nav-item ${active ? 'active' : ''}`}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.5,
+                  px: 2,
+                  mx: 1,
+                  color: active ? 'primary.main' : 'text.primary',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <ListItemIcon
                   sx={{
                     borderRadius: 2,
                     py: 1.5,
