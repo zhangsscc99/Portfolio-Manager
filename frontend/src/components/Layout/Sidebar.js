@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -10,12 +10,19 @@ import {
   Typography,
   Divider,
   Chip,
+  Collapse,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   AccountBalance as PortfolioIcon,
   Analytics as AnalyticsIcon,
   ShowChart as MarketsIcon,
+  ChevronRight as ExpandMoreIcon,
+  ExpandMore as ChevronDownIcon,
+  ViewList as ETFIcon,
+  AttachMoney as StocksIcon,
+  CurrencyBitcoin as CryptoIcon,
+  ViewAgenda as BondsIcon,
 } from '@mui/icons-material';
 
 const navigationItems = [
@@ -42,25 +49,89 @@ const navigationItems = [
     label: 'Markets',
     path: '/app/markets',
     icon: MarketsIcon,
+    children: [
+      {
+        id: 'stocks',
+        label: 'Stocks',
+        path: '/app/markets/stock',
+        icon: StocksIcon,
+      },
+      {
+        id: 'bonds',
+        label: 'Bonds',
+        path: '/app/markets/bonds',
+        icon: BondsIcon,
+      },
+      {
+        id: 'crypto',
+        label: 'Crypto',
+        path: '/app/markets/crypto',
+        icon: CryptoIcon,
+      },
+      {
+        id: 'etf',
+        label: 'ETFs',
+        path: '/app/markets/etf',
+        icon: ETFIcon,
+      },
+    ],
   },
 ];
 
 const Sidebar = ({ onNavigate }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [openMarketSubmenu, setOpenMarketSubmenu] = useState(false);
 
-  const handleNavigation = (path) => {
-    navigate(path);
-    if (onNavigate) {
-      onNavigate();
+  // Determine if any market sub-item is currently active
+  const isAnyMarketChildActive = navigationItems.find(item => item.id === 'markets')
+    ?.children?.some(child => location.pathname.startsWith(child.path));
+
+  // Effect to handle initial market submenu state and default navigation
+  useEffect(() => {
+    const marketsItem = navigationItems.find(item => item.id === 'markets');
+    if (marketsItem && marketsItem.children && marketsItem.children.length > 0) {
+      // If a child of markets is active, open the submenu
+      if (isAnyMarketChildActive) {
+        setOpenMarketSubmenu(true);
+      } else if (location.pathname === marketsItem.path) {
+        // If we are exactly on '/app/markets', redirect to its first child
+        const firstChildPath = marketsItem.children[0].path;
+        navigate(firstChildPath);
+        if (onNavigate) {
+          onNavigate();
+        }
+      }
+    }
+  }, [location.pathname, navigate, onNavigate, isAnyMarketChildActive]);
+
+
+  const handleNavigation = (item) => {
+    if (item.children && item.children.length > 0) {
+      // If it's a parent item with children (like Markets), toggle its submenu
+      const willOpen = !openMarketSubmenu;
+      setOpenMarketSubmenu(willOpen);
+
+      // If we are opening it and no child is currently active, navigate to its first child
+      if (willOpen && !isAnyMarketChildActive) {
+        const firstChildPath = item.children[0].path;
+        navigate(firstChildPath);
+        if (onNavigate) {
+          onNavigate();
+        }
+      }
+    } else {
+      // If it's a regular item or a sub-item, navigate directly
+      navigate(item.path);
+      if (onNavigate) {
+        onNavigate();
+      }
     }
   };
 
-  const isActive = (path) => {
-    if (path === '/dashboard') {
-      return location.pathname === '/' || location.pathname === '/dashboard';
-    }
-    return location.pathname === path;
+  // This function is now only used for sub-menu items to check if they are active
+  const isSubmenuActive = (path) => {
+    return location.pathname.startsWith(path);
   };
 
   return (
@@ -108,13 +179,11 @@ const Sidebar = ({ onNavigate }) => {
                 filter: 'brightness(1.2)',
               },
             }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/app/dashboard')}
           >
             Portfolio Manager
           </Typography>
         </Box>
-        
-        {/* User info removed - no user management */}
       </Box>
 
       <Divider sx={{ mb: 2, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
@@ -123,9 +192,18 @@ const Sidebar = ({ onNavigate }) => {
       <List sx={{ flex: 1, py: 0 }}>
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const active = isActive(item.path);
+          // --- MODIFICATION START ---
+          // 'Markets' will never be highlighted directly. Other top-level items highlight if their path matches.
+          const active = item.id === 'markets' ? false : location.pathname === item.path;
+          // --- MODIFICATION END ---
+          const hasChildren = item.children && item.children.length > 0;
 
           return (
+            <React.Fragment key={item.id}>
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => handleNavigation(item)}
+
             <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
                 onClick={() => handleNavigation(item.path)}
@@ -142,34 +220,137 @@ const Sidebar = ({ onNavigate }) => {
               >
                 <ListItemIcon
                   sx={{
-                    color: 'inherit',
-                    minWidth: 40,
+                    borderRadius: 2,
+                    py: 1.5,
+                    px: 2,
+                    // Use 'active' for overall highlighting
+                    backgroundColor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                    color: active ? 'primary.main' : 'text.primary',
+                    '&:hover': {
+                      backgroundColor: active
+                        ? 'rgba(99, 102, 241, 0.15)'
+                        : 'rgba(255, 255, 255, 0.05)',
+                    },
+                    '&:before': active ? {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 3,
+                      height: '70%',
+                      backgroundColor: 'primary.main',
+                      borderRadius: '0 2px 2px 0',
+                    } : {},
                   }}
                 >
-                  <Icon />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontSize: '0.875rem',
-                    fontWeight: active ? 600 : 500,
-                  }}
-                />
-                {item.badge && (
-                  <Chip
-                    label={item.badge}
-                    size="small"
+                  <ListItemIcon
                     sx={{
-                      height: 20,
-                      fontSize: '0.625rem',
-                      fontWeight: 600,
-                      bgcolor: 'secondary.main',
-                      color: 'white',
+                      color: 'inherit',
+                      minWidth: 40,
+                    }}
+                  >
+                    <Icon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      fontSize: '0.875rem',
+                      fontWeight: active ? 600 : 500,
                     }}
                   />
-                )}
-              </ListItemButton>
-            </ListItem>
+                  {hasChildren && (
+                    openMarketSubmenu ? <ChevronDownIcon sx={{ color: 'text.secondary' }} /> : <ExpandMoreIcon sx={{ color: 'text.secondary' }} />
+                  )}
+                  {item.badge && (
+                    <Chip
+                      label={item.badge}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.625rem',
+                        fontWeight: 600,
+                        bgcolor: 'secondary.main',
+                        color: 'white',
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </ListItem>
+
+              {/* Render Children (Sub-menu) if available */}
+              {hasChildren && (
+                <Collapse in={openMarketSubmenu} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding sx={{ pl: 4 }}>
+                    {item.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const childActive = isSubmenuActive(child.path); // 'childActive' for sub-menu items
+
+                      return (
+                        <ListItem key={child.id} disablePadding sx={{ mb: 0.5 }}>
+                          <ListItemButton
+                            onClick={() => handleNavigation(child)}
+                            sx={{
+                              borderRadius: 2,
+                              py: 1,
+                              px: 2,
+                              // Apply background/color based on 'childActive' state
+                              backgroundColor: childActive ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                              color: childActive ? 'primary.light' : 'text.secondary',
+                              '&:hover': {
+                                backgroundColor: childActive
+                                  ? 'rgba(99, 102, 241, 0.1)'
+                                  : 'rgba(255, 255, 255, 0.03)',
+                              },
+                              '&:before': childActive ? {
+                                content: '""',
+                                position: 'absolute',
+                                left: 0,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: 3,
+                                height: '70%',
+                                backgroundColor: 'primary.main',
+                                borderRadius: '0 2px 2px 0',
+                              } : {},
+                            }}
+                          >
+                            <ListItemIcon
+                              sx={{
+                                color: 'inherit',
+                                minWidth: 40,
+                              }}
+                            >
+                              <ChildIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={child.label}
+                              primaryTypographyProps={{
+                                fontSize: '0.8rem',
+                                fontWeight: childActive ? 600 : 400,
+                              }}
+                            />
+                            {child.badge && (
+                              <Chip
+                                label={child.badge}
+                                size="small"
+                                sx={{
+                                  height: 18,
+                                  fontSize: '0.55rem',
+                                  fontWeight: 600,
+                                  bgcolor: 'info.main',
+                                  color: 'white',
+                                }}
+                              />
+                            )}
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              )}
+            </React.Fragment>
           );
         })}
       </List>
@@ -192,4 +373,4 @@ const Sidebar = ({ onNavigate }) => {
   );
 };
 
-export default Sidebar; 
+export default Sidebar;

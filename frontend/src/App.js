@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'; // Import Navigate
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -14,7 +14,13 @@ import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
-import Markets from './pages/Markets';
+import Markets from './pages/Markets'; // This will become a parent route
+
+// New Market Sub-pages (assuming you'll create these files)
+import Stock from './pages/Markets/Stock';
+import Bonds from './pages/Markets/Bonds';
+import ETF from './pages/Markets/ETF';
+import Crypto from './pages/Markets/Crypto';
 import AIAnalysis from './pages/AIAnalysis';
 
 // Create React Query client
@@ -103,14 +109,14 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#E8A855', // 中等金色 - 主色
-      light: '#F4BE7E', // 浅金色 - 浅色版本
-      dark: '#D4961F', // 深金色 - 深色版本
+      main: '#E8A855', // Medium Gold - Primary color
+      light: '#F4BE7E', // Light Gold - Light version
+      dark: '#D4961F', // Dark Gold - Dark version
     },
     secondary: {
-      main: '#B8821A', // 更深的金色作为辅助色
-      light: '#E8A855', // 与主色呼应
-      dark: '#9A6B15', // 最深的金色
+      main: '#B8821A', // Deeper gold as secondary color
+      light: '#E8A855', // Harmonizes with primary
+      dark: '#9A6B15', // Deepest gold
     },
     background: {
       default: '#000000', // 纯黑背景作为基础
@@ -131,11 +137,11 @@ const darkTheme = createTheme({
       dark: '#dc2626',
     },
     warning: {
-      main: '#F4BE7E', // 使用浅金色作为警告色
-      light: '#F8D5A8', // 更浅的金色
-      dark: '#E8A855', // 中等金色
+      main: '#F4BE7E', // Using light gold as warning color
+      light: '#F8D5A8', // Lighter gold
+      dark: '#E8A855', // Medium gold
     },
-    // 🎨 自定义金色调色板
+    // 🎨 Custom Gold Palette
     gold: {
       50: '#FEF9F0',
       100: '#FDF2E0',
@@ -375,7 +381,7 @@ function App() {
             <Routes>
               {/* Homepage route - no layout */}
               <Route path="/" element={<HomePage />} />
-              
+
               {/* Main app routes - with layout */}
               <Route path="/app/*" element={
                 <Layout>
@@ -383,18 +389,29 @@ function App() {
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="portfolio" element={<Portfolio />} />
                     <Route path="analytics" element={<Analytics />} />
-                    <Route path="markets" element={<Markets />} />
+                    {/* Markets route with nested routes for sub-menus */}
+                    <Route path="markets/*" element={<Markets />}>
+                      <Route path="stock" element={<Stock />} />
+                    <Route path="bonds" element={<Bonds />} />
+                      <Route path="etf" element={<ETF />} />
+                      <Route path="crypto" element={<Crypto />} />
+                      {/* Redirect from /app/markets to a default sub-page (e.g., stock) */}
+                      <Route path="" element={<Navigate to="stock" replace />} />
+                    </Route>
                     <Route path="ai-analysis" element={<AIAnalysis />} />
-                    <Route path="" element={<Dashboard />} /> {/* Default to dashboard */}
+                    {/* Default to dashboard if no specific /app route is matched */}
+                    <Route path="" element={<Dashboard />} />
                   </Routes>
                 </Layout>
               } />
-              
+
               {/* Legacy routes redirect to new structure */}
-              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-              <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
-              <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
-              <Route path="/markets" element={<Layout><Markets /></Layout>} />
+              {/* You might want to update these to redirect to the new /app/* structure */}
+              <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="/portfolio" element={<Navigate to="/app/portfolio" replace />} />
+              <Route path="/analytics" element={<Navigate to="/app/analytics" replace />} />
+              {/* For /markets, redirect to the default sub-page within the new structure */}
+              <Route path="/markets" element={<Navigate to="/app/markets/stock" replace />} />
             </Routes>
             <Toaster
               position="top-right"
@@ -414,4 +431,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;
