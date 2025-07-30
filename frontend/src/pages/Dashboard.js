@@ -73,7 +73,7 @@ const Dashboard = () => {
     'portfolioAssets', 
     () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
     {
-      refetchInterval: 30000,
+    refetchInterval: 30000,
     }
   );
 
@@ -89,7 +89,7 @@ const Dashboard = () => {
     
     const data = portfolio.data;
     const assetsByType = data.assetsByType || {};
-    
+
     // 从assets API获取总投资组合价值
     const totalPortfolioValue = data.totalValue || 0;
     
@@ -339,7 +339,7 @@ const Dashboard = () => {
         hoverBorderWidth: 3,
         hoverBorderColor: '#ffffff',
       }]
-    };
+  };
   }, [portfolioData]);
 
   const allocationOptions = {
