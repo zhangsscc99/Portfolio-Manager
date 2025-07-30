@@ -1,6 +1,5 @@
 import axios from "axios";
 import { API_CONFIG } from "../config/api";
-import { get } from "../../../backend/routes/marketData";
 
 // Create axios instance with default config
 const api = axios.create(API_CONFIG);
