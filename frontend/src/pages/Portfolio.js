@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -49,6 +50,7 @@ const ASSET_TYPES = {
 };
 
 const Portfolio = () => {
+  const navigate = useNavigate();
   const [portfolioData, setPortfolioData] = useState(null);
 
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -159,13 +161,24 @@ const Portfolio = () => {
     loadData();
   }, []);
 
-  // AI Portfolio Analysis
+  // AI Portfolio Analysis - Navigate to Analytics page and scroll to AI Analysis section
   const handleAIAnalysis = async () => {
     try {
-      // Navigate to AI analysis page with portfolio data
-      window.open(`/app/ai-analysis?portfolioId=1`, '_blank');
+      // Navigate to analytics page
+      navigate('/analytics');
+      
+      // Wait for navigation and then scroll to AI Analysis section
+      setTimeout(() => {
+        const element = document.getElementById('ai-analysis-reports-section');
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      }, 300);
     } catch (error) {
-      console.error('Failed to start AI analysis:', error);
+      console.error('Failed to navigate to AI analysis:', error);
     }
   };
 

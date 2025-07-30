@@ -34,7 +34,6 @@ import {
   AccountBalance,
   ArrowBack,
   Download,
-  Share,
   Refresh,
   WifiOff,
   CloudOff
@@ -116,6 +115,57 @@ const AIAnalysis = () => {
     }).format(value);
   };
 
+  const handleDownloadPDF = () => {
+    // 创建打印样式
+    const printStyle = document.createElement('style');
+    printStyle.textContent = `
+      @media print {
+        @page {
+          margin: 0.5in;
+          size: A4;
+        }
+        body * {
+          visibility: hidden;
+        }
+        .ai-analysis-report, .ai-analysis-report * {
+          visibility: visible;
+        }
+        .ai-analysis-report {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          background: white !important;
+          color: black !important;
+        }
+        .MuiButton-root {
+          display: none !important;
+        }
+        .MuiCard-root {
+          box-shadow: none !important;
+          border: 1px solid #ddd !important;
+          background: white !important;
+        }
+        .gradient-text {
+          background: none !important;
+          color: black !important;
+          -webkit-background-clip: unset !important;
+          -webkit-text-fill-color: unset !important;
+        }
+      }
+    `;
+    
+    document.head.appendChild(printStyle);
+    
+    // 触发打印对话框
+    window.print();
+    
+    // 清理样式
+    setTimeout(() => {
+      document.head.removeChild(printStyle);
+    }, 1000);
+  };
+
   if (loading) {
     return (
       <Box sx={{ 
@@ -157,10 +207,10 @@ const AIAnalysis = () => {
           </Button>
           <Button
             variant="outlined"
-            onClick={() => navigate('/app/portfolio')}
+            onClick={() => navigate('/analytics')}
             startIcon={<ArrowBack />}
           >
-            Back to Portfolio
+            Back to Analytics
           </Button>
         </Box>
       </Box>
@@ -180,7 +230,7 @@ const AIAnalysis = () => {
   const { summary, portfolioSnapshot, analysis, timestamp, notice } = analysisData;
 
   return (
-    <Box sx={{ p: 3, maxWidth: '1200px', mx: 'auto' }}>
+    <Box sx={{ p: 3 }} className="ai-analysis-report">
       {/* Offline Mode Alert */}
       {isOfflineMode && (
         <Alert 
@@ -251,21 +301,15 @@ const AIAnalysis = () => {
           )}
           <Button
             variant="outlined"
-            startIcon={<Share />}
-            sx={{ borderColor: '#E8A855', color: '#E8A855' }}
-          >
-            Share
-          </Button>
-          <Button
-            variant="outlined"
             startIcon={<Download />}
+            onClick={handleDownloadPDF}
             sx={{ borderColor: '#E8A855', color: '#E8A855' }}
           >
-            Download
+            Download PDF
           </Button>
           <Button
             variant="contained"
-            onClick={() => navigate('/app/portfolio')}
+            onClick={() => navigate('/analytics')}
             startIcon={<ArrowBack />}
           >
             Back

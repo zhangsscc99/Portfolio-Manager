@@ -270,3 +270,6 @@ pm2 status
 
 
 4中文改成英文
+
+rm -rf /var/www/portfolio-manager/*
+cp -r build/* /var/www/portfolio-manager/

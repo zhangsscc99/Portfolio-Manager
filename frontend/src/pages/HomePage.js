@@ -422,6 +422,155 @@ const HomePage = () => {
              Enter Dashboard
            </Button>
         </Box>
+
+        {/* QR码访问区域 */}
+        <Box sx={{ 
+          py: 8, 
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, rgba(232, 168, 85, 0.08) 0%, rgba(244, 190, 126, 0.03) 100%)',
+          borderRadius: 4,
+          border: '1px solid rgba(232, 168, 85, 0.15)',
+          mt: 8
+        }}>
+          <Typography
+            variant="h4"
+            className="gradient-text"
+            sx={{
+              fontWeight: 700,
+              mb: 3,
+              fontSize: { xs: '1.5rem', md: '2rem' },
+            }}
+          >
+            Access Anywhere, Anytime
+          </Typography>
+          
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'rgba(255, 255, 255, 0.8)',
+              mb: 4,
+              fontSize: { xs: '0.9rem', md: '1rem' },
+              maxWidth: 600,
+              mx: 'auto',
+              lineHeight: 1.6
+            }}
+          >
+            Get instant access to Portfolio Manager from any device. Scan the QR code or visit our website directly.
+          </Typography>
+
+          <Grid container spacing={4} alignItems="center" justifyContent="center">
+            {/* QR码区域 */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Box sx={{
+                  p: 3,
+                  background: 'white',
+                  borderRadius: 3,
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                  border: '2px solid rgba(232, 168, 85, 0.2)'
+                }}>
+                  <img 
+                    src="/qrcode_finance_app2.png" 
+                    alt="Portfolio Manager QR Code"
+                    style={{
+                      width: '180px',
+                      height: '180px',
+                      display: 'block'
+                    }}
+                  />
+                </Box>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    fontWeight: 600,
+                    fontSize: { xs: '0.9rem', md: '1rem' }
+                  }}
+                >
+                  📱 Scan with your mobile device
+                </Typography>
+              </Box>
+            </Grid>
+
+            {/* 网址区域 */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                gap: 3
+              }}>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    fontWeight: 600,
+                    mb: 1,
+                    fontSize: { xs: '1.1rem', md: '1.3rem' }
+                  }}
+                >
+                  Or visit our website:
+                </Typography>
+                
+                <Box sx={{
+                  p: 3,
+                  background: 'rgba(15, 15, 20, 0.7)',
+                  border: '2px solid rgba(232, 168, 85, 0.3)',
+                  borderRadius: 3,
+                  backdropFilter: 'blur(10px)',
+                  minWidth: { xs: '280px', md: '320px' }
+                }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      background: 'linear-gradient(90deg, #9CA8DA 0%, #C49A71 100%)',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontFamily: 'monospace',
+                      fontSize: { xs: '1.1rem', md: '1.3rem' },
+                      fontWeight: 700,
+                      letterSpacing: '0.5px'
+                    }}
+                  >
+                    http://cn-tech.net
+                  </Typography>
+                </Box>
+
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: { xs: '0.85rem', md: '0.95rem' },
+                    textAlign: 'center',
+                    maxWidth: 300,
+                    lineHeight: 1.5
+                  }}
+                >
+                  🌐 Copy and paste into your browser, or bookmark for easy access
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+
+          <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: { xs: '0.8rem', md: '0.85rem' },
+                fontStyle: 'italic'
+              }}
+            >
+              💼 Professional Portfolio Management • 📊 Real-time Analytics • 🤖 AI-Powered Insights
+            </Typography>
+          </Box>
+        </Box>
       </Container>
 
       {/* 底部信息 */}
