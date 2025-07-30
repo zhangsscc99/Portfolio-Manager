@@ -188,12 +188,15 @@ const HomePage = () => {
               <Box>
                 <Typography
                   variant="h1"
-                  className="gradient-text"
                   sx={{
                     fontSize: { xs: '2.5rem', md: '4rem' },
                     fontWeight: 800,
                     mb: 3,
                     lineHeight: 1.2,
+                    background: 'linear-gradient(135deg, #F4BE7E 0%, #E8A855 50%, #D4961F 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
                   }}
                 >
                   Track. Optimize. Invest.

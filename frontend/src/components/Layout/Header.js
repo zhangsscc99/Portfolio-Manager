@@ -36,7 +36,7 @@ const Header = ({ onOpenAssistant }) => {
           sx={{
             fontWeight: 600,
             mb: 0.5,
-            background: 'linear-gradient(90deg, #4a5a8f 0%, #5a6a9f 25%, #6a7aaf 50%, #D4961F 75%, #F4BE7E 100%)',
+            background: 'linear-gradient(90deg, #9CA8DA 0%, #C49A71 100%)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',

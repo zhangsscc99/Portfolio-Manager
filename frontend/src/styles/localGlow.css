@@ -47,14 +47,11 @@
   z-index: 0;
 }
 
-/* 渐变文字效果 - 蓝到金渐变（30%亮度起） */
+/* 渐变文字效果 - 用户自定义渐变色 */
 .gradient-text {
   background: linear-gradient(90deg, 
-    #4a5a8f 0%, 
-    #5a6a9f 25%, 
-    #6a7aaf 50%, 
-    #D4961F 75%, 
-    #F4BE7E 100%
+    #9CA8DA 0%, 
+    #C49A71 100%
   );
   background-clip: text;
   -webkit-background-clip: text;
@@ -63,14 +60,11 @@
   font-weight: 600;
 }
 
-/* 动态渐变文字 - 蓝到金动画渐变（30%亮度起） */
+/* 动态渐变文字 - 用户自定义动画渐变 */
 .gradient-text-animated {
   background: linear-gradient(90deg, 
-    #4a5a8f 0%, 
-    #5a6a9f 25%, 
-    #6a7aaf 50%, 
-    #D4961F 75%, 
-    #F4BE7E 100%
+    #9CA8DA 0%, 
+    #C49A71 100%
   );
   background-size: 200% 200%;
   background-clip: text;
