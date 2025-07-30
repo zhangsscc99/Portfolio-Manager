@@ -58,14 +58,9 @@ const Dashboard = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
 
 
-  // const { data: portfolio } = useQuery('currentPortfolio', portfolioAPI.getCurrentPortfolio, {
-  //   refetchInterval: 30000,
-  // });
-  const { data: portfolio, isLoading: portfolioLoading } = useQuery(
-    'currentPortfolio',
-    portfolioAPI.getCurrentPortfolio,
-    { refetchInterval: 30000 }
-  );
+  const { data: portfolio } = useQuery('currentPortfolio', portfolioAPI.getCurrentPortfolio, {
+    refetchInterval: 30000,
+  });
 
 
   const { data: gainers } = useQuery('marketGainers', () => marketAPI.getGainers(5));
@@ -75,51 +70,45 @@ const Dashboard = () => {
   const portfolioData = portfolio?.data;
 
   // ⭐️ 动态生成历史数据（关键修改）
-  // const historicalData = useMemo(() => {
-  //   const labels = [];
-  //   const data = [];
-  //   const currentValue = portfolioData?.totalValue || 2317371;
+  const historicalData = useMemo(() => {
+    const labels = [];
+    const data = [];
+    const currentValue = portfolioData?.totalValue || 2317371;
 
-  //   let days = 30; // 默认1M
-  //   if (selectedTimeRange === '3M') days = 90;
-  //   else if (selectedTimeRange === '1Y') days = 365;
-  //   else if (selectedTimeRange === 'ALL') days = 730;
+    let days = 30; // 默认1M
+    if (selectedTimeRange === '3M') days = 90;
+    else if (selectedTimeRange === '1Y') days = 365;
+    else if (selectedTimeRange === 'ALL') days = 730;
 
-  //   for (let i = days - 1; i >= 0; i--) {
-  //     const date = new Date();
-  //     date.setDate(date.getDate() - i);
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
 
-  //     let label = '';
-  //     if (days <= 30) {
-  //       label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  //     } else if (days <= 365) {
-  //       label = date.toLocaleDateString('en-US', { month: 'short' });
-  //     } else {
-  //       label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-  //     }
+      let label = '';
+      if (days <= 30) {
+        label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else if (days <= 365) {
+        label = date.toLocaleDateString('en-US', { month: 'short' });
+      } else {
+        label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      }
 
-  //     labels.push(label);
+      labels.push(label);
 
-  //     const randomChange = (Math.random() - 0.5) * 0.02;
-  //     const value = currentValue * (0.85 + (days - 1 - i) * 0.005 + randomChange);
-  //     data.push(Math.round(value));
-  //   }
+      const randomChange = (Math.random() - 0.5) * 0.02;
+      const value = currentValue * (0.85 + (days - 1 - i) * 0.005 + randomChange);
+      data.push(Math.round(value));
+    }
 
-  //   return { labels, data };
-  // }, [selectedTimeRange, portfolioData?.totalValue]);
-
-  const { data: historyData, isLoading: historyLoading } = useQuery(
-    ['portfolioHistory', selectedTimeRange],
-    () => portfolioAPI.getPortfolioHistory(selectedTimeRange),
-    { keepPreviousData: true }
-  );
+    return { labels, data };
+  }, [selectedTimeRange, portfolioData?.totalValue]);
 
   const netWorthChartData = {
-    labels: historyData?.labels || [],
+    labels: historicalData.labels,
     datasets: [
       {
         label: 'Portfolio Value',
-        data: historyData?.values || [],
+        data: historicalData.data,
 
         borderColor: '#E8A855',
         backgroundColor: (context) => {
@@ -168,17 +157,10 @@ const Dashboard = () => {
         },
       },
       y: {
-        display: true, // ✅ 显示纵坐标
+        display: false,
+
         grid: {
-          display: true,
-          color: 'rgba(200,200,200,0.1)', // 可选：网格线颜色
-        },
-        ticks: {
-          color: '#6b7280', // ✅ 字体颜色
-          callback: function(value) {
-            // 格式化纵坐标标签为货币
-            return '$' + (value / 1000).toFixed(0) + 'k';
-          },
+          display: false,
         },
       },
     },

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_CONFIG,  buildApiUrl, API_ENDPOINTS  } from '../config/api';
+import { API_CONFIG } from '../config/api';
 
 // Create axios instance with default config
 const api = axios.create(API_CONFIG);
@@ -32,21 +32,6 @@ api.interceptors.response.use(
 
 // Portfolio API
 export const portfolioAPI = {
-  getPortfolioHistory: async (range = '1M', portfolioId = 1) => {
-    const url = buildApiUrl(`${API_ENDPOINTS.portfolio_history.portfolio_history}/${portfolioId}?range=${range}`);
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch portfolio history');
-
-    const json = await res.json();
-
-    // 适配后端结构，统一为 labels + values
-    return {
-      labels: json.data.labels,
-      values: json.data.data,
-    };
-  },
-
   // Get all portfolios
   getPortfolios: () => api.get('/portfolio'),
   
@@ -151,35 +136,6 @@ export const getChangeColor = (change) => {
   if (change > 0) return '#10b981'; // green
   if (change < 0) return '#ef4444'; // red
   return '#6b7280'; // gray
-};
-
-export const portfolioHistoryAPI = {
-  // 其他接口保留...
-
-  /**
-   * 获取某个投资组合的历史数据
-   * @param {string} range 时间范围，例如 '1M', '3M', '1Y', 'ALL'
-   * @param {number} portfolioId 投资组合ID，默认是1
-   */
-  getPortfolioHistory: async (range = '1M', portfolioId = 1) => {
-    const url = `${API_CONFIG.baseURL}/portfolio-history/${portfolioId}?range=${range}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: API_CONFIG.headers,
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch portfolio history: ${res.status}`);
-    }
-
-    const json = await res.json();
-
-    // 适配你的后端返回格式
-    return {
-      labels: json.data.labels,
-      values: json.data.data, // 注意字段名是 data.data
-    };
-  },
 };
 
 export default api; 
