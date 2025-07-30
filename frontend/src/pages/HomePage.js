@@ -474,15 +474,15 @@ const HomePage = () => {
                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
                   border: '2px solid rgba(232, 168, 85, 0.2)'
                 }}>
-                  <img 
-                    src="/qrcode_finance_app2.png" 
-                    alt="Portfolio Manager QR Code"
-                    style={{
-                      width: '180px',
-                      height: '180px',
-                      display: 'block'
-                    }}
-                  />
+                                     <img 
+                     src="/qrcode_finance_app2.png" 
+                     alt="Portfolio Manager QR Code"
+                     style={{
+                       width: '220px',
+                       height: '220px',
+                       display: 'block'
+                     }}
+                   />
                 </Box>
                 <Typography
                   variant="subtitle1"
@@ -525,21 +525,21 @@ const HomePage = () => {
                   backdropFilter: 'blur(10px)',
                   minWidth: { xs: '280px', md: '320px' }
                 }}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      background: 'linear-gradient(90deg, #9CA8DA 0%, #C49A71 100%)',
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      fontFamily: 'monospace',
-                      fontSize: { xs: '1.1rem', md: '1.3rem' },
-                      fontWeight: 700,
-                      letterSpacing: '0.5px'
-                    }}
-                  >
-                    http://cn-tech.net
-                  </Typography>
+                                     <Typography
+                     variant="h4"
+                     sx={{
+                       background: 'linear-gradient(90deg, #9CA8DA 0%, #C49A71 100%)',
+                       backgroundClip: 'text',
+                       WebkitBackgroundClip: 'text',
+                       WebkitTextFillColor: 'transparent',
+                       fontFamily: 'monospace',
+                       fontSize: { xs: '1.4rem', md: '1.8rem' },
+                       fontWeight: 900,
+                       letterSpacing: '1px'
+                     }}
+                   >
+                     http://cn-tech.net
+                   </Typography>
                 </Box>
 
                 <Typography
