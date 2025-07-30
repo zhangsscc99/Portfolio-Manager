@@ -319,52 +319,7 @@ const AIAnalysis = () => {
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ textAlign: 'center', p: 2 }}>
-            <CardContent>
-              <Typography variant="h3" sx={{ 
-                fontWeight: 700, 
-                color: getScoreColor(summary?.overallScore || 0),
-                mb: 1
-              }}>
-                {summary?.overallScore || 0}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Overall Score
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={summary?.overallScore || 0} 
-                sx={{ 
-                  mt: 1, 
-                  bgcolor: 'grey.200',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: getScoreColor(summary?.overallScore || 0)
-                  }
-                }}
-              />
-            </CardContent>
-          </Card>
-        </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ textAlign: 'center', p: 2 }}>
-            <CardContent>
-              <Chip 
-                label={summary?.riskLevel || 'Unknown'} 
-                sx={{ 
-                  bgcolor: getRiskColor(summary?.riskLevel),
-                  color: 'white',
-                  fontWeight: 600,
-                  mb: 1
-                }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                Risk Level
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ textAlign: 'center', p: 2 }}>

@@ -170,8 +170,54 @@ router.post('/portfolio', async (req, res) => {
 router.get('/portfolio/:portfolioId', async (req, res) => {
   try {
     const { portfolioId } = req.params;
+    const { reportId } = req.query;
     
-    console.log(`🔍 Getting AI analysis for portfolio ${portfolioId}...`);
+    console.log(`🔍 Getting AI analysis for portfolio ${portfolioId}${reportId ? ` with reportId ${reportId}` : ''}...`);
+    
+    // If reportId is provided, try to get the existing report from database
+    if (reportId) {
+      console.log(`📋 Retrieving existing report ${reportId} from database...`);
+      const existingReport = await aiAnalysisHistoryService.getAnalysisReport(reportId);
+      
+      if (existingReport.success) {
+        console.log(`✅ Found existing report ${reportId}, returning cached data`);
+        
+        // Convert database format to response format
+        const reportData = existingReport.data;
+        const responseData = {
+          id: reportData.id,
+          timestamp: reportData.timestamp,
+          portfolioSnapshot: {
+            totalValue: reportData.portfolio_value,
+            // Add other portfolio snapshot data if available in raw_analysis_data
+            ...(reportData.raw_analysis_data?.portfolioSnapshot || {})
+          },
+          analysis: reportData.raw_analysis_data?.analysis || {},
+          rawAnalysis: reportData.raw_analysis_data?.rawAnalysis || '',
+          usage: reportData.raw_analysis_data?.usage || {},
+          isOffline: reportData.raw_analysis_data?.isOffline || false,
+          summary: {
+            overallScore: reportData.overall_score,
+            riskLevel: reportData.risk_level,
+            totalReturn: reportData.total_return,
+            sharpeRatio: reportData.sharpe_ratio,
+            keyInsights: reportData.key_insights || [],
+            recommendations: reportData.recommendations || [],
+            riskFactors: reportData.risk_factors || []
+          }
+        };
+        
+        return res.json({
+          success: true,
+          data: responseData
+        });
+      } else {
+        console.warn(`⚠️ Report ${reportId} not found in database, generating new analysis...`);
+      }
+    }
+    
+    // If no reportId provided or report not found, generate new analysis
+    console.log(`🆕 Generating new AI analysis for portfolio ${portfolioId}...`);
     
     // Get portfolio data
     const portfolioResult = await portfolioService.getPortfolioSummary(portfolioId);
@@ -219,7 +265,7 @@ router.get('/portfolio/:portfolioId', async (req, res) => {
       // Don't fail the request if memory update fails
     }
 
-    console.log('✅ AI analysis retrieval completed');
+    console.log('✅ AI analysis completed');
     
     res.json({
       success: true,

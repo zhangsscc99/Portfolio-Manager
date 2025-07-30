@@ -82,6 +82,24 @@ class AssetController {
   }
 
   /**
+   * 部分卖出资产
+   * PUT /api/assets/:id/sell
+   */
+  async sellAsset(req, res) {
+    try {
+      const assetId = parseInt(req.params.id);
+      const { sellQuantity } = req.body;
+      
+      const result = await assetService.sellAsset(assetId, sellQuantity);
+      
+      sendSuccess(res, result.asset, result.message);
+    } catch (error) {
+      const statusCode = getErrorStatusCode(error.message);
+      sendError(res, error, statusCode);
+    }
+  }
+
+  /**
    * 删除资产
    * DELETE /api/assets/:id
    */

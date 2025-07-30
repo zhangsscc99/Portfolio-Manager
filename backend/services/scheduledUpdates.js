@@ -95,16 +95,16 @@ class ScheduledUpdatesService {
     this.isStockUpdateRunning = true;
     
     try {
-      // 获取所有股票类型的资产
+      // 获取所有使用Yahoo Finance的资产
       const stockAssets = await Asset.findAll({
         where: {
-          asset_type: ['stock', 'etf'],
+          asset_type: ['stock', 'etf', 'commodity'],
           price_source: 'yahoo_finance',
           is_active: true
         }
       });
 
-      console.log(`📊 找到 ${stockAssets.length} 个股票/ETF资产需要更新`);
+      console.log(`📊 找到 ${stockAssets.length} 个Yahoo Finance资产需要更新`);
 
       let successCount = 0;
       let errorCount = 0;

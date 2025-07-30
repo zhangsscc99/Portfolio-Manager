@@ -130,7 +130,38 @@ class AssetService {
       });
 
       if (existingAsset) {
-        throw new Error(`资产 ${symbol} 已存在于该投资组合中`);
+        // 如果资产已存在，则累加数量并重新计算平均成本
+        console.log(`📈 资产 ${symbol} 已存在，累加数量并重新计算平均成本...`);
+        
+        const originalQuantity = parseFloat(existingAsset.quantity);
+        const originalAvgCost = parseFloat(existingAsset.avg_cost);
+        const newQuantity = parseFloat(quantity);
+        const newAvgCost = parseFloat(avg_cost);
+        
+        // 计算总数量
+        const totalQuantity = originalQuantity + newQuantity;
+        
+        // 计算新的加权平均成本
+        const originalTotalValue = originalQuantity * originalAvgCost;
+        const newTotalValue = newQuantity * newAvgCost;
+        const combinedTotalValue = originalTotalValue + newTotalValue;
+        const weightedAvgCost = combinedTotalValue / totalQuantity;
+        
+        // 更新现有资产
+        await existingAsset.update({
+          quantity: totalQuantity,
+          avg_cost: weightedAvgCost,
+          // 如果提供了新的当前价格，也更新它
+          current_price: current_price ? parseFloat(current_price) : existingAsset.current_price,
+          // 更新购买日期为最新的购买日期
+          purchase_date: purchase_date || existingAsset.purchase_date,
+          // 合并备注信息
+          notes: notes ? `${existingAsset.notes || ''}\n${new Date().toLocaleDateString()}: +${newQuantity} @ $${newAvgCost}${notes ? ` (${notes})` : ''}`.trim() : existingAsset.notes
+        });
+        
+        console.log(`✅ 资产 ${symbol} 更新成功: 数量 ${originalQuantity} + ${newQuantity} = ${totalQuantity}, 平均成本: $${originalAvgCost.toFixed(2)} → $${weightedAvgCost.toFixed(2)}`);
+        
+        return existingAsset.reload(); // 重新加载以获取最新数据
       }
 
       // 根据资产类型设置价格源
@@ -298,6 +329,75 @@ class AssetService {
       throw error;
     }
   }
+
+  /**
+   * 部分卖出资产
+   * @param {number} assetId - 资产ID
+   * @param {number} sellQuantity - 卖出数量
+   * @returns {Object} 更新结果
+   */
+  async sellAsset(assetId, sellQuantity) {
+    try {
+      // 验证参数
+      if (!assetId || isNaN(assetId)) {
+        throw new Error('无效的资产ID');
+      }
+
+      if (!sellQuantity || sellQuantity <= 0) {
+        throw new Error('卖出数量必须大于0');
+      }
+
+      const asset = await Asset.findByPk(assetId);
+      if (!asset) {
+        throw new Error('资产不存在');
+      }
+
+      const currentQuantity = parseFloat(asset.quantity);
+      const sellQty = parseFloat(sellQuantity);
+
+      // 验证卖出数量不超过持有数量
+      if (sellQty > currentQuantity) {
+        throw new Error(`卖出数量(${sellQty})不能超过持有数量(${currentQuantity})`);
+      }
+
+      // 计算剩余数量
+      const remainingQuantity = currentQuantity - sellQty;
+
+      // 如果卖光了，直接删除资产
+      if (remainingQuantity <= 0) {
+        await asset.update({ is_active: false });
+        console.log(`🏁 资产 ${asset.symbol} 已全部卖出并标记为非活跃`);
+        
+        return {
+          message: `已卖出全部 ${sellQty} ${asset.symbol}，资产已从投资组合中移除`,
+          asset: asset,
+          soldQuantity: sellQty,
+          remainingQuantity: 0,
+          isCompletelyRemoved: true
+        };
+      } else {
+        // 部分卖出，更新数量
+        await asset.update({ 
+          quantity: remainingQuantity,
+          // 添加卖出记录到备注
+          notes: `${asset.notes || ''}\n${new Date().toLocaleDateString()}: Sold ${sellQty} shares`.trim()
+        });
+        
+        console.log(`💰 资产 ${asset.symbol} 部分卖出: ${sellQty} 股，剩余: ${remainingQuantity} 股`);
+        
+        return {
+          message: `已卖出 ${sellQty} 股 ${asset.symbol}，剩余 ${remainingQuantity.toFixed(2)} 股`,
+          asset: asset.reload(),
+          soldQuantity: sellQty,
+          remainingQuantity: remainingQuantity,
+          isCompletelyRemoved: false
+        };
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
-module.exports = new AssetService(); 
+module.exports = new AssetService();
+module.exports.ASSET_TYPES = ASSET_TYPES; 

@@ -504,20 +504,6 @@ const Analytics = () => {
                             <Typography variant="h6" sx={{ fontWeight: 600 }}>
                               Analysis Report #{report.id}
                             </Typography>
-                            <Chip 
-                              label={`Score: ${report.overallScore}`}
-                              color="primary"
-                              size="small"
-                            />
-                            <Chip 
-                              label={report.riskLevel}
-                              color={
-                                report.riskLevel === 'Low' ? 'success' :
-                                report.riskLevel === 'Medium' ? 'warning' :
-                                report.riskLevel === 'Medium-High' ? 'warning' : 'error'
-                              }
-                              size="small"
-                            />
                           </Box>
                         }
                         secondary={
