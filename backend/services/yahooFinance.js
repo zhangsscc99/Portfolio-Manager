@@ -178,6 +178,66 @@ class YahooFinanceService {
   }
 
   // 📊 获取缓存统计
+  // 📈 获取股票历史数据
+  async getStockHistory(symbol, period = '1mo') {
+    try {
+      console.log(`📊 获取历史数据: ${symbol} (${period})`);
+      
+      // 计算日期范围
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      // 根据period设置开始日期
+      switch (period) {
+        case '1mo':
+          startDate.setMonth(startDate.getMonth() - 1);
+          break;
+        case '3mo':
+          startDate.setMonth(startDate.getMonth() - 3);
+          break;
+        case '6mo':
+          startDate.setMonth(startDate.getMonth() - 6);
+          break;
+        case '1y':
+          startDate.setFullYear(startDate.getFullYear() - 1);  
+          break;
+        default:
+          startDate.setMonth(startDate.getMonth() - 1);
+      }
+      
+      // 从Yahoo Finance获取历史数据
+      const historicalResult = await yahooFinance.historical(symbol, {
+        period1: startDate,
+        period2: endDate,
+        interval: '1d' // 日线数据
+      });
+      
+      if (!historicalResult || historicalResult.length === 0) {
+        console.log(`⚠️ ${symbol} 没有历史数据`);
+        return [];
+      }
+      
+      // 格式化数据
+      const formattedData = historicalResult.map(item => ({
+        date: item.date.toISOString().split('T')[0], // YYYY-MM-DD格式
+        timestamp: item.date.getTime(),
+        open: item.open || 0,
+        high: item.high || 0,
+        low: item.low || 0,
+        close: item.close || 0,
+        volume: item.volume || 0,
+        price: item.close || 0 // 用收盘价作为price
+      }));
+      
+      console.log(`✅ 获取到 ${symbol} 历史数据: ${formattedData.length} 个数据点`);
+      return formattedData;
+      
+    } catch (error) {
+      console.error(`❌ 获取 ${symbol} 历史数据失败:`, error.message);
+      return [];
+    }
+  }
+
   getCacheStats() {
     return {
       size: this.cache.size,

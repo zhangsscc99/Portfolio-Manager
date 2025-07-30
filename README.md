@@ -266,10 +266,11 @@ pm2 status
 
 2我想要替换掉紫色的主题色 改成金色 类似于finary那样
 
-3想做一个finary的icon 那种特效
 
 
-4中文改成英文
+git reset --hard origin/main
 
 rm -rf /var/www/portfolio-manager/*
 cp -r build/* /var/www/portfolio-manager/
+
+

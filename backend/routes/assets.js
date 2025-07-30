@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const assetController = require('../controllers/assetController');
+const { Asset, Watchlist } = require('../models/index');
+const { ASSET_TYPES } = require('../services/assetService');
 
 // 📊 GET /api/assets/portfolio/:portfolioId - 获取投资组合的分类资产
 router.get('/portfolio/:portfolioId', assetController.getPortfolioAssets);
@@ -35,6 +37,9 @@ router.put('/:id', async (req, res) => {
     });
   }
 });
+
+// 💰 PUT /api/assets/:id/sell - 部分卖出资产
+router.put('/:id/sell', assetController.sellAsset);
 
 // 🗑️ DELETE /api/assets/:id - 删除资产
 router.delete('/:id', assetController.deleteAsset);
