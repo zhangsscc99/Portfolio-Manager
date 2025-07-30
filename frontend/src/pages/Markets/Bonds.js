@@ -1,6 +1,4 @@
-// Bonds.js (请将文件名改为 Bonds.js)
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -12,223 +10,327 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  CircularProgress,
   TextField,
   InputAdornment,
   TablePagination,
-  // Removed CircularProgress from here as it's not used for search input loading anymore
+  TableSortLabel,
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
+import { useQuery } from 'react-query';
 
-// Import utility functions (ensure this path is correct relative to your project structure)
-import { formatCurrency, formatPercentage, getChangeColor } from '../../services/api';
+// Ensure marketAPI.js still parses string numbers to actual numbers!
+import { formatCurrency, getPercentageColorFromString, getChangeColor, marketAPI } from '../../services/api';
+import toast from 'react-hot-toast';
 
-const Bonds = () => { // Changed component name to Bonds
-  const [searchTerm, setSearchTerm] = useState('');
+const Bonds = () => {
   const [displayedSearchTerm, setDisplayedSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-
-  // Removed isSearching state as it was primarily for the search input loading spinner
-  // If you later add a full page loading state for API calls, you'd reintroduce a different isLoading state.
-
-  // --- Pagination States ---
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  // --- MOCK BONDS DATA ---
-  // Adjusted data structure and values to be more bond-like
-  const mockBondsData = [
-    { symbol: 'UST10Y', name: 'US Treasury Bond 10-Year', price: 98.75, yield: 4.25, change: -0.10, changePercent: -0.0010, maturity: '2034-07-15' },
-    { symbol: 'DEU10Y', name: 'German Bund 10-Year', price: 102.30, yield: 2.50, change: 0.05, changePercent: 0.0005, maturity: '2034-08-20' },
-    { symbol: 'GBR10Y', name: 'UK Gilt 10-Year', price: 95.10, yield: 4.55, change: -0.15, changePercent: -0.0016, maturity: '2034-09-01' },
-    { symbol: 'JPN10Y', name: 'Japanese Government Bond 10-Year', price: 100.50, yield: 0.95, change: 0.02, changePercent: 0.0002, maturity: '2034-06-10' },
-    { symbol: 'CAN10Y', name: 'Canadian Government Bond 10-Year', price: 97.80, yield: 3.80, change: -0.08, changePercent: -0.0008, maturity: '2034-10-05' },
-    { symbol: 'AUS10Y', name: 'Australian Government Bond 10-Year', price: 99.20, yield: 4.30, change: 0.03, changePercent: 0.0003, maturity: '2034-11-25' },
-    { symbol: 'ITA10Y', name: 'Italian BTP 10-Year', price: 92.50, yield: 4.00, change: -0.20, changePercent: -0.0021, maturity: '2034-12-01' },
-    { symbol: 'FRN10Y', name: 'French OAT 10-Year', price: 99.80, yield: 3.00, change: 0.07, changePercent: 0.0007, maturity: '2034-07-20' },
-    { symbol: 'SPN10Y', name: 'Spanish Bono 10-Year', price: 96.00, yield: 3.50, change: -0.05, changePercent: -0.0005, maturity: '2034-08-01' },
-    { symbol: 'CHN10Y', name: 'Chinese Government Bond 10-Year', price: 101.00, yield: 2.30, change: 0.01, changePercent: 0.0001, maturity: '2034-09-10' },
-    { symbol: 'IND10Y', name: 'Indian Government Bond 10-Year', price: 94.00, yield: 6.80, change: -0.12, changePercent: -0.0013, maturity: '2034-10-15' },
-    { symbol: 'BRA10Y', name: 'Brazilian Government Bond 10-Year', price: 88.50, yield: 10.50, change: 0.25, changePercent: 0.0028, maturity: '2034-11-01' },
-    { symbol: 'MEX10Y', name: 'Mexican Government Bond 10-Year', price: 90.20, yield: 8.50, change: -0.03, changePercent: -0.0003, maturity: '2034-12-20' },
-    { symbol: 'ZAF10Y', name: 'South African Government Bond 10-Year', price: 85.00, yield: 11.00, change: 0.18, changePercent: 0.0021, maturity: '2034-07-01' },
-  ];
-  // --- END MOCK DATA ---
-
-  // Ref to hold the debounce timer
+  // We will still filter on the frontend for the current page's data
+  const [filterSearchTerm, setFilterSearchTerm] = useState('');
   const debounceTimerRef = useRef(null);
 
-  // Function to perform the actual search (or API call later)
-  const performSearch = (query) => {
-    setPage(0); // Reset to the first page of search results
-    
-    // For real API calls, you'd set isLoading(true) here
-    // For this mock data, we just filter immediately
-    const lowerCaseQuery = query.toLowerCase();
-    const filteredResults = mockBondsData.filter(item =>
-      item?.symbol?.toLowerCase().includes(lowerCaseQuery) ||
-      item?.name?.toLowerCase().includes(lowerCaseQuery)
-    );
-    setSearchResults(filteredResults);
-    // For real API calls, you'd set isLoading(false) here after fetch completes
-  };
+  // --- Backend Pagination States ---
+  // Material-UI TablePagination uses 0-indexed pages, API returns 1-indexed.
+  // We will convert when passing to API and interpreting API response.
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5); // Default to 5 as per API's perPage
 
-  // Debounced search logic
-  useEffect(() => {
+  // --- Sorting States (Frontend Sorting for current page) ---
+  const [orderBy, setOrderBy] = useState('symbol');
+  const [order, setOrder] = useState('asc');
+
+  // --- useQuery for backend-driven data fetching ---
+  const {
+    data: apiResponse, // This will hold the entire API response object (currentPage, data, totalRecords, etc.)
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useQuery(
+    // Query key now includes page and rowsPerPage to trigger re-fetch when they change
+    ['bonds', page, rowsPerPage],
+    async () => {
+      // Pass the 0-indexed Material-UI page + 1 for backend (1-indexed)
+      // Pass rowsPerPage to the backend if your API supports it.
+      // Assuming marketAPI.getBonds now takes { page, perPage } or similar.
+      const response = await marketAPI.getBonds(page + 1);
+      return response; // Return the entire response object
+    },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      onError: (err) => {
+        toast.error(`Failed to load bond data: ${err.message || "Unknown error"}`);
+        console.error("API Fetch Error for Bonds:", err);
+      },
+      // Keep previous data true while fetching new, to avoid blank table during transition
+      keepPreviousData: true,
+    }
+  );
+
+  // Extract relevant data from the API response
+  const bonds = apiResponse?.data || [];
+  const totalRecords = apiResponse?.totalRecords || 0; // Use totalRecords from API for TablePagination count
+
+  // --- Search Logic (Frontend Filtering of current page's data) ---
+  // Note: If you want server-side search, your backend API needs to support a search parameter.
+  // For now, this searches only the current page's data.
+  const handleSearchChange = (event) => {
+    const value = event.target.value;
+    setDisplayedSearchTerm(value);
+
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
+    debounceTimerRef.current = setTimeout(() => {
+      setFilterSearchTerm(value);
+      // No need to reset page here, as filtering is only on the current page.
+      // If you implement server-side search, then you'd reset page to 0.
+    }, 500);
+  };
 
-    if (searchTerm) {
-      debounceTimerRef.current = setTimeout(() => {
-        performSearch(searchTerm);
-      }, 300); // Shorter debounce for faster feedback (300ms)
-    } else {
-      // If search term is empty, clear search results to display all mock data
-      setSearchResults([]);
-      setPage(0); // Also reset page when search is cleared
-    }
-
-    // Cleanup function: clear timer if component unmounts or effect re-runs
+  useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [searchTerm]); // Re-run effect when searchTerm changes
+  }, []);
 
-  const handleBondClick = (bond) => {
-    console.log('Bond clicked:', bond);
-    // TODO: Implement bond details view or other functionality
+  // --- Filtering Data (Frontend for the current page) ---
+  const filteredBonds = (bonds || []).filter(bond => {
+    if (!filterSearchTerm) return true;
+    const lowerCaseSearchTerm = filterSearchTerm.toLowerCase();
+    return (
+      bond.symbol?.toLowerCase().includes(lowerCaseSearchTerm) ||
+      bond.name?.toLowerCase().includes(lowerCaseSearchTerm)
+    );
+  });
+
+  // --- Sorting Handlers (Frontend Sorting for current page) ---
+  // If you want server-side sorting, your backend API needs to support sort parameters.
+  const handleRequestSort = useCallback((property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+    // No need to reset page here, as sorting is only on the current page.
+  }, [orderBy, order]);
+
+  const stableSort = useCallback((array, comparator) => {
+    const stabilizedThis = array.map((el, index) => [el, index]);
+    stabilizedThis.sort((a, b) => {
+      const order = comparator(a[0], b[0]);
+      if (order !== 0) return order;
+      return a[1] - b[1];
+    });
+    console.log("Sorted data:", stabilizedThis);
+    return stabilizedThis.map((el) => el[0]);
+  }, []);
+
+  const getComparator = useCallback((order, orderBy) => {
+    return order === 'desc'
+      ? (a, b) => descendingComparator(a, b, orderBy)
+      : (a, b) => -descendingComparator(a, b, orderBy);
+  }, []);
+
+  const descendingComparator = (a, b, orderBy) => {
+    const valA = a[orderBy];
+    const valB = b[orderBy];
+
+    if (typeof valA === 'string' && typeof valB === 'string' && (orderBy === 'symbol' || orderBy === 'name')) {
+      return valB.localeCompare(valA);
+    }
+
+    const normalizedValA = (valA === null || valA === undefined || isNaN(valA)) ? -Infinity : valA;
+    const normalizedValB = (valB === null || valB === undefined || isNaN(valB)) ? -Infinity : valB;
+
+    if (normalizedValB < normalizedValA) {
+      return -1;
+    }
+    if (normalizedValB > normalizedValA) {
+      return 1;
+    }
+    return 0;
   };
+  // Apply frontend sorting to the filtered data (which is just the current page's data)
+  const sortedBonds = stableSort(filteredBonds, getComparator(order, orderBy));
 
-  // --- Pagination Handlers ---
+
+  // --- Pagination Handlers (Backend Pagination triggered by state changes) ---
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage); // Material-UI gives 0-indexed newPage, which useQuery will use.
   };
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0); // Reset to the first page when rows per page changes
   };
-  // --- END Pagination Handlers ---
 
-  // Render table content
-  // We now include a simple loading message for initial data if needed, or error.
-  const renderBondsTable = (data) => (
+  const handleBondClick = (bond) => {
+    console.log('Bond clicked:', bond);
+  };
+
+  const renderBondsTable = () => (
     <Card>
       <CardContent>
-        {/* Simplified loading/error handling for mock data */}
-        {data.length === 0 && searchTerm !== '' ? ( // Display "No results" only if searching and nothing found
+        {isLoading || isFetching ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
-            <Typography color="text.secondary">
-              No bonds found matching your search.
+            <CircularProgress size={40} />
+            <Typography variant="body1" color="text.secondary" sx={{ ml: 2 }}>
+              Loading bonds...
             </Typography>
           </Box>
-        ) : data.length === 0 && searchTerm === '' ? ( // Display "No data" if no search and mock data is empty
-           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, flexDirection: 'column' }}>
+        ) : isError ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, flexDirection: 'column' }}>
             <Typography variant="h6" color="error.main">
-              Failed to load bond data.
+              Error loading bond data.
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Please check your data source.
+              {error?.message || "Please try again later."}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Ensure your API is running and accessible.
             </Typography>
           </Box>
-        ) : (
+        ) : (sortedBonds && sortedBonds.length > 0) ? (
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Symbol</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell align="right">Price</TableCell>
-                  <TableCell align="right">Yield</TableCell> {/* Added Yield */}
-                  <TableCell align="right">Change</TableCell>
-                  <TableCell align="right">% Change</TableCell>
-                  <TableCell>Maturity</TableCell> {/* Added Maturity */}
+                  {/* Symbol Column */}
+                  <TableCell sortDirection={orderBy === 'symbol' ? order : false}>
+                    <TableSortLabel
+                      active={orderBy === 'symbol'}
+                      direction={orderBy === 'symbol' ? order : 'asc'}
+                      onClick={() => handleRequestSort('symbol')}
+                    >
+                      Symbol
+                    </TableSortLabel>
+                  </TableCell>
+                  {/* Name Column */}
+                  <TableCell sortDirection={orderBy === 'name' ? order : false}>
+                    <TableSortLabel
+                      active={orderBy === 'name'}
+                      direction={orderBy === 'name' ? order : 'asc'}
+                      onClick={() => handleRequestSort('name')}
+                    >
+                      Name
+                    </TableSortLabel>
+                  </TableCell>
+                  {/* Price Column */}
+                  <TableCell align="right" sortDirection={orderBy === 'price' ? order : false}>
+                    <TableSortLabel
+                      active={orderBy === 'price'}
+                      direction={orderBy === 'price' ? order : 'asc'}
+                      onClick={() => handleRequestSort('price')}
+                    >
+                      Price
+                    </TableSortLabel>
+                  </TableCell>
+                  {/* Change Column */}
+                  <TableCell align="right" sortDirection={orderBy === 'change' ? order : false}>
+                    <TableSortLabel
+                      active={orderBy === 'change'}
+                      direction={orderBy === 'change' ? order : 'asc'}
+                      onClick={() => handleRequestSort('change')}
+                    >
+                      Change
+                    </TableSortLabel>
+                  </TableCell>
+                  {/* % Change Column */}
+                  <TableCell align="right" sortDirection={orderBy === 'changePercent' ? order : false}>
+                    <TableSortLabel
+                      active={orderBy === 'changePercent'}
+                      direction={orderBy === 'changePercent' ? order : 'asc'}
+                      onClick={() => handleRequestSort('changePercent')}
+                    >
+                      Change %
+                    </TableSortLabel>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((bond) => (
-                    <TableRow
-                      key={bond?.symbol || Math.random()}
-                      hover
-                      sx={{ cursor: 'pointer' }}
-                      onClick={() => handleBondClick(bond)}
+                {sortedBonds.map((bond) => ( // Use sortedBonds directly, as backend already paginated
+                  <TableRow
+                    key={bond?.symbol || `bond-${Math.random()}`}
+                    hover
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => handleBondClick(bond)}
+                  >
+                    <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      {bond?.symbol || 'N/A'}
+                    </TableCell>
+                    <TableCell>{bond?.name || 'N/A'}</TableCell>
+                    <TableCell align="right">{bond?.price}</TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{ color: getChangeColor(bond?.change), fontWeight: 500 }}
                     >
-                      <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
-                        {bond?.symbol || 'N/A'}
-                      </TableCell>
-                      <TableCell>{bond?.name || 'N/A'}</TableCell>
-                      <TableCell align="right">{formatCurrency(bond?.price, 'USD', 2)}</TableCell> {/* Format price */}
-                      <TableCell align="right">{bond?.yield !== undefined ? `${bond.yield.toFixed(2)}%` : 'N/A'}</TableCell> {/* Format yield */}
-                      <TableCell
-                        align="right"
-                        sx={{ color: getChangeColor(bond?.change), fontWeight: 500 }}
-                      >
-                        {formatCurrency(bond?.change, 'USD')}
-                      </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{ color: getChangeColor(bond?.changePercent), fontWeight: 500 }}
-                      >
-                        {formatPercentage(bond?.changePercent)}
-                      </TableCell>
-                      <TableCell>{bond?.maturity || 'N/A'}</TableCell> {/* Display Maturity */}
-                    </TableRow>
-                  ))}
+                      {formatCurrency(bond?.change, 'USD')}
+                    </TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{ color: getPercentageColorFromString(bond?.changePercent), fontWeight: 500 }}
+                    >
+                      {bond?.changePercent}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
-        )}
-        {/* Table Pagination Component */}
-        {data.length > 0 && ( // Only show pagination if there's data to paginate
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={data.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            sx={{ mt: 2 }}
-          />
+        ) : (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+            <Typography color="text.secondary">
+              No bond data available or found matching your search.
+            </Typography>
+          </Box>
         )}
       </CardContent>
+      {/* Table Pagination Component - now uses totalRecords from API for count */}
+      {!(isLoading || isError) && (totalRecords > 0) && (
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50, 100]} // Keep options, but backend will only return `perPage` items
+          component="div"
+          count={totalRecords} // Use totalRecords from the API response
+          rowsPerPage={rowsPerPage}
+          page={page} // Material-UI's 0-indexed page
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          sx={{ mt: 2 }}
+        />
+      )}
     </Card>
   );
-
-  // Determine whether to display mock data or search results
-  const allDataToDisplay = searchTerm ? searchResults : mockBondsData;
 
   return (
     <Box sx={{ py: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Bonds {/* Changed title to Bonds */}
+          Bonds
         </Typography>
         <TextField
           size="small"
-          placeholder="Search bonds... (e.g., UST10Y, DEU10Y)" 
+          placeholder="Search bonds..."
           value={displayedSearchTerm}
-          onChange={(e) => {
-            setDisplayedSearchTerm(e.target.value);
-            setSearchTerm(e.target.value);
-          }}
+          onChange={handleSearchChange}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
                 <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
               </InputAdornment>
             ),
-            // Removed endAdornment with CircularProgress for search input
+            endAdornment: isFetching && (
+              <InputAdornment position="end">
+                <CircularProgress size={20} color="inherit" />
+              </InputAdornment>
+            ),
           }}
           sx={{ minWidth: 300 }}
         />
       </Box>
 
-      {renderBondsTable(allDataToDisplay)}
+      {renderBondsTable()}
     </Box>
   );
 };
