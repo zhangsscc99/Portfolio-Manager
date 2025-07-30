@@ -116,7 +116,7 @@ export const marketAPI = {
 
   // Search stocks
   searchStocks: (query) =>
-    api.get(`/market/search?q=${encodeURIComponent(query)}`),
+    api.get(`/assets/search?symbol=${encodeURIComponent(query)}`),
 
   // Get market indices
   getIndices: () => api.get("/market/indices"),

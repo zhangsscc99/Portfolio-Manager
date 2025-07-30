@@ -1,170 +1,120 @@
-const portfolioService = require('../services/portfolioService');
+const { Portfolio, Asset, Holding, Transaction, sequelize } = require('../models');
+const { Op } = require('sequelize');
 
-// 🎯 错误类型映射
-const ERROR_MAPPINGS = {
-  VALIDATION_ERROR: 400,
-  NOT_FOUND: 404,
-  CONFLICT: 409,
-  SERVER_ERROR: 500
+exports.getAllPortfolios = async (req, res) => {
+  try {
+    const portfolios = await Portfolio.findAll({ order: [['created_at', 'DESC']] });
+    res.json({ success: true, data: portfolios });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 };
 
-// 🔄 根据错误信息返回适当的HTTP状态码
-const getErrorStatusCode = (errorMessage) => {
-  if (errorMessage.includes('无效') || 
-      errorMessage.includes('缺少必填字段')) {
-    return ERROR_MAPPINGS.VALIDATION_ERROR;
+exports.getPortfolioById = async (req, res) => {
+  try {
+    const portfolio = await Portfolio.findOne({ where: { portfolio_id: req.params.portfolio_id } });
+    if (!portfolio) {
+      return res.status(404).json({ success: false, error: 'Portfolio not found' });
+    }
+
+    const holdings = await Holding.findAll({
+      where: { portfolio_id: portfolio.portfolio_id },
+      include: [
+        { model: Asset, as: 'asset' },
+        { model: Transaction, as: 'transactions' }
+      ]
+    });
+
+    const assetsByType = {};
+
+    for (const holding of holdings) {
+      const asset = holding.asset;
+      if (!asset) continue;
+
+      // 方法1：基于交易类型计算成本价格
+      let costPrice = 0;
+      let totalQuantity = 0;
+
+      if (holding.transactions && holding.transactions.length > 0) {
+        for (const transaction of holding.transactions) {
+          if (transaction.type === 'buy') {
+            costPrice += transaction.amount;
+            totalQuantity += transaction.quantity;
+          } else if (transaction.type === 'sell') {
+            const sellRatio = transaction.quantity / totalQuantity;
+            costPrice -= (costPrice * sellRatio);
+            totalQuantity -= transaction.quantity;
+          }
+        }
+      }
+
+      const assetType = asset.asset_type || 'other';
+      if (!assetsByType[assetType]) {
+        assetsByType[assetType] = {
+          count: 0,
+          totalValue: 0,
+          assets: []
+        };
+      }
+
+      assetsByType[assetType].assets.push({
+        symbol: asset.symbol,
+        name: asset.name,
+        quantity: holding.quantity,
+        cost_price: costPrice
+      });
+
+      assetsByType[assetType].count += 1;
+      assetsByType[assetType].totalValue += costPrice;
+    }
+
+    res.json({
+      success: true,
+      data: assetsByType  // 直接返回 assetsByType，不要包在对象里
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-  
-  if (errorMessage.includes('不存在') || 
-      errorMessage.includes('未找到') ||
-      errorMessage.includes('No portfolio found')) {
-    return ERROR_MAPPINGS.NOT_FOUND;
-  }
-  
-  if (errorMessage.includes('已存在')) {
-    return ERROR_MAPPINGS.CONFLICT;
-  }
-  
-  return ERROR_MAPPINGS.SERVER_ERROR;
 };
 
-// 🎯 标准化响应格式
-const sendSuccess = (res, data, message, statusCode = 200) => {
-  res.status(statusCode).json({
-    success: true,
-    data,
-    message
-  });
+exports.createPortfolio = async (req, res) => {
+  try {
+    const { name, total_value } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'name is required' });
+    }
+    const portfolio = await Portfolio.create({ name, total_value });
+    res.status(201).json({ success: true, data: portfolio });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 };
 
-const sendError = (res, error, statusCode = 500) => {
-  console.error('API错误:', error);
-  res.status(statusCode).json({
-    success: false,
-    error: error.message || '服务器内部错误'
-  });
+exports.updatePortfolio = async (req, res) => {
+  try {
+    const { name, total_value } = req.body;
+    const portfolio = await Portfolio.findOne({ where: { portfolio_id: req.params.portfolio_id } });
+    if (!portfolio) {
+      return res.status(404).json({ success: false, error: 'Portfolio not found' });
+    }
+    if (name !== undefined) portfolio.name = name;
+    if (total_value !== undefined) portfolio.total_value = total_value;
+    await portfolio.save();
+    res.json({ success: true, data: portfolio });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 };
 
-class PortfolioController {
-  /**
-   * 获取所有投资组合
-   * GET /api/portfolio
-   */
-  async getAllPortfolios(req, res) {
-    try {
-      const portfolios = await portfolioService.getAllPortfolios();
-      sendSuccess(res, portfolios);
-    } catch (error) {
-      const statusCode = getErrorStatusCode(error.message);
-      sendError(res, error, statusCode);
+exports.deletePortfolio = async (req, res) => {
+  try {
+    const portfolio = await Portfolio.findOne({ where: { portfolio_id: req.params.portfolio_id } });
+    if (!portfolio) {
+      return res.status(404).json({ success: false, error: 'Portfolio not found' });
     }
+    await portfolio.destroy();
+    res.json({ success: true, message: 'Portfolio deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  /**
-   * 获取当前投资组合 (最新的)
-   * GET /api/portfolio/current
-   */
-  async getCurrentPortfolio(req, res) {
-    try {
-      // 🎯 现在调用Service层，不再在Controller做复杂计算
-      const portfolioData = await portfolioService.getPortfolioDetails();
-      
-      sendSuccess(res, portfolioData);
-    } catch (error) {
-      const statusCode = getErrorStatusCode(error.message);
-      sendError(res, error, statusCode);
-    }
-  }
-
-  /**
-   * 根据ID获取投资组合
-   * GET /api/portfolio/:id
-   */
-  async getPortfolioById(req, res) {
-    try {
-      const portfolioId = parseInt(req.params.id);
-      
-      const portfolioData = await portfolioService.getPortfolioDetails(portfolioId);
-      
-      sendSuccess(res, portfolioData);
-    } catch (error) {
-      const statusCode = getErrorStatusCode(error.message);
-      sendError(res, error, statusCode);
-    }
-  }
-
-  /**
-   * 创建新投资组合
-   * POST /api/portfolio
-   */
-  async createPortfolio(req, res) {
-    try {
-      const portfolioData = req.body;
-      
-      const portfolio = await portfolioService.createPortfolio(portfolioData);
-      
-      sendSuccess(res, portfolio, '投资组合创建成功', 201);
-    } catch (error) {
-      const statusCode = getErrorStatusCode(error.message);
-      sendError(res, error, statusCode);
-    }
-  }
-
-  /**
-   * 更新投资组合
-   * PUT /api/portfolio/:id
-   */
-  async updatePortfolio(req, res) {
-    try {
-      const portfolioId = parseInt(req.params.id);
-      const updateData = req.body;
-      
-      const portfolio = await portfolioService.updatePortfolio(portfolioId, updateData);
-      
-      sendSuccess(res, portfolio, '投资组合更新成功');
-    } catch (error) {
-      const statusCode = getErrorStatusCode(error.message);
-      sendError(res, error, statusCode);
-    }
-  }
-
-  /**
-   * 删除投资组合
-   * DELETE /api/portfolio/:id
-   */
-  async deletePortfolio(req, res) {
-    try {
-      const portfolioId = parseInt(req.params.id);
-      
-      const result = await portfolioService.deletePortfolio(portfolioId);
-      
-      sendSuccess(res, result, '投资组合删除成功');
-    } catch (error) {
-      const statusCode = getErrorStatusCode(error.message);
-      sendError(res, error, statusCode);
-    }
-  }
-
-  /**
-   * 获取投资组合重新平衡建议
-   * POST /api/portfolio/:id/rebalance
-   */
-  async getRebalanceRecommendations(req, res) {
-    try {
-      const portfolioId = parseInt(req.params.id);
-      const { targetAllocation } = req.body;
-      
-      const recommendations = await portfolioService.generateRebalanceRecommendations(
-        portfolioId, 
-        targetAllocation
-      );
-      
-      sendSuccess(res, recommendations);
-    } catch (error) {
-      const statusCode = getErrorStatusCode(error.message);
-      sendError(res, error, statusCode);
-    }
-  }
-}
-
-module.exports = new PortfolioController(); 
+};

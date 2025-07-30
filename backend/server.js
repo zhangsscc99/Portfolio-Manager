@@ -114,9 +114,9 @@ const startServer = async () => {
     await initializeDatabase();
     
     // 3. 生成SQL结构文件
-    console.log('📄 生成SQL结构文件...');
-    const { generateSQLSchema } = require('./scripts/generateSQL');
-    await generateSQLSchema();
+    // console.log('📄 生成SQL结构文件...');
+    // const { generateSQLSchema } = require('./scripts/generateSQL');
+    // await generateSQLSchema();
     
             // 4. 启动HTTP服务器
         app.listen(PORT, () => {
@@ -129,10 +129,10 @@ const startServer = async () => {
           console.log(`📁 SQL结构文件: ./database_schema.sql`);
           console.log('==========================================');
           
-          // 5. 启动定时数据更新服务
-          setTimeout(() => {
-            scheduledUpdatesService.startAllTasks();
-          }, 3000); // 延迟3秒启动，确保数据库完全就绪
+          // // 5. 启动定时数据更新服务
+          // setTimeout(() => {
+          //   scheduledUpdatesService.startAllTasks();
+          // }, 3000); // 延迟3秒启动，确保数据库完全就绪
         });
   } catch (error) {
     console.error('❌ 服务器启动失败:', error);

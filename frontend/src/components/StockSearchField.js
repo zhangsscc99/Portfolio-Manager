@@ -49,15 +49,20 @@ const StockSearchField = ({
           // 🎯 根据资产类型过滤结果
           const filteredResults = results.filter(stock => {
             console.log('🎯 检查股票:', stock.symbol, '类型:', stock.type, 'typeDisp:', stock.typeDisp);
-            
-            if (assetType === 'crypto') {
+
+            if (assetType === 'EQUITY') {
+              return stock.type?.toLowerCase().includes('stock') || 
+                     stock.typeDisp?.toLowerCase().includes('stock') ||
+                     stock.quoteType?.toLowerCase() === 'stock';
+            }
+            if (assetType === 'CRYPTOCURRENCY') {
               return stock.type?.toLowerCase().includes('crypto') || 
                      stock.typeDisp?.toLowerCase().includes('crypto') ||
                      stock.symbol?.includes('-USD') ||
                      ['BTC', 'ETH', 'ADA', 'DOT', 'LINK'].some(crypto => 
                        stock.symbol?.includes(crypto)
                      );
-            } else if (assetType === 'etf') {
+            } else if (assetType === 'ETF') {
               return stock.type?.toLowerCase().includes('etf') ||
                      stock.typeDisp?.toLowerCase().includes('etf') ||
                      stock.quoteType?.toLowerCase() === 'etf';

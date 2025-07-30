@@ -45,8 +45,6 @@ const ASSET_TYPES = {
   crypto: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
   etf: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
   bond: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
-  cash: { name: 'Cash', icon: '💰', color: '#10b981' }, // 保持绿色 - Cash通常用绿色
-  commodity: { name: 'Commodities', icon: '🥇', color: '#9A6B15' } // 最深金色
 };
 
 const Portfolio = () => {
@@ -77,11 +75,47 @@ const Portfolio = () => {
     maxQuantity: 0
   });
   const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
+  const [assetPrices, setAssetPrices] = useState({});
+  // 价格查询函数
+  const fetchAssetPrice = async (symbol) => {
+    if (assetPrices[symbol]) return;
+
+    try {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.search(symbol)));
+      const result = await response.json();
+
+      if (result.success && result.data && result.data.length > 0) {
+        const assetData = result.data[0];
+        setAssetPrices(prev => ({
+          ...prev,
+          [symbol]: {
+            price: assetData.price
+          }
+        }));
+      }
+    } catch (error) {
+      console.error(`Failed to fetch price for ${symbol}:`, error);
+    }
+  };
+
+  // 在 useEffect 中查询所有价格
+  useEffect(() => {
+    if (portfolioData?.assetsByType) {
+      const allSymbols = [];
+      Object.values(portfolioData.assetsByType).forEach(typeData => {
+        typeData.assets?.forEach(asset => {
+          allSymbols.push(asset.symbol);
+        });
+      });
+
+      allSymbols.forEach(symbol => fetchAssetPrice(symbol));
+    }
+  }, [portfolioData]);
 
   // 📊 Fetch portfolio data
   const fetchPortfolioData = async () => {
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1)));
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.portfolio.getById(1)));
       const data = await response.json();
       if (data.success) {
         setPortfolioData(data.data);
@@ -96,24 +130,24 @@ const Portfolio = () => {
   // 📈 Fetch asset chart data
   const fetchAssetChartData = async (asset) => {
     if (!asset) return;
-    
+
     setChartLoading(true);
     try {
       // Fetch real historical data from API
       const response = await fetch(buildApiUrl(`/market/history/${asset.symbol}?period=1mo`));
       const result = await response.json();
-      
+
       if (result.success && result.data && result.data.length > 0) {
         // Use real historical data
         const historyData = result.data;
-        
+
         const labels = historyData.map(item => {
           const date = new Date(item.date);
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
-        
+
         const chartData = historyData.map(item => parseFloat(item.price || item.close || 0));
-        
+
         const data = {
           labels,
           datasets: [
@@ -130,7 +164,7 @@ const Portfolio = () => {
             },
           ],
         };
-        
+
         setAssetChartData(data);
       } else {
         // Fallback: If no historical data available, show current price as flat line
@@ -139,14 +173,14 @@ const Portfolio = () => {
         const days = 30;
         const labels = [];
         const chartData = [];
-        
+
         for (let i = days; i >= 0; i--) {
           const date = new Date();
           date.setDate(date.getDate() - i);
           labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
           chartData.push(currentPrice);
         }
-        
+
         const data = {
           labels,
           datasets: [
@@ -163,7 +197,7 @@ const Portfolio = () => {
             },
           ],
         };
-        
+
         setAssetChartData(data);
       }
     } catch (error) {
@@ -173,14 +207,14 @@ const Portfolio = () => {
       const days = 30;
       const labels = [];
       const chartData = [];
-      
+
       for (let i = days; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         chartData.push(currentPrice);
       }
-      
+
       const data = {
         labels,
         datasets: [
@@ -197,7 +231,7 @@ const Portfolio = () => {
           },
         ],
       };
-      
+
       setAssetChartData(data);
     } finally {
       setChartLoading(false);
@@ -224,14 +258,14 @@ const Portfolio = () => {
     try {
       // Navigate to analytics page
       navigate('/analytics');
-      
+
       // Wait for navigation and then scroll to AI Analysis section
       setTimeout(() => {
         const element = document.getElementById('ai-analysis-reports-section');
         if (element) {
-          element.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
+          element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
           });
         }
       }, 300);
@@ -248,34 +282,34 @@ const Portfolio = () => {
       const assetType = assetToRemove.asset_type;
       const assetSymbol = assetToRemove.symbol;
       const sellQuantity = parseFloat(assetToRemove.quantity);
-      
+
       const asset = portfolioData?.assetsByType?.[assetType]?.assets?.find(
         a => a.symbol === assetSymbol
       );
-      
+
       if (!asset) {
         setRemoveMessage({ type: 'error', text: 'Asset not found in portfolio' });
         return;
       }
-      
+
       // 验证卖出数量
       if (!sellQuantity || sellQuantity <= 0) {
         setRemoveMessage({ type: 'error', text: 'Please enter a valid quantity to sell' });
         return;
       }
-      
+
       if (sellQuantity > asset.quantity) {
         setRemoveMessage({ type: 'error', text: `Cannot sell more than ${asset.quantity} shares` });
         return;
       }
-      
+
       // 如果卖出全部，使用DELETE请求
       if (sellQuantity >= asset.quantity) {
         const response = await fetch(`/api/assets/${asset.id}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' }
         });
-        
+
         if (response.ok) {
           setRemoveMessage({ type: 'success', text: `${asset.symbol} completely sold (${sellQuantity} shares)` });
           // 成功时延迟重置表单并刷新数据
@@ -304,7 +338,7 @@ const Portfolio = () => {
             sellQuantity: sellQuantity
           })
         });
-        
+
         if (response.ok) {
           const newQuantity = asset.quantity - sellQuantity;
           setRemoveMessage({ type: 'success', text: `Sold ${sellQuantity} shares of ${asset.symbol}. Remaining: ${newQuantity}` });
@@ -361,19 +395,27 @@ const Portfolio = () => {
   // ➕ Add asset
   const handleAddAsset = async () => {
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
+      const assetResponse = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...newAsset,
-          portfolio_id: 1,
-          quantity: parseFloat(newAsset.quantity),
-          avg_cost: parseFloat(newAsset.avg_cost)
+          symbol: newAsset.symbol,
         })
       });
-      
+
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.holdings.create), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          portfolio_id: 1,
+          asset_id: assetResponse.id,
+          quantity: newAsset.quantity,
+          avg_cost: newAsset.avg_cost
+        })
+      });
+
       const result = await response.json();
-      
+
       if (response.ok) {
         // 显示成功消息
         console.log(`✅ Asset ${newAsset.symbol} added/updated successfully`);
@@ -436,7 +478,7 @@ const Portfolio = () => {
         borderColor: 'rgba(255, 255, 255, 0.2)',
         borderWidth: 1,
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
           }
         }
@@ -458,7 +500,7 @@ const Portfolio = () => {
           color: 'rgba(0, 0, 0, 0.1)',
         },
         ticks: {
-          callback: function(value) {
+          callback: function (value) {
             return formatCurrency(value);
           }
         }
@@ -478,11 +520,11 @@ const Portfolio = () => {
       {/* 📊 Header statistics */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography 
-            variant="h4" 
+          <Typography
+            variant="h4"
             className="gradient-text"
-            sx={{ 
-              fontWeight: 600 
+            sx={{
+              fontWeight: 600
             }}
           >
             Portfolio Overview
@@ -514,7 +556,7 @@ const Portfolio = () => {
             startIcon={<AddIcon />}
             onClick={() => setAddAssetOpen(true)}
           >
-            Add Asset
+            Buy Asset
           </Button>
           <Button
             variant="contained"
@@ -522,7 +564,7 @@ const Portfolio = () => {
             // CHANGE THIS TO REMOVE 
             onClick={() => setRemoveAssetOpen(true)}
           >
-            Remove Asset
+            Sell Asset
           </Button>
         </Box>
       </Box>
@@ -533,16 +575,16 @@ const Portfolio = () => {
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
             Asset Categories
           </Typography>
-          
+
           {Object.entries(ASSET_TYPES).map(([type, config]) => {
             const typeData = portfolioData?.assetsByType?.[type];
             const hasAssets = typeData?.count > 0;
-            
+
             return (
-              <Accordion 
+              <Accordion
                 key={type}
                 expanded={expandedTypes[type] || hasAssets}
-                onChange={(_, isExpanded) => setExpandedTypes(prev => ({...prev, [type]: isExpanded}))}
+                onChange={(_, isExpanded) => setExpandedTypes(prev => ({ ...prev, [type]: isExpanded }))}
                 sx={{ mb: 1, display: hasAssets ? 'block' : 'none' }}
               >
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -572,12 +614,12 @@ const Portfolio = () => {
                           <TableCell align="right">Gain/Loss</TableCell>
                         </TableRow>
                       </TableHead>
-                      <TableBody>
+                      {/* <TableBody>
                         {typeData?.assets?.map((asset) => (
-                          <TableRow 
+                          <TableRow
                             key={asset.id}
                             hover
-                            sx={{ 
+                            sx={{
                               cursor: 'pointer',
                               backgroundColor: selectedAsset?.id === asset.id ? 'action.selected' : 'inherit'
                             }}
@@ -618,6 +660,79 @@ const Portfolio = () => {
                             </TableCell>
                           </TableRow>
                         ))}
+                      </TableBody> */}
+                      <TableBody>
+                        {typeData?.assets?.map((asset) => {
+                          const currentPrice = assetPrices[asset.symbol]?.price;
+                          const avgCost = asset.avg_cost || (asset.cost_price / asset.quantity);
+                          const currentValue = currentPrice ? currentPrice * asset.quantity : null;
+                          const gainLoss = currentPrice ? currentPrice - avgCost : null;
+                          const gainLossPercent = gainLoss ? (gainLoss / avgCost) * 100 : null;
+
+                          return (
+                            <TableRow
+                              key={asset.symbol}
+                              hover
+                              sx={{
+                                cursor: 'pointer',
+                                backgroundColor: selectedAsset?.symbol === asset.symbol ? 'action.selected' : 'inherit'
+                              }}
+                              onClick={() => handleAssetSelection(asset)}
+                            >
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                {asset.symbol}
+                              </TableCell>
+                              <TableCell>{asset.name}</TableCell>
+                              <TableCell align="right">
+                                {parseFloat(asset.quantity).toLocaleString()}
+                              </TableCell>
+                              <TableCell align="right">
+                                {formatCurrency(avgCost, 'USD')}
+                              </TableCell>
+                              <TableCell align="right">
+                                {currentPrice ? (
+                                  formatCurrency(currentPrice, 'USD')
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    N/A
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="right">
+                                {currentValue ? (
+                                  formatCurrency(currentValue, 'USD')
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    N/A
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="right">
+                                {gainLossPercent !== null ? (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                    {gainLoss >= 0 ? (
+                                      <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main', mr: 0.5 }} />
+                                    ) : (
+                                      <TrendingDownIcon sx={{ fontSize: 16, color: 'error.main', mr: 0.5 }} />
+                                    )}
+                                    <Typography
+                                      sx={{
+                                        color: gainLoss >= 0 ? 'success.main' : 'error.main',
+                                        fontWeight: 600
+                                      }}
+                                    >
+                                      {formatPercent(gainLossPercent)}
+                                    </Typography>
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    N/A
+                                  </Typography>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>
@@ -652,15 +767,15 @@ const Portfolio = () => {
                     </Typography>
                   </Box>
                 </Box>
-                
+
                 <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
                   {formatCurrency(selectedAsset.current_price, selectedAsset.currency)}
                 </Typography>
-                
+
                 <Box sx={{ height: 200, position: 'relative' }}>
                   {assetChartData ? (
-                    <Line 
-                      data={assetChartData} 
+                    <Line
+                      data={assetChartData}
                       options={chartOptions}
                       key={`chart-${selectedAsset.id}`}
                     />
@@ -672,7 +787,7 @@ const Portfolio = () => {
                     </Box>
                   )}
                 </Box>
-                
+
                 <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
@@ -734,7 +849,7 @@ const Portfolio = () => {
                 {Object.entries(ASSET_TYPES).map(([type, config]) => {
                   const typeData = portfolioData?.assetsByType?.[type];
                   if (!typeData?.assets?.length) return null;
-                  
+
                   return typeData.assets.map((asset) => (
                     <MenuItem key={`${type}:${asset.symbol}`} value={`${type}:${asset.symbol}`}>
                       {config.icon} {asset.symbol} - {asset.name}
@@ -746,10 +861,10 @@ const Portfolio = () => {
             {assetToRemove.symbol && (
               <>
                 <Grid item xs={12}>
-                  <Box sx={{ 
-                    p: 2, 
+                  <Box sx={{
+                    p: 2,
                     background: 'linear-gradient(135deg, rgba(244, 190, 126, 0.1) 0%, rgba(232, 168, 85, 0.15) 100%)',
-                    borderRadius: 2, 
+                    borderRadius: 2,
                     border: '1px solid',
                     borderColor: 'primary.main'
                   }}>
@@ -758,7 +873,7 @@ const Portfolio = () => {
                     </Typography>
                   </Box>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -766,8 +881,8 @@ const Portfolio = () => {
                     type="number"
                     value={assetToRemove.quantity}
                     onChange={(e) => setAssetToRemove(prev => ({ ...prev, quantity: e.target.value }))}
-                    inputProps={{ 
-                      min: 0.01, 
+                    inputProps={{
+                      min: 0.01,
                       max: assetToRemove.maxQuantity,
                       step: 0.01
                     }}
@@ -775,11 +890,11 @@ const Portfolio = () => {
                     error={assetToRemove.quantity && (parseFloat(assetToRemove.quantity) > assetToRemove.maxQuantity || parseFloat(assetToRemove.quantity) <= 0)}
                   />
                 </Grid>
-                
+
                 {assetToRemove.quantity && !removeMessage.text && (
                   <Grid item xs={12}>
                     <Alert severity="warning">
-                      {parseFloat(assetToRemove.quantity) >= assetToRemove.maxQuantity 
+                      {parseFloat(assetToRemove.quantity) >= assetToRemove.maxQuantity
                         ? `You are selling ALL ${assetToRemove.maxQuantity} shares of ${assetToRemove.symbol}. This will completely remove the asset from your portfolio.`
                         : `You are selling ${assetToRemove.quantity} shares of ${assetToRemove.symbol}. You will have ${(assetToRemove.maxQuantity - parseFloat(assetToRemove.quantity)).toFixed(2)} shares remaining.`
                       }
@@ -792,14 +907,14 @@ const Portfolio = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRemoveAssetOpen(false)}>Cancel</Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="error"
             onClick={handleRemoveAsset}
             disabled={
-              !assetToRemove.symbol || 
-              !assetToRemove.quantity || 
-              parseFloat(assetToRemove.quantity) <= 0 || 
+              !assetToRemove.symbol ||
+              !assetToRemove.quantity ||
+              parseFloat(assetToRemove.quantity) <= 0 ||
               parseFloat(assetToRemove.quantity) > assetToRemove.maxQuantity ||
               removeMessage.type === 'success'
             }
@@ -808,12 +923,12 @@ const Portfolio = () => {
           </Button>
         </DialogActions>
       </Dialog>
-          
+
 
 
       {/* 📝 Add asset dialog */}
       <Dialog open={addAssetOpen} onClose={() => { setAddAssetOpen(false); resetAddAssetForm(); }} maxWidth="sm" fullWidth>
-        <DialogTitle>Add New Asset</DialogTitle>
+        <DialogTitle>Buy New Asset</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
@@ -824,7 +939,7 @@ const Portfolio = () => {
                 value={newAsset.asset_type}
                 onChange={(e) => {
                   const newType = e.target.value;
-                  setNewAsset(prev => ({...prev, asset_type: newType}));
+                  setNewAsset(prev => ({ ...prev, asset_type: newType }));
                   // 清除之前的选择，因为资产类型改变了
                   setSelectedStock(null);
                 }}
@@ -844,21 +959,22 @@ const Portfolio = () => {
                 assetType={newAsset.asset_type}
                 label={`Search ${ASSET_TYPES[newAsset.asset_type]?.name || 'Assets'}...`}
                 placeholder={
-                  newAsset.asset_type === 'stock' ? "Type 'nvidia' or 'NVDA'" :
-                  newAsset.asset_type === 'crypto' ? "Type 'bitcoin' or 'BTC'" :
-                  newAsset.asset_type === 'etf' ? "Type 'SPY' or 'QQQ'" :
-                  "Type symbol or name"
+                  newAsset.asset_type === 'stock' ? "Type 'NVDA'" :
+                    newAsset.asset_type === 'crypto' ? "Type 'BTC'" :
+                      newAsset.asset_type === 'etf' ? "Type 'SPY' or 'QQQ'" :
+                        newAsset.asset_type === 'bond' ? "Type '^IRX'" :
+                          "Type symbol or name"
                 }
               />
             </Grid>
-            
+
             {/* 显示选中的股票信息 */}
             {selectedStock && (
               <Grid item xs={12}>
-                <Box sx={{ 
-                  p: 2, 
+                <Box sx={{
+                  p: 2,
                   background: 'linear-gradient(135deg, rgba(244, 190, 126, 0.1) 0%, rgba(232, 168, 85, 0.15) 100%)',
-                  borderRadius: 2, 
+                  borderRadius: 2,
                   border: '1px solid',
                   borderColor: 'primary.main'
                 }}>
@@ -873,7 +989,7 @@ const Portfolio = () => {
                 </Box>
               </Grid>
             )}
-            
+
             {/* 手动输入选项（如果需要） */}
             {!selectedStock && (
               <>
@@ -883,7 +999,7 @@ const Portfolio = () => {
                     label="Symbol (Manual)"
                     placeholder="e.g., AAPL, BTC"
                     value={newAsset.symbol}
-                    onChange={(e) => setNewAsset(prev => ({...prev, symbol: e.target.value}))}
+                    onChange={(e) => setNewAsset(prev => ({ ...prev, symbol: e.target.value }))}
                     helperText="Or use search above"
                   />
                 </Grid>
@@ -892,7 +1008,7 @@ const Portfolio = () => {
                     fullWidth
                     label="Asset Name (Manual)"
                     value={newAsset.name}
-                    onChange={(e) => setNewAsset(prev => ({...prev, name: e.target.value}))}
+                    onChange={(e) => setNewAsset(prev => ({ ...prev, name: e.target.value }))}
                     helperText="Or use search above"
                   />
                 </Grid>
@@ -904,7 +1020,7 @@ const Portfolio = () => {
                 label="Quantity"
                 type="number"
                 value={newAsset.quantity}
-                onChange={(e) => setNewAsset(prev => ({...prev, quantity: e.target.value}))}
+                onChange={(e) => setNewAsset(prev => ({ ...prev, quantity: e.target.value }))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -913,7 +1029,7 @@ const Portfolio = () => {
                 label="Average Cost"
                 type="number"
                 value={newAsset.avg_cost}
-                onChange={(e) => setNewAsset(prev => ({...prev, avg_cost: e.target.value}))}
+                onChange={(e) => setNewAsset(prev => ({ ...prev, avg_cost: e.target.value }))}
               />
             </Grid>
           </Grid>
@@ -928,7 +1044,7 @@ const Portfolio = () => {
     </Box>
   );
 
-  
+
 
 
 };
