@@ -33,6 +33,8 @@ const StockSearchField = ({
         return;
       }
 
+
+      
       try {
         setLoading(true);
         console.log('🔍 搜索股票:', query, '资产类型:', assetType);
