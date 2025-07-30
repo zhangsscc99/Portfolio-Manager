@@ -96,6 +96,7 @@ class AssetService {
         quantity,
         avg_cost,
         current_price,
+        historical_avg_price,
         currency = 'USD',
         exchange,
         portfolio_id,
@@ -153,6 +154,8 @@ class AssetService {
           avg_cost: weightedAvgCost,
           // 如果提供了新的当前价格，也更新它
           current_price: current_price ? parseFloat(current_price) : existingAsset.current_price,
+          // 如果提供了新的历史平均价格，也更新它
+          historical_avg_price: historical_avg_price ? parseFloat(historical_avg_price) : existingAsset.historical_avg_price,
           // 更新购买日期为最新的购买日期
           purchase_date: purchase_date || existingAsset.purchase_date,
           // 合并备注信息
@@ -180,6 +183,7 @@ class AssetService {
         quantity: parseFloat(quantity),
         avg_cost: parseFloat(avg_cost),
         current_price: current_price ? parseFloat(current_price) : parseFloat(avg_cost),
+        historical_avg_price: historical_avg_price ? parseFloat(historical_avg_price) : null,
         currency,
         exchange,
         price_source: priceSource,

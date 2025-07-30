@@ -184,22 +184,25 @@ class YahooFinanceService {
           startDate.setMonth(startDate.getMonth() - 1);
       }
       
-      // 从Yahoo Finance获取历史数据
-      const historicalResult = await yahooFinance.historical(symbol, {
+      // 从Yahoo Finance获取历史数据 (使用chart方法替代已废弃的historical)
+      const chartResult = await yahooFinance.chart(symbol, {
         period1: startDate,
         period2: endDate,
         interval: '1d' // 日线数据
       });
+      
+      // chart方法返回的格式: { quotes: [...] }
+      const historicalResult = chartResult?.quotes || [];
       
       if (!historicalResult || historicalResult.length === 0) {
         console.log(`⚠️ ${symbol} 没有历史数据`);
         return [];
       }
       
-      // 格式化数据
+      // 格式化数据 - chart数据格式与historical略有不同
       const formattedData = historicalResult.map(item => ({
-        date: item.date.toISOString().split('T')[0], // YYYY-MM-DD格式
-        timestamp: item.date.getTime(),
+        date: item.date ? item.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        timestamp: item.date ? item.date.getTime() : Date.now(),
         open: item.open || 0,
         high: item.high || 0,
         low: item.low || 0,
