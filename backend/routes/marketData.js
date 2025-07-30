@@ -5,8 +5,8 @@ const scheduledUpdatesService = require("../services/scheduledUpdates");
 const { Holding } = require("../models/index");
 const { HttpsProxyAgent } = require("https-proxy-agent");
 // 设置代理地址
-const proxy = "http://127.0.0.1:7777"; // 替换为你的代理地址
-const agent = new HttpsProxyAgent(proxy);
+// const proxy = "http://127.0.0.1:7777"; // 替换为你的代理地址
+// const agent = new HttpsProxyAgent(proxy);
 const axios = require("axios");
 
 // 📊 GET /api/market/quote/:symbol - 获取单个股票报价
@@ -270,73 +270,6 @@ router.delete("/clear-cache", async (req, res) => {
   }
 });
 
-// 🌟 GET /api/market/most-active - 获取最活跃股票 (增加分页)
-// router.get("/most-active", async (req, res) => {
-//   const page = parseInt(req.query.page || "1", 10);
-//   const limit = parseInt(req.query.limit || "10", 10);
-
-//   if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "分页参数 page 和 limit 必须是大于0的有效数字。",
-//     });
-//   }
-
-//   try {
-//     const offset = (page - 1) * limit;
-//     const mostActiveStockLink = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=MOST_ACTIVES&start=${offset}&lang=en-US&region=US&fields=symbol`;
-
-//     const response = await axios.get(mostActiveStockLink, {
-//       httpsAgent: agent,
-//       headers: {
-//         "User-Agent": "Mozilla/5.0",
-//       },
-//     });
-
-//     const responseJson = response.data;
-//     const result = responseJson.finance?.result?.[0];
-//     const rawQuotes = result?.quotes;
-
-//     if (!rawQuotes || rawQuotes.length === 0) {
-//       return res.status(200).json({
-//         success: true,
-//         message: "未找到活跃股票数据。",
-//         data: [],
-//         totalRecords: 0,
-//         totalPages: 0,
-//         currentPage: page,
-//         perPage: limit,
-//       });
-//     }
-
-//     const pagedSymbols = rawQuotes.map((item) => item.symbol);
-//     const mostActiveStocks = await yahooFinanceService.getMultipleStockPrices(
-//       pagedSymbols
-//     );
-
-//     const totalRecords = result?.total || page * limit;
-//     const totalPages = Math.ceil(totalRecords / limit);
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "成功获取最活跃股票数据。",
-//       data: mostActiveStocks,
-//       totalRecords,
-//       totalPages,
-//       currentPage: page,
-//       perPage: limit,
-//     });
-//   } catch (error) {
-//     console.error("获取最活跃股票数据时发生错误:", error);
-
-//     const statusCode = error.response?.status || 500;
-//     return res.status(statusCode).json({
-//       success: false,
-//       message: "获取最活跃股票数据时失败。",
-//       detail: error.message,
-//     });
-//   }
-// });
 router.get("/most-active", async (req, res) => {
   const page = parseInt(req.query.page || "1", 10);
   const limit = parseInt(req.query.limit || "10", 10);
@@ -353,7 +286,7 @@ router.get("/most-active", async (req, res) => {
     const apiURL = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=MOST_ACTIVES&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US`;
 
     const response = await axios.get(apiURL, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -417,7 +350,7 @@ router.get("/trending", async (req, res) => {
     const url = `https://query1.finance.yahoo.com/v1/finance/trending/US?count=25&fields=logoUrl%2ClongName%2CshortName%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketPrice%2Cticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&format=true&useQuotes=true&quoteType=equity&lang=en-US&region=US`;
 
     const response = await axios.get(url, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -482,7 +415,7 @@ router.get("/gainers", async (req, res) => {
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_GAINERS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US`;
 
     const response = await axios.get(url, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -544,7 +477,7 @@ router.get("/losers", async (req, res) => {
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_LOSERS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US`;
 
     const response = await axios.get(url, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -639,7 +572,7 @@ router.get("/crypto", async (req, res) => {
     const cryptoApiUrl = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=ALL_CRYPTOCURRENCIES_US&sortField=&sortType=&start=${start}&useRecordsResponse=false&fields=ticker%2ClogoUrl%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CmarketCap%2CregularMarketVolume%2Cvolume24Hr%2CvolumeAllCurrencies%2CcirculatingSupply%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
 
     const response = await axios.get(cryptoApiUrl, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -700,7 +633,7 @@ router.get("/etfs/most-active", async (req, res) => {
     const etfApiUrl = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=MOST_ACTIVES_ETFS&sortField=&sortType=&start=${start}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
 
     const response = await axios.get(etfApiUrl, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -762,7 +695,7 @@ router.get("/etfs/gainers", async (req, res) => {
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_GAINERS_ETFS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
 
     const response = await axios.get(url, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -823,7 +756,7 @@ router.get("/etfs/losers", async (req, res) => {
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_LOSERS_ETFS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
 
     const response = await axios.get(url, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -885,7 +818,7 @@ router.get("/etfs/trending", async (req, res) => {
     const url = `https://query1.finance.yahoo.com/v1/finance/trending/US?count=100&fields=logoUrl%2ClongName%2CshortName%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketPrice%2Cticker%2Csymbol%2Csparkline%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&format=true&useQuotes=true&quoteType=etf&lang=en-US&region=US`;
 
     const response = await axios.get(url, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
@@ -956,7 +889,7 @@ router.get("/bonds", async (req, res) => {
     const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com`;
 
     const response = await axios.get(url, {
-      httpsAgent: agent,
+      // httpsAgent: agent,
       headers: {
         "User-Agent": "Mozilla/5.0",
       },

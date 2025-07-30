@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_CONFIG } from "../config/api";
+import { get } from "../../../backend/routes/marketData";
 
 // Create axios instance with default config
 const api = axios.create(API_CONFIG);
@@ -110,7 +111,15 @@ export const marketAPI = {
 
   getCryptos: (page = 1) => api.get(`/market/cryptos?page=${page}`),
 
-  getCurrencies: (limit = 50) => api.get(`/market/currencies?limit=${limit}`),
+  getETFsMostActive: (page = 1) => api.get(`/market/etfs/most-active?page=${page}`),
+
+  getETFGainers: (page = 1) => api.get(`/market/etfs/gainers?page=${page}`),  
+
+  getETFLosers: (page = 1) => api.get(`/market/etfs/losers?page=${page}`),
+
+  getETFtrending: (page = 1) => api.get(`/market/etfs/trending?page=${page}`),
+
+  getBonds: (page = 1) => api.get(`/market/bonds?page=${page}`),
   // --- END NEW ---
 };
 
