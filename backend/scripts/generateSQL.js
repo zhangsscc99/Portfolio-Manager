@@ -59,16 +59,16 @@ CREATE TABLE IF NOT EXISTS holdings (
 -- =========================================
 
 -- 示例投资组合
-INSERT IGNORE INTO portfolios (id, name, description, total_value, cash, created_at) VALUES 
-(1, 'My Investment Portfolio', 'Main investment portfolio', 50000.00, 25000.00, NOW());
+-- INSERT IGNORE INTO portfolios (id, name, description, total_value, cash, created_at) VALUES 
+-- (1, 'My Investment Portfolio', 'Main investment portfolio', 50000.00, 25000.00, NOW());
 
 -- 示例持仓
-INSERT IGNORE INTO holdings (symbol, name, type, quantity, avg_price, current_price, portfolio_id, created_at) VALUES 
-('AAPL', 'Apple Inc.', 'stock', 10.00000000, 150.00, 175.25, 1, NOW()),
-('GOOGL', 'Alphabet Inc.', 'stock', 5.00000000, 2500.00, 2680.50, 1, NOW()),
-('MSFT', 'Microsoft Corporation', 'stock', 8.00000000, 300.00, 315.75, 1, NOW()),
-('TSLA', 'Tesla Inc.', 'stock', 3.00000000, 800.00, 245.60, 1, NOW()),
-('AMZN', 'Amazon.com Inc.', 'stock', 2.00000000, 3200.00, 3150.80, 1, NOW());
+-- INSERT IGNORE INTO holdings (symbol, name, type, quantity, avg_price, current_price, portfolio_id, created_at) VALUES 
+-- ('AAPL', 'Apple Inc.', 'stock', 10.00000000, 150.00, 175.25, 1, NOW()),
+-- ('GOOGL', 'Alphabet Inc.', 'stock', 5.00000000, 2500.00, 2680.50, 1, NOW()),
+-- ('MSFT', 'Microsoft Corporation', 'stock', 8.00000000, 300.00, 315.75, 1, NOW()),
+-- ('TSLA', 'Tesla Inc.', 'stock', 3.00000000, 800.00, 245.60, 1, NOW()),
+-- ('AMZN', 'Amazon.com Inc.', 'stock', 2.00000000, 3200.00, 3150.80, 1, NOW());
 
 -- =========================================
 -- 常用查询示例
