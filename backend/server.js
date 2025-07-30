@@ -15,12 +15,9 @@ const portfolioRoutes = require('./routes/portfolio');
 const holdingsRoutes = require('./routes/holdings');
 const marketDataRoutes = require('./routes/marketData');
 const assetsRoutes = require('./routes/assets');
-<<<<<<< Updated upstream
-=======
 const aiAnalysisRoutes = require('./routes/ai-analysis');
 const portfolioHistoryRoutes = require('./routes/portfolioHistory');
->>>>>>> Stashed changes
-const aiAnalysisRoutes = require('./routes/ai-analysis');
+// const aiAnalysisRoutes = require('./routes/ai-analysis');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,55 +34,8 @@ app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/holdings', holdingsRoutes);
 app.use('/api/market', marketDataRoutes);
 app.use('/api/assets', assetsRoutes);
-<<<<<<< Updated upstream
-=======
 app.use('/api/ai-analysis', aiAnalysisRoutes);
 app.use('/api/portfolio-history', portfolioHistoryRoutes);
-
-// Swagger API Documentation
-app.get('/api-docs', (req, res) => {
-  res.sendFile(path.join(__dirname, 'swagger-ui.html'));
-});
-
-app.get('/api-docs/swagger.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'swagger.json'));
-});
-
-// 服务前端静态文件 (仅在生产环境或build文件存在时)
-const path = require('path');
-const fs = require('fs');
-const buildPath = path.join(__dirname, '../frontend/build');
-
-if (fs.existsSync(buildPath)) {
-  app.use(express.static(buildPath));
-  
-  // 处理React Router的客户端路由 (放在最后，避免覆盖API路由)
-  app.get('*', (req, res) => {
-    // 只处理非API请求
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(buildPath, 'index.html'));
-    } else {
-      res.status(404).json({ error: 'API endpoint not found' });
-    }
-  });
-} else {
-  console.log('📁 Frontend build not found, serving API only');
-  
-  // API 404处理
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-      res.status(404).json({ error: 'API endpoint not found' });
-    } else {
-      res.status(200).json({ 
-        message: 'Portfolio Manager API is running',
-        note: 'Frontend not built. Please run the frontend development server separately.',
-        frontend_url: 'http://localhost:3000'
-      });
-    }
-  });
-}
->>>>>>> Stashed changes
-app.use('/api/ai-analysis', aiAnalysisRoutes);
 
 // Swagger API Documentation
 app.get('/api-docs', (req, res) => {
