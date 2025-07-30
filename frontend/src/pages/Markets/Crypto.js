@@ -133,7 +133,7 @@ const Crypto = () => {
                       align="right"
                       sx={{ color: getPercentageColorFromString(crypto.changePercent), fontWeight: 500 }} // Assuming getChangeColor also works for percentage
                     >
-                      {crypto.changePercent}
+                      {crypto.changePercent.startsWith('-') ? crypto.changePercent : '+' + crypto.changePercent}
                     </TableCell>
                     <TableCell align="right">{crypto.marketCap}</TableCell>
                     <TableCell align="right">{crypto.totalVolume}</TableCell>

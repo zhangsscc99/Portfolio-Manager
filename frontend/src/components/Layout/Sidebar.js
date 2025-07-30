@@ -203,22 +203,7 @@ const Sidebar = ({ onNavigate }) => {
               <ListItem disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   onClick={() => handleNavigation(item)}
-
-            <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                onClick={() => handleNavigation(item.path)}
-                className={`tech-nav-item ${active ? 'active' : ''}`}
-                sx={{
-                  borderRadius: 2,
-                  py: 1.5,
-                  px: 2,
-                  mx: 1,
-                  color: active ? 'primary.main' : 'text.primary',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                <ListItemIcon
+                  className={`tech-nav-item ${active ? 'active' : ''}`}
                   sx={{
                     borderRadius: 2,
                     py: 1.5,
