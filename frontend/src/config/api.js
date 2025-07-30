@@ -15,11 +15,7 @@ export const buildApiUrl = (endpoint) => {
 };
 
 export const API_ENDPOINTS = {
-  portfolio_history: {
-    portfolio_history: '/portfolio-history',  // 历史数据
-  },
-
-  // Portfolio endpoints
+  // Portfolio endpoints (保持原有格式)
   portfolio: {
     getAll: '/portfolio',
     getCurrent: '/portfolio/current',
