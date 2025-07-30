@@ -158,4 +158,34 @@ export const getChangeColor = (change) => {
   return "#6b7280"; // gray
 };
 
+export const getPercentageColorFromString = (percentageString) => {
+  // Handle null, undefined, or empty strings gracefully
+  if (percentageString === undefined || percentageString === null || percentageString === '') {
+    return "#6b7280"; // Default to gray for missing/invalid data
+  }
+
+  // 1. Clean the string: Remove '%' and any leading/trailing whitespace.
+  // parseFloat can handle leading '+' or '-' signs directly.
+  const cleanedString = percentageString.replace(/%/g, '').trim();
+
+  // 2. Parse the cleaned string into a floating-point number.
+  const numericPercentage = parseFloat(cleanedString);
+
+  // 3. Check if the parsing was successful.
+  if (isNaN(numericPercentage)) {
+    // Log a warning if the string couldn't be converted to a number,
+    // which helps in debugging unexpected API formats.
+    console.warn(`Could not parse percentage string for color determination: "${percentageString}". Cleaned: "${cleanedString}"`);
+    return "#6b7280"; // Fallback to gray for unparseable strings
+  }
+
+  // 4. Apply color logic based on the numeric value.
+  if (numericPercentage > 0) {
+    return "#10b981"; // Green for positive change
+  }
+  if (numericPercentage < 0) {
+    return "#ef4444"; // Red for negative change
+  }
+  return "#6b7280"; // Gray for zero or no change
+};
 export default api;
