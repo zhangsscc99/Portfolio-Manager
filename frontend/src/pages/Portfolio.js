@@ -364,7 +364,13 @@ const Portfolio = () => {
       {/* 📊 Header statistics */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+          <Typography 
+            variant="h4" 
+            className="gradient-text"
+            sx={{ 
+              fontWeight: 600 
+            }}
+          >
             Portfolio Overview
           </Typography>
           <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mt: 1 }}>

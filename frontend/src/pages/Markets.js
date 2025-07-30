@@ -218,7 +218,11 @@ const Markets = () => {
   return (
     <Box sx={{ py: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
+        <Typography 
+          variant="h4" 
+          className="gradient-text"
+          sx={{ fontWeight: 600 }}
+        >
           Market Overview
         </Typography>
         <TextField
