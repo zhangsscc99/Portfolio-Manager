@@ -106,6 +106,53 @@ const MarkdownText = ({ children, variant = 'body1', sx = {}, ...props }) => {
         }
       }
 
+      // Check for markdown headers (### ## #)
+      if (line.trim().startsWith('#')) {
+        const trimmedLine = line.trim();
+        let headerLevel = 1;
+        let headerText = trimmedLine;
+        
+        if (trimmedLine.startsWith('####')) {
+          headerLevel = 4;
+          headerText = trimmedLine.substring(4).trim();
+        } else if (trimmedLine.startsWith('###')) {
+          headerLevel = 3;
+          headerText = trimmedLine.substring(3).trim();
+        } else if (trimmedLine.startsWith('##')) {
+          headerLevel = 2;
+          headerText = trimmedLine.substring(2).trim();
+        } else if (trimmedLine.startsWith('#')) {
+          headerLevel = 1;
+          headerText = trimmedLine.substring(1).trim();
+        }
+
+        const headerVariant = headerLevel === 1 ? 'h6' : 
+                             headerLevel === 2 ? 'subtitle1' : 
+                             headerLevel === 3 ? 'subtitle2' : 
+                             'body1';
+
+        elements.push(
+          <Typography 
+            key={i} 
+            variant={headerVariant}
+            sx={{ 
+              fontWeight: 'bold', 
+              color: '#E8A855',
+              mt: headerLevel === 1 ? 1.5 : 1,
+              mb: 0.5,
+              fontSize: headerLevel === 1 ? '1.1rem' : 
+                       headerLevel === 2 ? '1rem' : 
+                       headerLevel === 3 ? '0.9rem' : 
+                       '0.85rem'
+            }}
+          >
+            {processInlineMarkdown(headerText)}
+          </Typography>
+        );
+        i++;
+        continue;
+      }
+
       // Check if line starts with bullet point
       if (line.trim().startsWith('- ')) {
         const bulletContent = line.trim().substring(2);
