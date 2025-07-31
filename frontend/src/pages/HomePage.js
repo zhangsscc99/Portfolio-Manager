@@ -567,7 +567,7 @@ const HomePage = () => {
                 fontStyle: 'italic'
               }}
             >
-              💼 Professional Portfolio Management • 📊 Real-time Analytics • 🤖 AI-Powered Insights
+              Professional Portfolio Management •  Real-time Analytics •  AI-Powered Insights
             </Typography>
           </Box>
         </Box>
@@ -635,7 +635,7 @@ function ScrollVideoOrFrames() {
   } else {
     // 计算当前帧编号（1 ~ TOTAL_FRAMES）
     // 滚动区间 [SWITCH_SCROLL_Y, SWITCH_SCROLL_Y+1000] 映射到帧区间
-    const maxScroll = 1000;
+    const maxScroll = 100;
     const progress = Math.min(Math.max(scrollY - SWITCH_SCROLL_Y, 0), maxScroll) / maxScroll;
     const frameNo = Math.max(1, Math.min(TOTAL_FRAMES, Math.round(progress * (TOTAL_FRAMES - 1)) + 1));
     const frameSrc = `/frame-extractor-1/Picture${frameNo}.png`;

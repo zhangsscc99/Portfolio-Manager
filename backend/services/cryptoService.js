@@ -117,6 +117,20 @@ class CryptoService {
     }
   }
 
+  // 📦 获取缓存数据
+  getCachedData(symbol) {
+    const cacheKey = symbol.toLowerCase();
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      const now = Date.now();
+      // 如果缓存还有效，返回数据
+      if (now - cached.timestamp < this.cacheExpiry) {
+        return cached.data;
+      }
+    }
+    return null;
+  }
+
   // 🔍 搜索加密货币
   async searchCrypto(query) {
     try {

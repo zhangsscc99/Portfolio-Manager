@@ -87,12 +87,12 @@ class YahooFinanceService {
     } catch (error) {
       console.error(`❌ 获取股票数据失败 ${symbol}:`, error.message);
 
-      // 返回默认数据避免崩溃
       return {
-        symbol: symbol.toUpperCase(),
-        name: symbol.toUpperCase(),
+        error: error.message,
+        symbol: symbol,
         price: 0,
         change: 0,
+
         changePercent: 0,
         dayHigh: 0,
         dayLow: 0,
@@ -104,6 +104,20 @@ class YahooFinanceService {
         error: error.message,
       };
     }
+  }
+
+  // 📦 获取缓存数据
+  getCachedData(symbol) {
+    const cacheKey = symbol.toUpperCase();
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      const now = Date.now();
+      // 如果缓存还有效，返回数据
+      if (now - cached.timestamp < this.cacheExpiry) {
+        return cached.data;
+      }
+    }
+    return null;
   }
 
   // 📈 批量获取多个股票价格
@@ -201,26 +215,53 @@ class YahooFinanceService {
         case '1y':
           startDate.setFullYear(startDate.getFullYear() - 1);  
           break;
+        case '5y':
+          startDate.setFullYear(startDate.getFullYear() - 5);  
+          break;
         default:
           startDate.setMonth(startDate.getMonth() - 1);
       }
       
-      // 从Yahoo Finance获取历史数据
-      const historicalResult = await yahooFinance.historical(symbol, {
+      // 从Yahoo Finance获取历史数据 (使用chart方法替代已废弃的historical)
+      let interval = '1d'; // 默认日线数据
+      
+      // 对于5年数据，可能需要使用更长的间隔来避免API限制
+      if (period === '5y') {
+        interval = '1wk'; // 使用周线数据来获取更长的历史
+        console.log(`📊 5y数据使用周线间隔: ${interval}`);
+      }
+      
+      const chartResult = await yahooFinance.chart(symbol, {
         period1: startDate,
         period2: endDate,
-        interval: '1d' // 日线数据
+        interval: interval
       });
+      
+      // chart方法返回的格式: { quotes: [...] }
+      const historicalResult = chartResult?.quotes || [];
       
       if (!historicalResult || historicalResult.length === 0) {
         console.log(`⚠️ ${symbol} 没有历史数据`);
         return [];
       }
       
-      // 格式化数据
+      // 添加调试信息
+      if (period === '5y') {
+        console.log(`📊 ${symbol} 5y数据获取情况:`);
+        console.log(`   - 请求时间范围: ${startDate.toLocaleDateString()} 到 ${endDate.toLocaleDateString()}`);
+        console.log(`   - 使用间隔: ${interval}`);
+        console.log(`   - 获取到数据点: ${historicalResult.length}`);
+        if (historicalResult.length > 0) {
+          const firstDate = historicalResult[0].date;
+          const lastDate = historicalResult[historicalResult.length - 1].date;
+          console.log(`   - 实际数据范围: ${firstDate.toLocaleDateString()} 到 ${lastDate.toLocaleDateString()}`);
+        }
+      }
+      
+      // 格式化数据 - chart数据格式与historical略有不同
       const formattedData = historicalResult.map(item => ({
-        date: item.date.toISOString().split('T')[0], // YYYY-MM-DD格式
-        timestamp: item.date.getTime(),
+        date: item.date ? item.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        timestamp: item.date ? item.date.getTime() : Date.now(),
         open: item.open || 0,
         high: item.high || 0,
         low: item.low || 0,

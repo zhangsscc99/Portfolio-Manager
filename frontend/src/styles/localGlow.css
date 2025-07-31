@@ -60,6 +60,23 @@
   font-weight: 600;
 }
 
+/* 🌟 饼图脉冲动画 */
+@keyframes pieChartPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+/* 饼图容器脉冲效果 */
+.pie-chart-pulse {
+  animation: pieChartPulse 3s ease-in-out infinite;
+}
+
 /* 动态渐变文字 - 用户自定义动画渐变 */
 .gradient-text-animated {
   background: linear-gradient(90deg, 

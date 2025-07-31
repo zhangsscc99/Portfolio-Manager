@@ -18,10 +18,10 @@ import Markets from './pages/Markets'; // This will become a parent route
 
 // New Market Sub-pages (assuming you'll create these files)
 import Stock from './pages/Markets/Stock';
-import Bonds from './pages/Markets/Bonds';
 import ETF from './pages/Markets/ETF';
 import Crypto from './pages/Markets/Crypto';
 import AIAnalysis from './pages/AIAnalysis';
+import AIReportDetail from './pages/AIReportDetail'; // 新增AI报告详情页面
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -392,26 +392,27 @@ function App() {
                     {/* Markets route with nested routes for sub-menus */}
                     <Route path="markets/*" element={<Markets />}>
                       <Route path="stock" element={<Stock />} />
-                    <Route path="bonds" element={<Bonds />} />
                       <Route path="etf" element={<ETF />} />
                       <Route path="crypto" element={<Crypto />} />
                       {/* Redirect from /app/markets to a default sub-page (e.g., stock) */}
                       <Route path="" element={<Navigate to="stock" replace />} />
                     </Route>
                     <Route path="ai-analysis" element={<AIAnalysis />} />
-                    {/* Default to dashboard if no specific /app route is matched */}
-                    <Route path="" element={<Dashboard />} />
+                    <Route path="ai-report/:reportId" element={<AIReportDetail />} />
+                    <Route path="" element={<Dashboard />} /> {/* Default to dashboard */}
+
                   </Routes>
                 </Layout>
               } />
 
               {/* Legacy routes redirect to new structure */}
-              {/* You might want to update these to redirect to the new /app/* structure */}
-              <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="/portfolio" element={<Navigate to="/app/portfolio" replace />} />
-              <Route path="/analytics" element={<Navigate to="/app/analytics" replace />} />
-              {/* For /markets, redirect to the default sub-page within the new structure */}
-              <Route path="/markets" element={<Navigate to="/app/markets/stock" replace />} />
+
+              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+              <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
+              <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
+              <Route path="/markets" element={<Layout><Markets /></Layout>} />
+              <Route path="/ai-report/:reportId" element={<Layout><AIReportDetail /></Layout>} />
+
             </Routes>
             <Toaster
               position="top-right"

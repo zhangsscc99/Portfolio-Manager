@@ -85,36 +85,58 @@ class AIIntegrationService {
   extractAnalysisSummary(analysisData) {
     if (!analysisData) return { riskLevel: 'Unknown', overallScore: 50 };
 
+    // 🔧 处理新的数据结构：analysis可能是对象或字符串
+    let analysisText = '';
+    
+    if (analysisData.analysis) {
+      if (typeof analysisData.analysis === 'string') {
+        // 旧格式：analysis是字符串
+        analysisText = analysisData.analysis;
+      } else if (typeof analysisData.analysis === 'object') {
+        // 新格式：analysis是对象，合并所有sections
+        analysisText = Object.values(analysisData.analysis).join(' ');
+      }
+    }
+    
+    // 如果analysis为空，尝试使用rawAnalysis
+    if (!analysisText && analysisData.rawAnalysis) {
+      analysisText = analysisData.rawAnalysis;
+    }
+    
+    // 确保analysisText是字符串
+    if (typeof analysisText !== 'string') {
+      console.warn('⚠️ analysisText不是字符串类型:', typeof analysisText, analysisText);
+      analysisText = '';
+    }
+
     // Extract risk level from analysis text
-    const analysisText = analysisData.analysis || '';
     let riskLevel = 'Medium';
     
-    if (analysisText.toLowerCase().includes('high risk') || 
-        analysisText.toLowerCase().includes('aggressive')) {
+    if (analysisText && analysisText.toLowerCase().includes('high risk') || 
+        analysisText && analysisText.toLowerCase().includes('aggressive')) {
       riskLevel = 'High';
-    } else if (analysisText.toLowerCase().includes('low risk') || 
-               analysisText.toLowerCase().includes('conservative')) {
+    } else if (analysisText && analysisText.toLowerCase().includes('low risk') || 
+               analysisText && analysisText.toLowerCase().includes('conservative')) {
       riskLevel = 'Low';
-    } else if (analysisText.toLowerCase().includes('medium risk') || 
-               analysisText.toLowerCase().includes('moderate')) {
+    } else if (analysisText && analysisText.toLowerCase().includes('medium risk') || 
+               analysisText && analysisText.toLowerCase().includes('moderate')) {
       riskLevel = 'Medium';
     }
 
-    // Generate overall score based on analysis content
-    let overallScore = 75; // Default
-    if (analysisText.toLowerCase().includes('well-diversified') || 
-        analysisText.toLowerCase().includes('strong performance')) {
-      overallScore = 85;
-    } else if (analysisText.toLowerCase().includes('overexposed') || 
-               analysisText.toLowerCase().includes('high concentration')) {
-      overallScore = 60;
+    // Extract overall score
+    let overallScore = 50;
+    if (analysisData.summary && analysisData.summary.overallScore) {
+      overallScore = analysisData.summary.overallScore;
+    } else if (analysisText) {
+      // Try to extract score from text
+      const scoreMatch = analysisText.match(/(?:score|评分)[\s:：]*(\d+)(?:\/100|%)?/i);
+      if (scoreMatch) {
+        overallScore = parseInt(scoreMatch[1]);
+      }
     }
 
-    return {
-      riskLevel: riskLevel,
-      overallScore: overallScore,
-      lastUpdated: new Date()
-    };
+    console.log(`📊 提取分析摘要 - 风险等级: ${riskLevel}, 总分: ${overallScore}`);
+    return { riskLevel, overallScore };
   }
 
   /**

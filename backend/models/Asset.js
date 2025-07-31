@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
+
 const Asset = sequelize.define('asset', {
   id: { 
     type: DataTypes.INTEGER, 

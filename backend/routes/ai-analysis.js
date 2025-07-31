@@ -5,12 +5,13 @@ const aiAnalysisService = require('../services/aiAnalysisService-improved');
 const aiChatService = require('../services/aiChatService');
 const aiIntegrationService = require('../services/aiIntegrationService');
 const portfolioService = require('../services/portfolioService');
+const assetService = require('../services/assetService'); // 添加assetService
 const aiAnalysisHistoryService = require('../services/aiAnalysisHistoryService');
 
 // 🗣️ POST /api/ai-analysis/chat - AI Assistant Chat
 router.post('/chat', async (req, res) => {
   try {
-    const { sessionId, message, portfolioId, portfolioContext } = req.body;
+    const { sessionId, message, portfolioId, portfolioContext, requestFollowUpQuestions, conversationHistory } = req.body;
     
     if (!sessionId || !message) {
       return res.status(400).json({
@@ -20,17 +21,25 @@ router.post('/chat', async (req, res) => {
     }
 
     console.log(`💬 Chat request for session ${sessionId.substring(0, 8)}: "${message.substring(0, 50)}..."`);
+    if (requestFollowUpQuestions) {
+      console.log(`📝 Also requesting follow-up questions generation`);
+    }
 
     // Generate AI chat response
     const chatResult = await aiChatService.generateChatResponse(
       sessionId, 
       message, 
       portfolioContext,
-      portfolioId
+      portfolioId,
+      requestFollowUpQuestions,
+      conversationHistory
     );
     
     if (chatResult.success) {
       console.log('✅ Chat response generated successfully');
+      if (chatResult.followUpQuestions && chatResult.followUpQuestions.length > 0) {
+        console.log(`📝 Generated ${chatResult.followUpQuestions.length} follow-up questions`);
+      }
       res.json({
         success: true,
         data: {
@@ -38,7 +47,8 @@ router.post('/chat', async (req, res) => {
           sessionId: chatResult.sessionId,
           messageCount: chatResult.messageCount,
           isOffline: chatResult.isOffline || false,
-          usage: chatResult.usage
+          usage: chatResult.usage,
+          followUpQuestions: chatResult.followUpQuestions || []
         }
       });
     } else {
@@ -90,22 +100,24 @@ router.post('/portfolio', async (req, res) => {
       });
     }
 
-    console.log(`🔍 Starting analysis for portfolio ${portfolioId}...`);
+    console.log(`🔍 Starting AI analysis for portfolio ${portfolioId}...`);
 
-    // Get portfolio data
-    const portfolioResult = await portfolioService.getPortfolioSummary(portfolioId);
+    // Get portfolio data from assets service (same as Dashboard)
+    console.log('📊 Fetching portfolio data from assets service...');
+    const portfolioData = await assetService.getPortfolioAssets(portfolioId);
     
-    if (!portfolioResult.success) {
+    if (!portfolioData) {
       return res.status(404).json({
         success: false,
-        error: 'Portfolio not found or failed to fetch data'
+        error: 'Portfolio not found or failed to fetch data from assets service'
       });
     }
 
-    console.log('📊 Portfolio data retrieved successfully');
+    console.log('📊 Portfolio data retrieved successfully from assets service');
 
     // Call AI analysis service (with retry and offline fallback)
-    const analysisResult = await aiAnalysisService.analyzePortfolio(portfolioResult.data);
+    console.log('🤖 Calling Aliyun AI service for portfolio analysis...');
+    const analysisResult = await aiAnalysisService.analyzePortfolio(portfolioData);
     
     if (!analysisResult.success) {
       return res.status(500).json({
@@ -116,15 +128,16 @@ router.post('/portfolio', async (req, res) => {
 
     // Generate analysis summary
     const summary = aiAnalysisService.generateSummary(analysisResult.data);
+    const completeAnalysisData = { ...analysisResult.data, summary };
     
     console.log('✅ AI analysis completed');
 
-    // Store analysis result and update AI Assistant memory with enhanced context
+    // Store analysis result and update AI Assistant memory
     try {
       await aiIntegrationService.storeAnalysisResult(
         portfolioId, 
-        { ...analysisResult.data, summary }, 
-        portfolioResult.data
+        completeAnalysisData, 
+        portfolioData
       );
       console.log(`🤖 AI Assistant memory updated with enhanced analysis for portfolio ${portfolioId}`);
     } catch (error) {
@@ -132,29 +145,46 @@ router.post('/portfolio', async (req, res) => {
       // Don't fail the request if memory update fails
     }
 
-    // Save analysis report to history database
+    // Save analysis report to history database and get reportId
+    let reportId = null;
     try {
       const historyResult = await aiAnalysisHistoryService.saveAnalysisReport(
         portfolioId,
-        { ...analysisResult.data, summary },
-        portfolioResult.data
+        completeAnalysisData,
+        portfolioData
       );
+      
       if (historyResult.success) {
-        console.log(`📝 Analysis report saved to history - Report ID: ${historyResult.reportId}`);
+        reportId = historyResult.reportId;
+        console.log(`📝 Analysis report saved to database - Report ID: ${reportId}`);
       } else {
-        console.warn('Failed to save analysis report to history:', historyResult.error);
+        console.error('Failed to save analysis report to history:', historyResult.error);
+        // Return error if we can't save to database
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to save analysis report to database'
+        });
       }
     } catch (error) {
-      console.warn('Failed to save analysis report to history:', error.message);
-      // Don't fail the request if history save fails
+      console.error('Database save error:', error.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to save analysis report to database'
+      });
     }
 
+    // Return success response with report data and reportId
     res.json({
       success: true,
       data: {
-        ...analysisResult.data,
-        summary
-      }
+        reportId: reportId,
+        ...completeAnalysisData,
+        portfolioSnapshot: {
+          ...completeAnalysisData.portfolioSnapshot,
+          portfolioId: portfolioId
+        }
+      },
+      message: `AI analysis report generated successfully with ID: ${reportId}`
     });
 
   } catch (error) {
@@ -499,6 +529,35 @@ router.get('/report/:reportId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Internal server error while fetching analysis report'
+    });
+  }
+});
+
+// 🧪 测试AI分析内容解析 - 调试端点
+router.get('/test-parsing', async (req, res) => {
+  try {
+    console.log('🧪 测试AI分析内容解析...');
+    
+    const aiAnalysisService = require('../services/aiAnalysisService-improved');
+    const testResult = aiAnalysisService.testParseAnalysisContent();
+    
+    res.json({
+      success: true,
+      message: 'AI parsing test completed',
+      data: {
+        sections: testResult,
+        statistics: {
+          totalSections: Object.keys(testResult).length,
+          populatedSections: Object.keys(testResult).filter(key => testResult[key]).length,
+          emptySections: Object.keys(testResult).filter(key => !testResult[key]).length
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ 测试AI解析失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

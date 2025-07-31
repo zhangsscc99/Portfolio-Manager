@@ -22,6 +22,7 @@ const StockSearchField = ({
 }) => {
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
   // 🔍 股票搜索功能 - 使用防抖优化
@@ -147,15 +148,173 @@ const StockSearchField = ({
   );
 
   // 🎯 处理选择
-  const handleChange = (event, newValue) => {
+  const handleChange = async (event, newValue) => {
     onChange(newValue);
     if (newValue && onSelectStock) {
-      onSelectStock({
-        symbol: newValue.symbol,
-        name: newValue.name || newValue.longname,
-        price: newValue.price,
-        type: assetType
-      });
+      // 🐛 调试：打印完整的数据对象
+      console.log('🔍 完整搜索结果数据:', newValue);
+      console.log('🔍 所有可用字段:', Object.keys(newValue));
+      console.log('🔍 资产类型:', assetType);
+      
+      setDetailLoading(true);
+      try {
+        let detailedData = newValue;
+        
+        // 🎯 根据资产类型采用不同的数据获取策略
+        if (assetType === 'crypto') {
+          console.log('💎 处理加密货币数据:', newValue.symbol);
+          // 优先尝试使用专门的crypto quote API
+          try {
+            const cryptoQuoteResponse = await marketAPI.getCryptoQuote(newValue.symbol);
+            console.log('💎 crypto quote API响应:', cryptoQuoteResponse);
+            
+            if (cryptoQuoteResponse.success && cryptoQuoteResponse.data) {
+              const cryptoQuote = cryptoQuoteResponse.data;
+              detailedData = {
+                ...newValue,
+                price: cryptoQuote.price || newValue.price,
+                change: cryptoQuote.change || newValue.change,
+                changePercent: cryptoQuote.changePercent || newValue.changePercent,
+                volume: cryptoQuote.volume || newValue.volume,
+                marketCap: cryptoQuote.marketCap || newValue.marketCap,
+                name: cryptoQuote.name || newValue.name || newValue.longname,
+              };
+              console.log('✅ 使用crypto quote API数据:', detailedData);
+            } else {
+              console.log('⚠️ crypto quote API无数据，尝试backup方法');
+              // 如果专门的crypto API失败，回退到原来的方法
+              if (!newValue.marketCap && !newValue.market_cap) {
+                try {
+                  const cryptoResponse = await marketAPI.getCryptos(1, 100);
+                  if (cryptoResponse.success && cryptoResponse.data) {
+                    const cryptoMatch = cryptoResponse.data.find(crypto => 
+                      crypto.symbol?.toLowerCase() === newValue.symbol?.toLowerCase() ||
+                      crypto.symbol?.toLowerCase().includes(newValue.symbol?.toLowerCase().replace('-USD', ''))
+                    );
+                    if (cryptoMatch) {
+                      console.log('✅ 从crypto列表API找到匹配数据:', cryptoMatch);
+                      detailedData = {
+                        ...newValue,
+                        price: cryptoMatch.price || newValue.price,
+                        change: cryptoMatch.change || newValue.change,
+                        changePercent: cryptoMatch.changePercent || newValue.changePercent,
+                        volume: cryptoMatch.volume || newValue.volume,
+                        marketCap: cryptoMatch.marketCap || cryptoMatch.market_cap,
+                      };
+                    }
+                  }
+                } catch (backupError) {
+                  console.warn('⚠️ 无法从crypto列表API获取详细数据:', backupError);
+                }
+              }
+            }
+          } catch (cryptoError) {
+            console.warn('⚠️ crypto quote API调用失败:', cryptoError);
+            // 如果crypto quote API失败，使用原来的backup方法
+            if (!newValue.marketCap && !newValue.market_cap) {
+              try {
+                const cryptoResponse = await marketAPI.getCryptos(1, 100);
+                if (cryptoResponse.success && cryptoResponse.data) {
+                  const cryptoMatch = cryptoResponse.data.find(crypto => 
+                    crypto.symbol?.toLowerCase() === newValue.symbol?.toLowerCase() ||
+                    crypto.symbol?.toLowerCase().includes(newValue.symbol?.toLowerCase().replace('-USD', ''))
+                  );
+                  if (cryptoMatch) {
+                    console.log('✅ backup: 找到匹配的加密货币数据:', cryptoMatch);
+                    detailedData = {
+                      ...newValue,
+                      price: cryptoMatch.price || newValue.price,
+                      change: cryptoMatch.change || newValue.change,
+                      changePercent: cryptoMatch.changePercent || newValue.changePercent,
+                      volume: cryptoMatch.volume || newValue.volume,
+                      marketCap: cryptoMatch.marketCap || cryptoMatch.market_cap,
+                    };
+                  }
+                }
+              } catch (error) {
+                console.warn('⚠️ backup crypto API也失败:', error);
+              }
+            }
+          }
+        } else if (assetType === 'stock' || assetType === 'etf') {
+          console.log('📈 处理股票/ETF数据:', newValue.symbol);
+          // 对于股票和ETF，尝试使用quote API获取详细数据
+          try {
+            const quoteResponse = await marketAPI.getQuote(newValue.symbol);
+            console.log('📊 详细股票/ETF数据:', quoteResponse);
+            
+            if (quoteResponse.success && quoteResponse.data) {
+              const quote = quoteResponse.data;
+              detailedData = {
+                ...newValue,
+                price: quote.price || newValue.price,
+                change: quote.change || newValue.change,
+                changePercent: quote.changePercent || newValue.changePercent,
+                volume: quote.volume || newValue.volume,
+                marketCap: quote.marketCap || quote.market_cap || quote.marketCapitalization || quote.mktCap,
+                exchange: quote.exchange || newValue.exchange,
+              };
+              console.log('✅ 合并后的股票/ETF数据:', detailedData);
+            }
+          } catch (error) {
+            console.warn(`⚠️ 无法从quote API获取${assetType}详细数据:`, error);
+          }
+        }
+        
+        // 🔧 最后的数据清理和回退
+        const finalMarketCap = detailedData.marketCap || 
+                              detailedData.market_cap || 
+                              detailedData.marketCapitalization || 
+                              detailedData.mktCap ||
+                              detailedData.MarketCap ||
+                              detailedData.marketcap ||
+                              detailedData.cap ||
+                              detailedData.mcap ||
+                              detailedData.market_capitalization ||
+                              detailedData.sharesOutstanding ||
+                              detailedData.marketValue;
+        
+        onSelectStock({
+          symbol: detailedData.symbol,
+          name: detailedData.name || detailedData.longname,
+          price: detailedData.price,
+          change: detailedData.change,
+          changePercent: detailedData.changePercent,
+          volume: detailedData.volume,
+          marketCap: finalMarketCap,
+          exchange: detailedData.exchange,
+          type: assetType
+        });
+        
+      } catch (error) {
+        console.error('❌ 获取详细资产数据失败:', error);
+        // 如果所有尝试都失败，使用原始搜索结果
+        const marketCap = newValue.marketCap || 
+                         newValue.market_cap || 
+                         newValue.marketCapitalization || 
+                         newValue.mktCap ||
+                         newValue.MarketCap ||
+                         newValue.marketcap ||
+                         newValue.cap ||
+                         newValue.mcap ||
+                         newValue.market_capitalization ||
+                         newValue.sharesOutstanding ||
+                         newValue.marketValue;
+        
+        onSelectStock({
+          symbol: newValue.symbol,
+          name: newValue.name || newValue.longname,
+          price: newValue.price,
+          change: newValue.change,
+          changePercent: newValue.changePercent,
+          volume: newValue.volume,
+          marketCap: marketCap,
+          exchange: newValue.exchange,
+          type: assetType
+        });
+      } finally {
+        setDetailLoading(false);
+      }
     }
   };
 
@@ -186,7 +345,7 @@ const StockSearchField = ({
             ...params.InputProps,
             endAdornment: (
               <>
-                {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                {loading || detailLoading ? <CircularProgress color="inherit" size={20} /> : null}
                 {params.InputProps.endAdornment}
               </>
             ),

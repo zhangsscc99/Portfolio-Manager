@@ -61,6 +61,8 @@ const Layout = ({ children }) => {
     setAssistantOpen(false);
   };
 
+
+
   // Load portfolio data on component mount
   React.useEffect(() => {
     fetchPortfolioData();
@@ -225,7 +227,8 @@ const Layout = ({ children }) => {
                 count: data.assets.length
               };
               return acc;
-            }, {}) : {}
+            }, {}) : {},
+          assetsByType: portfolioData?.assetsByType || {} // Add this for AI questions generation
         }}
         analysisData={{
           summary: {
@@ -234,6 +237,8 @@ const Layout = ({ children }) => {
           }
         }}
       />
+
+
     </Box>
   );
 };

@@ -2,23 +2,24 @@
 // const { syncDatabase } = require('../models/index');
 // const db = require('../db');
 
-// // 创建AI聊天相关表
-// const createAIChatTables = async () => {
-//   try {
-//     // 创建AI聊天会话表
-//     const createSessionsTable = `
-//       CREATE TABLE IF NOT EXISTS ai_chat_sessions (
-//         id VARCHAR(255) PRIMARY KEY,
-//         portfolio_id INT,
-//         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-//         last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-//         is_persistent BOOLEAN DEFAULT FALSE,
-//         portfolio_context JSON,
-//         FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE,
-//         INDEX idx_portfolio_id (portfolio_id),
-//         INDEX idx_last_activity (last_activity)
-//       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天会话表'
-//     `;
+// 创建AI聊天相关表
+const createAIChatTables = async () => {
+  try {
+    // 创建AI聊天会话表
+    const createSessionsTable = `
+      CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+        id VARCHAR(255) PRIMARY KEY,
+        portfolio_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        is_persistent BOOLEAN DEFAULT FALSE,
+        portfolio_context JSON,
+        FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE,
+        INDEX idx_portfolio_id (portfolio_id),
+        INDEX idx_last_activity (last_activity)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天会话表'
+    `;
+
     
 //     await db.execute(createSessionsTable);
 //     console.log('✅ AI聊天会话表创建成功');
@@ -118,7 +119,7 @@ const initializeDatabase = async () => {
       host: 'localhost',
       port: 3306,
       user: 'root',
-      password: 'n3u3da!'
+      password: 'wyt!!010611ABC'
     });
 
     console.log('🔗 连接到MySQL服务器成功!');
@@ -134,12 +135,22 @@ const initializeDatabase = async () => {
     console.log('🔄 开始同步表结构...');
     await syncDatabase(); // 不强制重建，保留数据
     
+    // 6. 创建AI聊天相关表
+    console.log('🤖 创建AI聊天历史表...');
+    await createAIChatTables();
+    
     console.log('✅ 数据库表结构同步完成!');
     console.log('📋 数据库表:');
+
+    console.log('   - ai_chat_sessions (AI聊天会话表)');
+    console.log('   - ai_chat_messages (AI聊天消息表)');
+    console.log('   - ai_analysis_reports (AI分析报告历史表)');
+
     console.log('   - portfolio (投资组合表)');
     console.log('   - asset (资产基础信息表)');
     console.log('   - holding (持仓表)');
     console.log('   - transaction (交易流水表)');
+
     
     return true;
   } catch (error) {

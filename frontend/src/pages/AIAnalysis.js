@@ -39,6 +39,7 @@ import {
   CloudOff
 } from '@mui/icons-material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
+import MarkdownText from '../components/MarkdownText';
 
 const AIAnalysis = () => {
   const [searchParams] = useSearchParams();
@@ -413,9 +414,9 @@ const AIAnalysis = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+            <MarkdownText variant="body1">
               {analysis?.assetAllocation || 'Analysis data not available'}
-            </Typography>
+            </MarkdownText>
           </AccordionDetails>
         </Accordion>
 
@@ -430,9 +431,9 @@ const AIAnalysis = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+            <MarkdownText variant="body1">
               {analysis?.riskAssessment || 'Analysis data not available'}
-            </Typography>
+            </MarkdownText>
           </AccordionDetails>
         </Accordion>
 
@@ -447,9 +448,9 @@ const AIAnalysis = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+            <MarkdownText variant="body1">
               {analysis?.performanceAnalysis || 'Analysis data not available'}
-            </Typography>
+            </MarkdownText>
           </AccordionDetails>
         </Accordion>
 
@@ -464,9 +465,9 @@ const AIAnalysis = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+            <MarkdownText variant="body1">
               {analysis?.marketOutlook || 'Analysis data not available'}
-            </Typography>
+            </MarkdownText>
           </AccordionDetails>
         </Accordion>
 
@@ -481,9 +482,9 @@ const AIAnalysis = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+            <MarkdownText variant="body1">
               {analysis?.optimizationSuggestions || 'Analysis data not available'}
-            </Typography>
+            </MarkdownText>
           </AccordionDetails>
         </Accordion>
 
@@ -498,9 +499,9 @@ const AIAnalysis = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+            <MarkdownText variant="body1">
               {analysis?.investmentStrategy || 'Analysis data not available'}
-            </Typography>
+            </MarkdownText>
           </AccordionDetails>
         </Accordion>
       </Box>

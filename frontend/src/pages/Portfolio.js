@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { marketAPI } from '../services/api';
 import {
@@ -35,7 +36,8 @@ import {
   Remove as RemoveIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  Analytics
+  Analytics,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import { Line, Doughnut } from 'react-chartjs-2';
@@ -51,15 +53,10 @@ const ASSET_TYPES = {
 
 const Portfolio = () => {
   const navigate = useNavigate();
-  const [portfolioData, setPortfolioData] = useState(null);
-
-  const [selectedAsset, setSelectedAsset] = useState(null);
-  const [assetChartData, setAssetChartData] = useState(null);
-  const [chartLoading, setChartLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [addAssetOpen, setAddAssetOpen] = useState(false);
-  const [removeAssetOpen, setRemoveAssetOpen] = useState(false);
-  const [expandedTypes, setExpandedTypes] = useState({});
+  
+  // 📊 状态管理
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openRemoveDialog, setOpenRemoveDialog] = useState(false);
   const [newAsset, setNewAsset] = useState({
     symbol: '',
     name: '',
@@ -134,8 +131,27 @@ const Portfolio = () => {
     }
   }, [portfolioData]);
 
-  // 📊 Fetch portfolio data
-  const fetchPortfolioData = async () => {
+  // 🎯 使用React Query获取portfolio数据，与Dashboard保持一致
+  const { data: portfolio, isLoading: portfolioLoading, refetch: refetchPortfolio } = useQuery(
+    'portfolioAssets',
+    () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
+    {
+      staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
+      cacheTime: 10 * 60 * 1000, // 10分钟后清除缓存
+    }
+  );
+
+  // 📊 处理portfolio数据，与Dashboard保持一致的数据结构
+  const portfolioData = portfolio?.data || null;
+
+  // 📊 状态管理
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [assetChartData, setAssetChartData] = useState(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [expandedTypes, setExpandedTypes] = useState({});
+
+  // 🔄 手动更新价格
+  const handleUpdatePrices = async () => {
     try {
       const response = await fetch(buildApiUrl(API_ENDPOINTS.portfolio.getById(1)));
       const data = await response.json();
@@ -143,7 +159,8 @@ const Portfolio = () => {
         setPortfolioData(data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch portfolio data:', error);
+      console.error('❌ 价格更新异常:', error);
+      alert('❌ 价格更新异常: ' + error.message);
     }
   };
 
@@ -293,7 +310,7 @@ const Portfolio = () => {
     };
     loadData();
   }, []);
-
+  
   // AI Portfolio Analysis - Navigate to Analytics page and scroll to AI Analysis section
   const handleAIAnalysis = async () => {
     try {
@@ -357,7 +374,7 @@ const Portfolio = () => {
           setRemoveMessage({ type: 'success', text: `${asset.symbol} completely sold (${sellQuantity} shares). Received $${cashAmount.toFixed(2)} cash.` });
           // 成功时延迟重置表单并刷新数据
           setTimeout(() => {
-            setRemoveAssetOpen(false);
+            setOpenRemoveDialog(false);
             setAssetToRemove({
               symbol: '',
               name: '',
@@ -366,7 +383,7 @@ const Portfolio = () => {
               maxQuantity: 0
             });
             setRemoveMessage({ type: '', text: '' });
-            fetchPortfolioData();
+            refetchPortfolio();
           }, 1500);
         } else {
           const errorData = await response.json();
@@ -390,7 +407,7 @@ const Portfolio = () => {
           setRemoveMessage({ type: 'success', text: `Sold ${sellQuantity} shares of ${asset.symbol}. Remaining: ${newQuantity}. Received $${cashAmount.toFixed(2)} cash.` });
           // 成功时延迟重置表单并刷新数据
           setTimeout(() => {
-            setRemoveAssetOpen(false);
+            setOpenRemoveDialog(false);
             setAssetToRemove({
               symbol: '',
               name: '',
@@ -399,7 +416,7 @@ const Portfolio = () => {
               maxQuantity: 0
             });
             setRemoveMessage({ type: '', text: '' });
-            fetchPortfolioData();
+            refetchPortfolio();
           }, 1500);
         } else {
           const errorData = await response.json();
@@ -792,13 +809,12 @@ const Portfolio = () => {
         </Grid>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* 📈 Main assets area */}
-        <Grid item xs={12} lg={8}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Asset Categories
+      {/* ⏳ Loading状态 */}
+      {portfolioLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Typography variant="h6" color="text.secondary">
+            Loading portfolio data...
           </Typography>
-
           {Object.entries(ASSET_TYPES).map(([type, config]) => {
             const typeData = portfolioData?.assetsByType?.[type];
             console.log("portfolioData", portfolioData);
@@ -1155,8 +1171,8 @@ const Portfolio = () => {
                       <Typography variant="caption" color="text.secondary">
                         Holdings
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {parseFloat(selectedAsset.quantity).toLocaleString()}
+                      <Typography sx={{ fontWeight: 600, color: config.color }}>
+                        {formatCurrency(typeData?.totalValue || 0)}
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
@@ -1181,18 +1197,59 @@ const Portfolio = () => {
                           return currentPrice ? formatCurrency(currentPrice * quantity, selectedAsset.currency) : 'N/A';
                         })()}
                       </Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                    {formatCurrency(selectedAsset.current_price, selectedAsset.currency)}
+                  </Typography>
+                  
+                  <Box sx={{ height: 200, position: 'relative' }}>
+                    {assetChartData ? (
+                      <Line 
+                        data={assetChartData} 
+                        options={chartOptions}
+                        key={`chart-${selectedAsset.id}`}
+                      />
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <Typography color="text.secondary">
+                          No chart data available
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">
+                          Holdings
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {parseFloat(selectedAsset.quantity).toLocaleString()}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">
+                          Total Value
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {formatCurrency(selectedAsset.currentValue, selectedAsset.currency)}
+                        </Typography>
+                      </Grid>
                     </Grid>
-                  </Grid>
-                </Box>
-              </CardContent>
-            </Card>
-          )}
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
 
 
+          </Grid>
         </Grid>
-      </Grid>
+      )}
       {/* 📝 Remove asset dialog */}
-      <Dialog open={removeAssetOpen} onClose={() => setRemoveAssetOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openRemoveDialog} onClose={() => setOpenRemoveDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Remove Asset</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -1383,15 +1440,47 @@ const Portfolio = () => {
                   background: 'linear-gradient(135deg, rgba(244, 190, 126, 0.1) 0%, rgba(232, 168, 85, 0.15) 100%)',
                   borderRadius: 2,
                   border: '1px solid',
-                  borderColor: 'primary.main'
+                  borderColor: selectedStock.loading ? 'warning.main' : selectedStock.error ? 'error.main' : 'primary.main'
                 }}>
-                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
-                    ✅ Selected: {selectedStock.symbol} - {selectedStock.name}
+                  <Typography variant="body2" color={selectedStock.error ? 'error.main' : 'primary.main'} sx={{ fontWeight: 600 }}>
+                    {selectedStock.loading ? '🔄 Loading...' : selectedStock.error ? '❌ Error:' : '✅ Selected:'} {selectedStock.symbol} - {selectedStock.name}
                   </Typography>
-                  {selectedStock.price && (
-                    <Typography variant="caption" color="text.secondary">
-                      Current Price: ${parseFloat(selectedStock.price).toFixed(2)}
+                  
+                  {selectedStock.loading && (
+                    <Typography variant="caption" color="warning.main">
+                      🔍 Fetching real-time price and market history...
                     </Typography>
+                  )}
+                  
+                  {selectedStock.error && (
+                    <Typography variant="caption" color="error.main">
+                      {selectedStock.error}
+                    </Typography>
+                  )}
+                  
+                  {!selectedStock.loading && !selectedStock.error && (
+                    <Box sx={{ mt: 1 }}>
+                      {/* 实时价格 */}
+                      {selectedStock.realTimePrice && (
+                        <Typography variant="caption" color="success.main" sx={{ display: 'block', fontWeight: 600 }}>
+                          📈 Real-time Price: ${selectedStock.realTimePrice.toFixed(2)}
+                        </Typography>
+                      )}
+                      
+                      {/* 历史平均价格 */}
+                      {selectedStock.avgHistoricalPrice && (
+                        <Typography variant="caption" color="info.main" sx={{ display: 'block' }}>
+                          📊 30-Day Avg: ${selectedStock.avgHistoricalPrice.toFixed(2)}
+                        </Typography>
+                      )}
+                      
+                      {/* 原始搜索价格（作为备用参考） */}
+                      {selectedStock.price && !selectedStock.realTimePrice && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          📋 Search Price: ${parseFloat(selectedStock.price).toFixed(2)}
+                        </Typography>
+                      )}
+                    </Box>
                   )}
                 </Box>
               </Grid>
@@ -1464,7 +1553,7 @@ const Portfolio = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setAddAssetOpen(false); resetAddAssetForm(); }}>Cancel</Button>
+          <Button onClick={() => { setOpenAddDialog(false); resetAddAssetForm(); }}>Cancel</Button>
           <Button variant="contained" onClick={handleAddAsset}>Add</Button>
         </DialogActions>
       </Dialog>

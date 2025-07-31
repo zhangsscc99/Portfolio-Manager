@@ -53,11 +53,35 @@ class AssetService {
         const currentValue = asset.getCurrentValue();
         const gainLoss = asset.getGainLoss();
         
+        // 🔄 获取日变化数据（如果可用）
+        let dailyChange = 0;
+        let dailyChangePercent = 0;
+        
+        // 对于股票和ETF，尝试从缓存或最近的API调用中获取日变化
+        if ((asset.asset_type === 'stock' || asset.asset_type === 'etf') && asset.price_source === 'yahoo_finance') {
+          // 尝试从Yahoo Finance缓存中获取日变化数据
+          const cachedData = yahooFinanceService.getCachedData(asset.source_symbol);
+          if (cachedData && cachedData.change !== undefined) {
+            dailyChange = cachedData.change;
+            dailyChangePercent = cachedData.changePercent;
+          }
+        }
+        // 对于加密货币，尝试从CoinGecko获取日变化
+        else if (asset.asset_type === 'crypto' && asset.price_source === 'coingecko') {
+          const cachedData = cryptoService.getCachedData(asset.source_symbol);
+          if (cachedData && cachedData.change !== undefined) {
+            dailyChange = cachedData.change;
+            dailyChangePercent = cachedData.changePercent;
+          }
+        }
+        
         assetsByType[asset.asset_type].assets.push({
           ...asset.toJSON(),
           currentValue,
           gainLoss,
-          gainLossPercent: asset.getGainLossPercent()
+          gainLossPercent: asset.getGainLossPercent(),
+          dailyChange: dailyChange,
+          changePercent: dailyChangePercent
         });
         
         assetsByType[asset.asset_type].totalValue += currentValue;
@@ -96,6 +120,7 @@ class AssetService {
         quantity,
         avg_cost,
         current_price,
+        historical_avg_price,
         currency = 'USD',
         exchange,
         portfolio_id,
@@ -153,6 +178,8 @@ class AssetService {
           avg_cost: weightedAvgCost,
           // 如果提供了新的当前价格，也更新它
           current_price: current_price ? parseFloat(current_price) : existingAsset.current_price,
+          // 如果提供了新的历史平均价格，也更新它
+          historical_avg_price: historical_avg_price ? parseFloat(historical_avg_price) : existingAsset.historical_avg_price,
           // 更新购买日期为最新的购买日期
           purchase_date: purchase_date || existingAsset.purchase_date,
           // 合并备注信息
@@ -180,6 +207,7 @@ class AssetService {
         quantity: parseFloat(quantity),
         avg_cost: parseFloat(avg_cost),
         current_price: current_price ? parseFloat(current_price) : parseFloat(avg_cost),
+        historical_avg_price: historical_avg_price ? parseFloat(historical_avg_price) : null,
         currency,
         exchange,
         price_source: priceSource,

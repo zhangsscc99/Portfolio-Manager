@@ -175,6 +175,7 @@ const syncDatabase = async (force = false) => {
     console.log('✅ Transaction表创建成功');
     
     console.log('数据库表结构同步完成!');
+
   } catch (error) {
     console.error('❌ 数据库同步失败:', error);
     throw error;
