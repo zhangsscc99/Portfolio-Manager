@@ -19,11 +19,16 @@ const createAIChatTables = async () => {
         INDEX idx_last_activity (last_activity)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天会话表'
     `;
-
-    
+    await db.execute(createMessagesTable);
+    console.log('✅ AI聊天消息表创建成功');
+  } catch (error) {
+    console.error('❌ 创建AI聊天表失败:', error);
+    // 不抛出错误，让其他功能正常工作
+  }
+}
 //     await db.execute(createSessionsTable);
 //     console.log('✅ AI聊天会话表创建成功');
-    
+
 //     // 创建AI聊天消息表
 //     const createMessagesTable = `
 //       CREATE TABLE IF NOT EXISTS ai_chat_messages (
@@ -37,10 +42,10 @@ const createAIChatTables = async () => {
 //         INDEX idx_session_timestamp (session_id, timestamp)
 //       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天消息表'
 //     `;
-    
+
 //     await db.execute(createMessagesTable);
 //     console.log('✅ AI聊天消息表创建成功');
-    
+
 //   } catch (error) {
 //     console.error('❌ 创建AI聊天表失败:', error);
 //     // 不抛出错误，让其他功能正常工作
@@ -52,7 +57,7 @@ const createAIChatTables = async () => {
 // // 🏗️ 数据库初始化脚本 (优化版)
 // const initializeDatabase = async () => {
 //   let connection;
-  
+
 //   try {
 //     // 1. 连接到MySQL服务器（不指定数据库）
 //     connection = await mysql.createConnection({
@@ -74,11 +79,11 @@ const createAIChatTables = async () => {
 //     // 4. 使用Sequelize同步表结构
 //     console.log('🔄 开始同步表结构...');
 //     await syncDatabase(); // 不强制重建，保留数据
-    
+
 //     // 5. 创建AI聊天相关表
 //     console.log('🤖 创建AI聊天历史表...');
 //     await createAIChatTables();
-    
+
 //     console.log('✅ 数据库表结构同步完成!');
 //     console.log('📋 数据库表:');
 //     console.log('   - portfolios (投资组合表)');
@@ -86,7 +91,7 @@ const createAIChatTables = async () => {
 //     console.log('   - ai_chat_sessions (AI聊天会话表)');
 //     console.log('   - ai_chat_messages (AI聊天消息表)');
 //     console.log('   - ai_analysis_reports (AI分析报告历史表)');
-    
+
 //     return true;
 //   } catch (error) {
 //     console.error('❌ 数据库初始化失败:', error);
@@ -112,7 +117,7 @@ const { syncDatabase } = require('../models');
 
 const initializeDatabase = async () => {
   let connection;
-  
+
   try {
     // 1. 连接到MySQL服务器（不指定数据库）
     connection = await mysql.createConnection({
@@ -134,11 +139,11 @@ const initializeDatabase = async () => {
     // 4. 使用Sequelize同步表结构
     console.log('🔄 开始同步表结构...');
     await syncDatabase(); // 不强制重建，保留数据
-    
+
     // 6. 创建AI聊天相关表
     console.log('🤖 创建AI聊天历史表...');
     await createAIChatTables();
-    
+
     console.log('✅ 数据库表结构同步完成!');
     console.log('📋 数据库表:');
 
@@ -151,7 +156,7 @@ const initializeDatabase = async () => {
     console.log('   - holding (持仓表)');
     console.log('   - transaction (交易流水表)');
 
-    
+
     return true;
   } catch (error) {
     console.error('❌ 数据库初始化失败:', error);
