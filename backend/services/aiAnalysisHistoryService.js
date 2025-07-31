@@ -133,19 +133,21 @@ class AIAnalysisHistoryService {
 
   // 数据提取辅助方法
   extractOverallScore(analysisData) {
-    return analysisData?.overallScore || analysisData?.score || 85;
+    return analysisData?.summary?.overallScore || analysisData?.overallScore || analysisData?.score || 85;
   }
 
   extractRiskLevel(analysisData) {
-    return analysisData?.riskLevel || analysisData?.risk || 'Medium';
+    return analysisData?.summary?.riskLevel || analysisData?.riskLevel || analysisData?.risk || 'Medium';
   }
 
   extractTotalReturn(analysisData) {
-    return analysisData?.totalReturn || analysisData?.return || '+0%';
+    // 不再计算总回报，返回空字符串或null
+    return null;
   }
 
   extractSharpeRatio(analysisData) {
-    return analysisData?.sharpeRatio || analysisData?.sharpe || 1.2;
+    // 不再计算夏普比率，返回null
+    return null;
   }
 
   extractKeyInsights(analysisData) {

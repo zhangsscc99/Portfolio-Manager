@@ -75,15 +75,13 @@ const syncDatabase = async (force = false) => {
     await Watchlist.sync();
     console.log('✅ Watchlist表创建成功');
     
-          console.log('📊 数据库表结构同步完成!');
+    console.log('📊 数据库表结构同步完成!');
     console.log('📋 数据库表:');
     console.log('   - portfolios (投资组合表)');
     console.log('   - holdings (持仓表 - 兼容旧版)');
     console.log('   - assets (新资产表 - 支持多种类型)');
+    console.log('   - ai_analysis_reports (AI分析报告历史表)');
     console.log('   - watchlist (关注列表)');
-    console.log('📋 数据库表:');
-    console.log('   - portfolios (投资组合表)');
-    console.log('   - holdings (持仓表)');
   } catch (error) {
     console.error('❌ 数据库同步失败:', error);
     throw error;

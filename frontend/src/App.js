@@ -16,6 +16,7 @@ import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
 import Markets from './pages/Markets';
 import AIAnalysis from './pages/AIAnalysis';
+import AIReportDetail from './pages/AIReportDetail'; // 新增AI报告详情页面
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -385,6 +386,7 @@ function App() {
                     <Route path="analytics" element={<Analytics />} />
                     <Route path="markets" element={<Markets />} />
                     <Route path="ai-analysis" element={<AIAnalysis />} />
+                    <Route path="ai-report/:reportId" element={<AIReportDetail />} />
                     <Route path="" element={<Dashboard />} /> {/* Default to dashboard */}
                   </Routes>
                 </Layout>
@@ -395,6 +397,7 @@ function App() {
               <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
               <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
               <Route path="/markets" element={<Layout><Markets /></Layout>} />
+              <Route path="/ai-report/:reportId" element={<Layout><AIReportDetail /></Layout>} />
             </Routes>
             <Toaster
               position="top-right"

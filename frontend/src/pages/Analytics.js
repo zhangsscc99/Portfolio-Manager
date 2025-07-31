@@ -1,4 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { useQuery } from 'react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -15,18 +17,55 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { 
   Analytics as AnalyticsIcon,
   Visibility as ViewIcon,
   AccessTime as TimeIcon,
   Refresh as RefreshIcon,
-  AutoFixHigh as GenerateIcon
+  AutoFixHigh as GenerateIcon,
+  TrendingUp,
+  TrendingDown,
 } from '@mui/icons-material';
+import { Line, Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from 'chart.js';
+
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
+import {
+  formatCurrency,
+  formatPercentage,
+  getChangeColor,
+} from '../services/api';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 const Analytics = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+
   // 📊 AI分析相关状态
   const [analysisReports, setAnalysisReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
@@ -67,6 +106,8 @@ const Analytics = () => {
     try {
       setGeneratingReport(true);
       
+      console.log('🤖 Generating new AI analysis report...');
+      
       // Call the AI analysis API
       const response = await fetch(buildApiUrl('/ai-analysis/portfolio'), {
         method: 'POST',
@@ -81,32 +122,36 @@ const Analytics = () => {
       const data = await response.json();
       
       if (data.success) {
+        console.log('✅ New AI analysis report generated successfully');
+        console.log('📊 Report ID:', data.data.reportId);
+        
         // Successfully generated report, refresh the list
         await fetchAnalysisReports();
-        console.log('✅ New AI analysis report generated successfully');
+        
+        // Navigate to the new report detail page
+        if (data.data.reportId) {
+          console.log(`🔄 Navigating to report ${data.data.reportId}...`);
+          navigate(`/app/ai-report/${data.data.reportId}`);
+        } else {
+          console.warn('⚠️ Report generated but no reportId returned');
+        }
       } else {
         console.error('❌ Failed to generate AI analysis:', data.error);
+        // Still refresh the list in case report was created but response was incomplete
+        await fetchAnalysisReports();
       }
     } catch (error) {
       console.error('❌ Error generating AI analysis:', error);
+      // Refresh the list to show any reports that might have been created
+      await fetchAnalysisReports();
     } finally {
       setGeneratingReport(false);
     }
   };
 
-  // View AI Analysis Report
-  const viewReport = async (reportId) => {
-    try {
-      const response = await fetch(buildApiUrl(`/ai-analysis/portfolio/1?reportId=${reportId}`));
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log('📊 AI Analysis Report:', data.data);
-        // 这里可以添加查看报告的逻辑，比如打开模态框或跳转到详情页
-      }
-    } catch (error) {
-      console.error('Failed to view report:', error);
-    }
+  // View AI Analysis Report - Navigate to report detail page
+  const viewReport = (reportId) => {
+    navigate(`/app/ai-report/${reportId}`);
   };
 
   useEffect(() => {
@@ -149,15 +194,6 @@ const Analytics = () => {
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       Analysis Report #{report.id}
                     </Typography>
-                    <Chip 
-                      label={report.riskLevel || 'Medium'} 
-                      size="small" 
-                      color={
-                        report.riskLevel === 'Low' ? 'success' :
-                        report.riskLevel === 'High' ? 'error' : 'warning'
-                      }
-                      variant="outlined"
-                    />
                   </Box>
                 }
                 secondary={

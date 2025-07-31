@@ -99,6 +99,12 @@ Please provide professional analysis and specific recommendations from the follo
    - Consider market timing and entry/exit strategies
    - Recommend monitoring frequency and key metrics to watch
 
+7. **Overall Portfolio Score**
+   - Based on your comprehensive analysis, provide an overall portfolio score from 0 to 100
+   - Consider diversification, risk management, performance potential, and strategic alignment
+   - Explain the key factors that influenced this score
+   - Provide specific actions that could improve the score
+
 ## Analysis Standards
 - Use current market data and recent company developments (as of your knowledge cutoff)
 - Provide specific, actionable recommendations with reasoning
@@ -106,6 +112,11 @@ Please provide professional analysis and specific recommendations from the follo
 - Consider multiple time horizons (short, medium, long-term)
 - Address both growth and income investment objectives
 - Factor in risk tolerance and diversification principles
+
+**IMPORTANT SCORING REQUIREMENT:**
+At the end of your analysis, you MUST provide a clear overall portfolio score in this exact format:
+"OVERALL PORTFOLIO SCORE: [XX]/100"
+Where XX is a number between 0 and 100 based on your comprehensive evaluation.
 
 Please use professional yet understandable language, providing detailed analysis and actionable recommendations. The analysis should be objective and comprehensive, highlighting both strengths and weaknesses/risks for the overall portfolio and individual holdings.
 
@@ -357,40 +368,96 @@ Under the current market environment, recommendations include:
       riskAssessment: '',
       performanceAnalysis: '',
       marketOutlook: '',
-      optimizationSuggestions: '',
-      investmentStrategy: ''
+      stockAnalysis: '',
+      optimizationRecommendations: '',
+      investmentStrategy: '',
+      overallScore: ''
     };
 
-    // Simple content segmentation
+    // Split content into lines for better parsing
     const lines = content.split('\n');
     let currentSection = '';
+    let isInSection = false;
     
     lines.forEach(line => {
       const trimmed = line.trim();
-      if (trimmed.includes('Asset Allocation') || trimmed.includes('Allocation Analysis')) {
-        currentSection = 'assetAllocation';
-      } else if (trimmed.includes('Risk Assessment') || trimmed.includes('Risk')) {
-        currentSection = 'riskAssessment';
-      } else if (trimmed.includes('Performance Analysis') || trimmed.includes('Performance')) {
-        currentSection = 'performanceAnalysis';
-      } else if (trimmed.includes('Market Outlook') || trimmed.includes('Outlook')) {
-        currentSection = 'marketOutlook';
-      } else if (trimmed.includes('Optimization') || trimmed.includes('Recommendations')) {
-        currentSection = 'optimizationSuggestions';
-      } else if (trimmed.includes('Investment Strategy') || trimmed.includes('Strategy')) {
-        currentSection = 'investmentStrategy';
-      } else if (currentSection && trimmed) {
-        sections[currentSection] += trimmed + '\n';
+      
+      // Skip empty lines
+      if (!trimmed) {
+        if (currentSection && isInSection) {
+          sections[currentSection] += '\n';
+        }
+        return;
       }
+      
+      // Detect section headers
+      if (this.isSectionHeader(trimmed)) {
+        currentSection = this.getSectionType(trimmed);
+        isInSection = true;
+        return;
+      }
+      
+      // Add content to current section
+      if (currentSection && isInSection && trimmed) {
+        // Skip markdown headers and numbering
+        const cleanLine = trimmed.replace(/^#{1,6}\s*/, '').replace(/^\d+\.\s*\*?\*?/, '');
+        if (cleanLine) {
+          sections[currentSection] += cleanLine + '\n';
+        }
+      }
+    });
+
+    // Clean up sections - remove extra whitespace
+    Object.keys(sections).forEach(key => {
+      sections[key] = sections[key].trim();
     });
 
     return sections;
   }
 
+  // Check if a line is a section header
+  isSectionHeader(line) {
+    const headerPatterns = [
+      /^\d+\.\s*\*?\*?Asset Allocation/i,
+      /^\d+\.\s*\*?\*?Risk Assessment/i,
+      /^\d+\.\s*\*?\*?Performance Analysis/i,
+      /^\d+\.\s*\*?\*?Market Outlook/i,
+      /^\d+\.\s*\*?\*?Individual Stock/i,
+      /^\d+\.\s*\*?\*?Stock Analysis/i,
+      /^\d+\.\s*\*?\*?Optimization/i,
+      /^\d+\.\s*\*?\*?Investment Strategy/i,
+      /^\d+\.\s*\*?\*?Overall.*Score/i,
+      /^#{1,6}\s*Asset Allocation/i,
+      /^#{1,6}\s*Risk Assessment/i,
+      /^#{1,6}\s*Performance Analysis/i,
+      /^#{1,6}\s*Market Outlook/i,
+      /^#{1,6}\s*Individual Stock/i,
+      /^#{1,6}\s*Stock Analysis/i,
+      /^#{1,6}\s*Optimization/i,
+      /^#{1,6}\s*Investment Strategy/i,
+      /^#{1,6}\s*Overall.*Score/i
+    ];
+    
+    return headerPatterns.some(pattern => pattern.test(line));
+  }
+
+  // Get section type from header line
+  getSectionType(line) {
+    if (/Asset Allocation/i.test(line)) return 'assetAllocation';
+    if (/Risk Assessment/i.test(line)) return 'riskAssessment';
+    if (/Performance Analysis/i.test(line)) return 'performanceAnalysis';
+    if (/Market Outlook/i.test(line)) return 'marketOutlook';
+    if (/Individual Stock|Stock Analysis/i.test(line)) return 'stockAnalysis';
+    if (/Optimization|Recommendations/i.test(line)) return 'optimizationRecommendations';
+    if (/Investment Strategy/i.test(line)) return 'investmentStrategy';
+    if (/Overall.*Score/i.test(line)) return 'overallScore';
+    return '';
+  }
+
   // Generate analysis summary
   generateSummary(analysisReport) {
     const summary = {
-      overallScore: this.calculateOverallScore(analysisReport.portfolioSnapshot),
+      overallScore: this.calculateOverallScore(analysisReport.portfolioSnapshot, analysisReport.rawAnalysis),
       keyInsights: this.extractKeyInsights(analysisReport.analysis),
       riskLevel: this.assessRiskLevel(analysisReport.portfolioSnapshot),
       recommendations: this.extractRecommendations(analysisReport.analysis)
@@ -399,7 +466,21 @@ Under the current market environment, recommendations include:
     return summary;
   }
 
-  calculateOverallScore(portfolioSnapshot) {
+  calculateOverallScore(portfolioSnapshot, rawAnalysis = '') {
+    // 首先尝试从AI分析内容中提取分数
+    if (rawAnalysis) {
+      const scoreMatch = rawAnalysis.match(/OVERALL PORTFOLIO SCORE:\s*(\d+)\/100/i);
+      if (scoreMatch) {
+        const aiScore = parseInt(scoreMatch[1]);
+        if (aiScore >= 0 && aiScore <= 100) {
+          console.log(`✅ AI提供的Overall Score: ${aiScore}/100`);
+          return aiScore;
+        }
+      }
+    }
+    
+    // 如果AI没有提供分数，使用备用计算方法
+    console.log('⚠️ AI未提供Overall Score，使用备用计算方法');
     const assetTypes = Object.keys(portfolioSnapshot.assetDistribution).length;
     const diversificationScore = Math.min(assetTypes * 15, 60);
     
@@ -433,7 +514,7 @@ Under the current market environment, recommendations include:
       insights.push('Monitor risk levels and volatility');
     }
     
-    if (analysis.optimizationSuggestions.includes('recommend') || analysis.optimizationSuggestions.includes('suggest')) {
+    if (analysis.optimizationRecommendations.includes('recommend') || analysis.optimizationRecommendations.includes('suggest')) {
       insights.push('Optimization opportunities identified');
     }
     
@@ -443,7 +524,7 @@ Under the current market environment, recommendations include:
   extractRecommendations(analysis) {
     const recommendations = [];
     
-    const suggestions = analysis.optimizationSuggestions.split('\n').filter(line => 
+    const suggestions = analysis.optimizationRecommendations.split('\n').filter(line => 
       line.trim() && (line.includes('-') || line.includes('•') || line.includes('recommend'))
     );
     
