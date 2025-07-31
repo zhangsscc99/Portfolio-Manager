@@ -212,27 +212,7 @@ const AIReportDetail = () => {
             AI Analysis Report #{reportId}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={() => setShowDebugInfo(!showDebugInfo)}
-            sx={{ 
-              borderColor: showDebugInfo ? 'success.main' : 'warning.main',
-              color: showDebugInfo ? 'success.main' : 'warning.main'
-            }}
-          >
-            {showDebugInfo ? '隐藏调试信息' : '显示调试信息'}
-          </Button>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={testAIParsing}
-            sx={{ borderColor: 'info.main', color: 'info.main' }}
-          >
-            测试AI解析
-          </Button>
-        </Box>
+        
       </Box>
 
       {/* Report Metadata */}
