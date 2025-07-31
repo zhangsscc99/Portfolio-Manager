@@ -111,35 +111,35 @@ const Holding = require('./holding');
 const Transaction = require('./transaction');
 
 // 定义模型关联关系
-Portfolio.hasMany(Holding, {
-  foreignKey: 'portfolio_id',
-  as: 'holdings'
-});
+// Portfolio.hasMany(Holding, {
+//   foreignKey: 'portfolio_id',
+//   as: 'holdings'
+// });
 
-Holding.belongsTo(Portfolio, {
-  foreignKey: 'portfolio_id',
-  as: 'portfolio'
-});
+// Holding.belongsTo(Portfolio, {
+//   foreignKey: 'portfolio_id',
+//   as: 'portfolio'
+// });
 
-Asset.hasMany(Holding, {
-  foreignKey: 'asset_id',
-  as: 'holdings'
-});
+// Asset.hasMany(Holding, {
+//   foreignKey: 'asset_id',
+//   as: 'holdings'
+// });
 
-Holding.belongsTo(Asset, {
-  foreignKey: 'asset_id',
-  as: 'asset'
-});
+// Holding.belongsTo(Asset, {
+//   foreignKey: 'asset_id',
+//   as: 'asset'
+// });
 
-Holding.hasMany(Transaction, {
-  foreignKey: 'holding_id',
-  as: 'transactions'
-});
+// Holding.hasMany(Transaction, {
+//   foreignKey: 'holding_id',
+//   as: 'transactions'
+// });
 
-Transaction.belongsTo(Holding, {
-  foreignKey: 'holding_id',
-  as: 'holding'
-});
+// Transaction.belongsTo(Holding, {
+//   foreignKey: 'holding_id',
+//   as: 'holding'
+// });
 
 const syncDatabase = async (force = false) => {
   try {

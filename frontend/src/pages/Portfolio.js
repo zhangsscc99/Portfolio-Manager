@@ -43,7 +43,7 @@ import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 const ASSET_TYPES = {
   EQUITY: { name: 'Stocks', icon: '📈', color: '#E8A855' }, // 主金色
   crypto: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
-  etf: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
+  ETF: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
   bond: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
 };
 
