@@ -1,5 +1,6 @@
 const { Asset } = require('../models');
 const yahooFinance = require('yahoo-finance2').default;
+const assetService = require('../services/assetService');
 
 exports.searchAsset = async (req, res) => {
   const { symbol } = req.query;
@@ -157,6 +158,16 @@ exports.getAssetPriceOnDate = async (req, res) => {
       }
     });
     
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+exports.getPortfolioAssets = async (req, res) => {
+  try {
+    const { portfolioId } = req.params;
+    const portfolioData = await assetService.getPortfolioAssets(portfolioId);
+    res.json({ success: true, data: portfolioData });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

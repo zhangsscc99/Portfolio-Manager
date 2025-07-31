@@ -1,4 +1,4 @@
-const { Asset, Portfolio } = require('../models/index');
+const { Asset, Portfolio, PortfolioAsset } = require('../models/index');
 const yahooFinanceService = require('./yahooFinance');
 const cryptoService = require('./cryptoService');
 
@@ -26,13 +26,20 @@ class AssetService {
         throw new Error('投资组合不存在');
       }
 
-      // 获取所有资产
-      const assets = await Asset.findAll({
+      // 获取投资组合的资产关联
+      const portfolioAssets = await PortfolioAsset.findAll({
         where: { 
           portfolio_id: portfolioId,
           is_active: true 
         },
-        order: [['asset_type', 'ASC'], ['symbol', 'ASC']]
+        include: [
+          {
+            model: Asset,
+            as: 'asset',
+            attributes: ['id', 'asset_id', 'symbol', 'name', 'asset_type', 'current_price']
+          }
+        ],
+        order: [['asset', 'asset_type', 'ASC'], ['asset', 'symbol', 'ASC']]
       });
       
       // 按资产类型分组
@@ -49,41 +56,54 @@ class AssetService {
         };
       });
       
-      assets.forEach(asset => {
-        const currentValue = asset.getCurrentValue();
-        const gainLoss = asset.getGainLoss();
+      portfolioAssets.forEach(portfolioAsset => {
+        const asset = portfolioAsset.asset;
+        const currentValue = portfolioAsset.quantity * portfolioAsset.current_price;
+        const gainLoss = currentValue - (portfolioAsset.quantity * portfolioAsset.avg_cost);
         
         // 🔄 获取日变化数据（如果可用）
         let dailyChange = 0;
         let dailyChangePercent = 0;
         
         // 对于股票和ETF，尝试从缓存或最近的API调用中获取日变化
-        if ((asset.asset_type === 'stock' || asset.asset_type === 'etf') && asset.price_source === 'yahoo_finance') {
+        if ((asset.asset_type === 'stock' || asset.asset_type === 'etf') && portfolioAsset.price_source === 'yahoo_finance') {
           // 尝试从Yahoo Finance缓存中获取日变化数据
-          const cachedData = yahooFinanceService.getCachedData(asset.source_symbol);
+          const cachedData = yahooFinanceService.getCachedData(portfolioAsset.source_symbol);
           if (cachedData && cachedData.change !== undefined) {
             dailyChange = cachedData.change;
             dailyChangePercent = cachedData.changePercent;
           }
         }
         // 对于加密货币，尝试从CoinGecko获取日变化
-        else if (asset.asset_type === 'crypto' && asset.price_source === 'coingecko') {
-          const cachedData = cryptoService.getCachedData(asset.source_symbol);
+        else if (asset.asset_type === 'crypto' && portfolioAsset.price_source === 'coingecko') {
+          const cachedData = cryptoService.getCachedData(portfolioAsset.source_symbol);
           if (cachedData && cachedData.change !== undefined) {
             dailyChange = cachedData.change;
             dailyChangePercent = cachedData.changePercent;
           }
         }
         
-        assetsByType[asset.asset_type].assets.push({
+        const assetData = {
           ...asset.toJSON(),
+          portfolio_asset_id: portfolioAsset.id,
+          quantity: portfolioAsset.quantity,
+          avg_cost: portfolioAsset.avg_cost,
+          current_price: portfolioAsset.current_price,
+          historical_avg_price: portfolioAsset.historical_avg_price,
+          currency: portfolioAsset.currency,
+          exchange: portfolioAsset.exchange,
+          price_source: portfolioAsset.price_source,
+          source_symbol: portfolioAsset.source_symbol,
+          purchase_date: portfolioAsset.purchase_date,
+          notes: portfolioAsset.notes,
           currentValue,
           gainLoss,
-          gainLossPercent: asset.getGainLossPercent(),
+          gainLossPercent: gainLoss / (portfolioAsset.quantity * portfolioAsset.avg_cost) * 100,
           dailyChange: dailyChange,
           changePercent: dailyChangePercent
-        });
+        };
         
+        assetsByType[asset.asset_type].assets.push(assetData);
         assetsByType[asset.asset_type].totalValue += currentValue;
         assetsByType[asset.asset_type].totalGainLoss += gainLoss;
         assetsByType[asset.asset_type].count++;
@@ -94,7 +114,7 @@ class AssetService {
       return {
         assetsByType,
         totalValue,
-        totalAssets: assets.length,
+        totalAssets: portfolioAssets.length,
         summary: Object.keys(assetsByType).map(type => ({
           type,
           ...assetsByType[type],
@@ -144,22 +164,39 @@ class AssetService {
         throw new Error('投资组合不存在');
       }
 
-      // 检查是否已存在相同资产
-      const existingAsset = await Asset.findOne({
+      // 查找或创建资产
+      let asset = await Asset.findOne({
         where: {
           symbol: symbol.toUpperCase(),
+          asset_type
+        }
+      });
+
+      if (!asset) {
+        // 创建新资产
+        asset = await Asset.create({
+          symbol: symbol.toUpperCase(),
+          name,
           asset_type,
+          current_price: current_price || avg_cost
+        });
+      }
+
+      // 检查是否已存在相同资产在投资组合中
+      const existingPortfolioAsset = await PortfolioAsset.findOne({
+        where: {
+          asset_id: asset.id,
           portfolio_id,
           is_active: true
         }
       });
 
-      if (existingAsset) {
+      if (existingPortfolioAsset) {
         // 如果资产已存在，则累加数量并重新计算平均成本
-        console.log(`📈 资产 ${symbol} 已存在，累加数量并重新计算平均成本...`);
+        console.log(`📈 资产 ${symbol} 已存在于投资组合中，累加数量并重新计算平均成本...`);
         
-        const originalQuantity = parseFloat(existingAsset.quantity);
-        const originalAvgCost = parseFloat(existingAsset.avg_cost);
+        const originalQuantity = parseFloat(existingPortfolioAsset.quantity);
+        const originalAvgCost = parseFloat(existingPortfolioAsset.avg_cost);
         const newQuantity = parseFloat(quantity);
         const newAvgCost = parseFloat(avg_cost);
         
@@ -172,23 +209,23 @@ class AssetService {
         const combinedTotalValue = originalTotalValue + newTotalValue;
         const weightedAvgCost = combinedTotalValue / totalQuantity;
         
-        // 更新现有资产
-        await existingAsset.update({
+        // 更新现有投资组合资产
+        await existingPortfolioAsset.update({
           quantity: totalQuantity,
           avg_cost: weightedAvgCost,
           // 如果提供了新的当前价格，也更新它
-          current_price: current_price ? parseFloat(current_price) : existingAsset.current_price,
+          current_price: current_price ? parseFloat(current_price) : existingPortfolioAsset.current_price,
           // 如果提供了新的历史平均价格，也更新它
-          historical_avg_price: historical_avg_price ? parseFloat(historical_avg_price) : existingAsset.historical_avg_price,
+          historical_avg_price: historical_avg_price ? parseFloat(historical_avg_price) : existingPortfolioAsset.historical_avg_price,
           // 更新购买日期为最新的购买日期
-          purchase_date: purchase_date || existingAsset.purchase_date,
+          purchase_date: purchase_date || existingPortfolioAsset.purchase_date,
           // 合并备注信息
-          notes: notes ? `${existingAsset.notes || ''}\n${new Date().toLocaleDateString()}: +${newQuantity} @ $${newAvgCost}${notes ? ` (${notes})` : ''}`.trim() : existingAsset.notes
+          notes: notes ? `${existingPortfolioAsset.notes || ''}\n${new Date().toLocaleDateString()}: +${newQuantity} @ $${newAvgCost}${notes ? ` (${notes})` : ''}`.trim() : existingPortfolioAsset.notes
         });
         
         console.log(`✅ 资产 ${symbol} 更新成功: 数量 ${originalQuantity} + ${newQuantity} = ${totalQuantity}, 平均成本: $${originalAvgCost.toFixed(2)} → $${weightedAvgCost.toFixed(2)}`);
         
-        return existingAsset.reload(); // 重新加载以获取最新数据
+        return existingPortfolioAsset.reload(); // 重新加载以获取最新数据
       }
 
       // 根据资产类型设置价格源
@@ -200,10 +237,9 @@ class AssetService {
         sourceSymbol = symbol.toLowerCase();
       }
       
-      const asset = await Asset.create({
-        symbol: symbol.toUpperCase(),
-        name,
-        asset_type,
+      const portfolioAsset = await PortfolioAsset.create({
+        portfolio_id,
+        asset_id: asset.id,
         quantity: parseFloat(quantity),
         avg_cost: parseFloat(avg_cost),
         current_price: current_price ? parseFloat(current_price) : parseFloat(avg_cost),
@@ -212,12 +248,11 @@ class AssetService {
         exchange,
         price_source: priceSource,
         source_symbol: sourceSymbol,
-        portfolio_id,
         purchase_date,
         notes
       });
       
-      return asset;
+      return portfolioAsset;
     } catch (error) {
       throw error;
     }
@@ -225,37 +260,33 @@ class AssetService {
 
   /**
    * 删除资产
-   * @param {number} assetId - 资产ID
+   * @param {number} portfolioAssetId - 投资组合资产ID
    * @returns {Object} 删除结果
    */
-  async deleteAsset(assetId) {
+  async deleteAsset(portfolioAssetId) {
     try {
       // 验证参数
-      if (!assetId || isNaN(assetId)) {
-        throw new Error('无效的资产ID');
+      if (!portfolioAssetId || isNaN(portfolioAssetId)) {
+        throw new Error('无效的投资组合资产ID');
       }
 
-      // 查找资产
-      const asset = await Asset.findByPk(assetId);
-      if (!asset) {
-        throw new Error('资产不存在');
+      // 查找投资组合资产
+      const portfolioAsset = await PortfolioAsset.findByPk(portfolioAssetId, {
+        include: [{ model: Asset, as: 'asset' }]
+      });
+      if (!portfolioAsset) {
+        throw new Error('投资组合资产不存在');
       }
 
-      // 业务逻辑：检查是否可以删除
-      // 例如：检查是否有未结算的交易等
-      
       // 软删除：标记为非活跃状态
-      await asset.update({ is_active: false });
-      
-      // 或者硬删除
-      // await asset.destroy();
+      await portfolioAsset.update({ is_active: false });
       
       return {
         message: '资产删除成功',
         deletedAsset: {
-          id: asset.id,
-          symbol: asset.symbol,
-          name: asset.name
+          id: portfolioAsset.id,
+          symbol: portfolioAsset.asset.symbol,
+          name: portfolioAsset.asset.name
         }
       };
     } catch (error) {
@@ -265,20 +296,20 @@ class AssetService {
 
   /**
    * 更新资产信息
-   * @param {number} assetId - 资产ID
+   * @param {number} portfolioAssetId - 投资组合资产ID
    * @param {Object} updateData - 更新数据
    * @returns {Object} 更新后的资产
    */
-  async updateAsset(assetId, updateData) {
+  async updateAsset(portfolioAssetId, updateData) {
     try {
       // 验证参数
-      if (!assetId || isNaN(assetId)) {
-        throw new Error('无效的资产ID');
+      if (!portfolioAssetId || isNaN(portfolioAssetId)) {
+        throw new Error('无效的投资组合资产ID');
       }
 
-      const asset = await Asset.findByPk(assetId);
-      if (!asset) {
-        throw new Error('资产不存在');
+      const portfolioAsset = await PortfolioAsset.findByPk(portfolioAssetId);
+      if (!portfolioAsset) {
+        throw new Error('投资组合资产不存在');
       }
 
       // 业务验证
@@ -291,9 +322,9 @@ class AssetService {
       }
 
       // 更新资产
-      await asset.update(updateData);
+      await portfolioAsset.update(updateData);
       
-      return asset;
+      return portfolioAsset;
     } catch (error) {
       throw error;
     }
@@ -306,42 +337,43 @@ class AssetService {
    */
   async updateAssetPrices(portfolioId) {
     try {
-      const assets = await Asset.findAll({
+      const portfolioAssets = await PortfolioAsset.findAll({
         where: { 
           portfolio_id: portfolioId,
           is_active: true 
-        }
+        },
+        include: [{ model: Asset, as: 'asset' }]
       });
 
-      const updatePromises = assets.map(async (asset) => {
+      const updatePromises = portfolioAssets.map(async (portfolioAsset) => {
         try {
-          let newPrice = asset.current_price;
+          let newPrice = portfolioAsset.current_price;
 
           // 根据价格源更新价格
-          if (asset.price_source === 'yahoo_finance') {
-            const quote = await yahooFinanceService.getStockPrice(asset.source_symbol);
+          if (portfolioAsset.price_source === 'yahoo_finance') {
+            const quote = await yahooFinanceService.getStockPrice(portfolioAsset.source_symbol);
             if (quote && quote.price) {
               newPrice = quote.price;
             }
-          } else if (asset.price_source === 'coingecko') {
-            const price = await cryptoService.getCryptoPrice(asset.source_symbol);
+          } else if (portfolioAsset.price_source === 'coingecko') {
+            const price = await cryptoService.getCryptoPrice(portfolioAsset.source_symbol);
             if (price) {
               newPrice = price;
             }
           }
 
           // 更新价格
-          if (newPrice !== asset.current_price) {
-            await asset.update({ 
+          if (newPrice !== portfolioAsset.current_price) {
+            await portfolioAsset.update({ 
               current_price: newPrice,
               last_updated: new Date()
             });
           }
 
-          return { symbol: asset.symbol, success: true, newPrice };
+          return { symbol: portfolioAsset.asset.symbol, success: true, newPrice };
         } catch (error) {
-          console.error(`更新 ${asset.symbol} 价格失败:`, error);
-          return { symbol: asset.symbol, success: false, error: error.message };
+          console.error(`更新 ${portfolioAsset.asset.symbol} 价格失败:`, error);
+          return { symbol: portfolioAsset.asset.symbol, success: false, error: error.message };
         }
       });
 
@@ -360,27 +392,29 @@ class AssetService {
 
   /**
    * 部分卖出资产
-   * @param {number} assetId - 资产ID
+   * @param {number} portfolioAssetId - 投资组合资产ID
    * @param {number} sellQuantity - 卖出数量
    * @returns {Object} 更新结果
    */
-  async sellAsset(assetId, sellQuantity) {
+  async sellAsset(portfolioAssetId, sellQuantity) {
     try {
       // 验证参数
-      if (!assetId || isNaN(assetId)) {
-        throw new Error('无效的资产ID');
+      if (!portfolioAssetId || isNaN(portfolioAssetId)) {
+        throw new Error('无效的投资组合资产ID');
       }
 
       if (!sellQuantity || sellQuantity <= 0) {
         throw new Error('卖出数量必须大于0');
       }
 
-      const asset = await Asset.findByPk(assetId);
-      if (!asset) {
-        throw new Error('资产不存在');
+      const portfolioAsset = await PortfolioAsset.findByPk(portfolioAssetId, {
+        include: [{ model: Asset, as: 'asset' }]
+      });
+      if (!portfolioAsset) {
+        throw new Error('投资组合资产不存在');
       }
 
-      const currentQuantity = parseFloat(asset.quantity);
+      const currentQuantity = parseFloat(portfolioAsset.quantity);
       const sellQty = parseFloat(sellQuantity);
 
       // 验证卖出数量不超过持有数量
@@ -393,29 +427,29 @@ class AssetService {
 
       // 如果卖光了，直接删除资产
       if (remainingQuantity <= 0) {
-        await asset.update({ is_active: false });
-        console.log(`🏁 资产 ${asset.symbol} 已全部卖出并标记为非活跃`);
+        await portfolioAsset.update({ is_active: false });
+        console.log(`🏁 资产 ${portfolioAsset.asset.symbol} 已全部卖出并标记为非活跃`);
         
         return {
-          message: `已卖出全部 ${sellQty} ${asset.symbol}，资产已从投资组合中移除`,
-          asset: asset,
+          message: `已卖出全部 ${sellQty} ${portfolioAsset.asset.symbol}，资产已从投资组合中移除`,
+          asset: portfolioAsset,
           soldQuantity: sellQty,
           remainingQuantity: 0,
           isCompletelyRemoved: true
         };
       } else {
         // 部分卖出，更新数量
-        await asset.update({ 
+        await portfolioAsset.update({ 
           quantity: remainingQuantity,
           // 添加卖出记录到备注
-          notes: `${asset.notes || ''}\n${new Date().toLocaleDateString()}: Sold ${sellQty} shares`.trim()
+          notes: `${portfolioAsset.notes || ''}\n${new Date().toLocaleDateString()}: Sold ${sellQty} shares`.trim()
         });
         
-        console.log(`💰 资产 ${asset.symbol} 部分卖出: ${sellQty} 股，剩余: ${remainingQuantity} 股`);
+        console.log(`💰 资产 ${portfolioAsset.asset.symbol} 部分卖出: ${sellQty} 股，剩余: ${remainingQuantity} 股`);
         
         return {
-          message: `已卖出 ${sellQty} 股 ${asset.symbol}，剩余 ${remainingQuantity.toFixed(2)} 股`,
-          asset: asset.reload(),
+          message: `已卖出 ${sellQty} 股 ${portfolioAsset.asset.symbol}，剩余 ${remainingQuantity.toFixed(2)} 股`,
+          asset: portfolioAsset.reload(),
           soldQuantity: sellQty,
           remainingQuantity: remainingQuantity,
           isCompletelyRemoved: false

@@ -64,10 +64,10 @@ const Dashboard = () => {
   const [currentHistoryData, setCurrentHistoryData] = useState(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // 🎯 使用assets API获取真实的portfolio数据
-  const { data: portfolio, isLoading: portfolioLoading } = useQuery(
-    'portfolioAssets',
-    () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
+  // 🎯 使用新的dashboard API获取简化的portfolio数据
+  const { data: dashboardData, isLoading: portfolioLoading } = useQuery(
+    'dashboardData',
+    () => fetch(buildApiUrl(`/portfolio/dashboard/1`)).then(res => res.json()),
     {
       staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
       cacheTime: 10 * 60 * 1000, // 10分钟后清除缓存
@@ -78,259 +78,64 @@ const Dashboard = () => {
   const { data: losers } = useQuery('marketLosers', () => marketAPI.getLosers(5));
   const { data: indices } = useQuery('marketIndices', marketAPI.getIndices);
 
-  // 🎯 处理assets API返回的真实portfolio数据
+  // 🎯 处理dashboard API返回的简化portfolio数据
   const portfolioData = useMemo(() => {
-    if (!portfolio?.data) return null;
+    if (!dashboardData?.data) return null;
     
-    const data = portfolio.data;
-    const assetsByType = data.assetsByType || {};
-
-    // 从assets API获取总投资组合价值
-    const totalPortfolioValue = data.totalValue || 0;
-    
-    // 计算总盈亏
-    let totalGainLoss = 0;
-    let totalCost = 0;
-    
-    Object.values(assetsByType).forEach(typeData => {
-      if (typeData.totalGainLoss) {
-        totalGainLoss += typeData.totalGainLoss;
-      }
-      if (typeData.assets) {
-        typeData.assets.forEach(asset => {
-          totalCost += (asset.quantity * asset.avg_cost);
-        });
-      }
-    });
-    
-    // 🔄 计算真实的今日变化数据
-    let totalTodayChange = 0;
-    let totalCurrentValue = 0;
-    
-    Object.values(assetsByType).forEach(typeData => {
-      if (typeData.assets) {
-        typeData.assets.forEach(asset => {
-          const currentValue = asset.quantity * asset.current_price;
-          totalCurrentValue += currentValue;
-          
-          // 如果资产有日变化数据，计算加权变化
-          if (asset.dailyChange !== undefined && asset.dailyChange !== null) {
-            totalTodayChange += asset.dailyChange * asset.quantity;
-          } else if (asset.changePercent !== undefined && asset.changePercent !== null) {
-            // 如果有百分比变化，转换为绝对值
-            const previousPrice = asset.current_price / (1 + asset.changePercent / 100);
-            const dailyChange = asset.current_price - previousPrice;
-            totalTodayChange += dailyChange * asset.quantity;
-          }
-        });
-      }
-    });
-    
-    const todayChange = totalTodayChange;
-    const todayChangePercentValue = totalCurrentValue > 0 ? (totalTodayChange / totalCurrentValue) * 100 : 0;
-    
-    // 🏦 获取现金数据
-    const cashAmount = assetsByType.cash?.totalValue || 0;
+    const data = dashboardData.data;
     
     return {
       // 基础信息
-      totalAssets: data.totalAssets || 0,
+      totalAssets: data.holdingsCount || 0,
       
       // 财务数据
-      totalValue: totalPortfolioValue, // 总投资组合价值（API已包含所有资产）
-      cash: cashAmount,
+      totalValue: data.totalValue || 0,
+      cash: data.cash || 0,
       
-      // 今日变化 (等待真实当日价格数据)
-      todayChange: todayChange,
-      todayChangePercent: todayChangePercentValue,
+      // 今日变化
+      todayChange: data.performance?.todayChange || 0,
+      todayChangePercent: data.performance?.todayChangePercent || 0,
       
       // 持仓统计
-      holdingsCount: data.totalAssets || 0,
-      activeHoldings: Object.values(assetsByType).reduce((sum, typeData) => sum + (typeData.count || 0), 0),
+      holdingsCount: data.holdingsCount || 0,
+      activeHoldings: data.holdingsCount || 0,
       
       // 性能指标
-      totalReturn: totalGainLoss,
-      totalReturnPercent: totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0,
+      totalReturn: data.totalGainLoss || 0,
+      totalReturnPercent: data.totalGainLossPercent || 0,
       
       // 资产配置数据（用于饼图）
       allocation: {
-        stocks: assetsByType.stock || { totalValue: 0 },
-        crypto: assetsByType.crypto || { totalValue: 0 },
-        etfs: assetsByType.etf || { totalValue: 0 },
-        bonds: assetsByType.bond || { totalValue: 0 },
-        cash: { totalValue: cashAmount }
+        stocks: data.allocation?.stocks || { totalValue: 0 },
+        crypto: data.allocation?.crypto || { totalValue: 0 },
+        etfs: data.allocation?.etfs || { totalValue: 0 },
+        bonds: data.allocation?.bonds || { totalValue: 0 },
+        cash: { totalValue: data.cash || 0 }
       },
       
       // 原始数据
-      assetsByType,
-      summary: data.summary
+      topHoldings: data.topHoldings || [],
+      performance: data.performance || {}
     };
-  }, [portfolio]);
+  }, [dashboardData]);
 
   
 
-  // 📊 获取历史数据（无缓存，每次都重新获取）
+  // 📊 使用后端提供的简化历史数据
   const fetchHistoryData = async (timeRange) => {
-    if (!portfolioData?.assetsByType) {
-      console.log(`❌ portfolioData?.assetsByType 不存在`);
+    if (!dashboardData?.data?.history) {
+      console.log(`❌ dashboardData?.data?.history 不存在`);
       return null;
     }
     
     try {
-      console.log(`📈 获取 ${timeRange} 历史数据...`);
+      console.log(`📈 使用后端 ${timeRange} 历史数据...`);
       setIsLoadingHistory(true);
       
-      // 获取所有资产
-      const allAssets = [];
-      Object.values(portfolioData.assetsByType).forEach(typeData => {
-        if (typeData.assets) {
-          allAssets.push(...typeData.assets);
-        }
-      });
+      // 使用后端提供的历史数据
+      const historyData = dashboardData.data.history;
       
-      if (allAssets.length === 0) return null;
-      
-      // 获取主要资产的历史数据（按价值排序，取前3个）
-      const majorAssets = allAssets
-        .sort((a, b) => (b.quantity * b.current_price) - (a.quantity * a.current_price))
-        .slice(0, 3);
-      
-      // 将前端时间范围转换为后端期望的格式
-      const periodMap = {
-        '1M': '1mo',
-        '3M': '3mo', 
-        '1Y': '1y'
-      };
-      const periodParam = periodMap[timeRange] || '1mo';
-      
-      console.log(`🔄 时间范围转换: ${timeRange} → ${periodParam}`);
-      
-      // 并行获取历史数据，传递正确的时间范围参数
-      const historyPromises = majorAssets.map(async asset => {
-        try {
-          console.log(`🔍 获取 ${asset.symbol} 的 ${periodParam} 历史数据...`);
-          
-          // 获取历史数据
-          const apiUrl = buildApiUrl(`/market/history/${asset.symbol}?period=${periodParam}`);
-          
-          const response = await fetch(apiUrl);
-          const data = await response.json();
-          if (data.success && data.data) {
-            console.log(`✅ ${asset.symbol} 获取到 ${data.data.length} 个历史数据点 (${periodParam})`);
-            
-
-            
-            return {
-              symbol: asset.symbol,
-              weight: (asset.quantity * asset.current_price) / portfolioData.totalValue,
-              history: data.data
-            };
-          } else {
-            console.warn(`❌ ${asset.symbol} 历史数据获取失败:`, data);
-          }
-        } catch (error) {
-          console.warn(`获取 ${asset.symbol} 历史数据失败:`, error);
-        }
-        return null;
-      });
-      
-      const results = await Promise.all(historyPromises);
-      const validResults = results.filter(r => r && r.history && r.history.length > 0);
-      
-      if (validResults.length === 0) {
-        console.warn(`Dashboard: 没有获取到 ${timeRange} 的有效历史数据`);
-        return null;
-      }
-      
-      // 根据时间范围确定数据点数量
-      let targetDays = 30;
-      if (timeRange === '3M') targetDays = 90;
-      else if (timeRange === '1Y') targetDays = 365;
-      
-      console.log(`📊 ${timeRange} 时间范围设置: targetDays = ${targetDays}`);
-      
-      // 计算加权投资组合历史价值
-      const allDates = validResults[0].history.map(h => h.date);
-      
-      // 使用最后N天的数据
-      const recentDates = allDates.slice(-Math.min(targetDays, allDates.length));
-      console.log(`📅 ${timeRange}时间范围: 总共${allDates.length}天, 请求${targetDays}天, 实际使用${recentDates.length}天`);
-      
-      console.log(`📅 数据时间范围: ${recentDates[0]} 到 ${recentDates[recentDates.length - 1]}`);
-      
-      const portfolioValues = [];
-      const labels = [];
-      
-      recentDates.forEach((date, index) => {
-        let portfolioValue = 0;
-        
-        validResults.forEach(asset => {
-          const historicalPoint = asset.history.find(h => h.date === date);
-          const currentPoint = asset.history[asset.history.length - 1];
-          
-          if (historicalPoint && currentPoint && currentPoint.price > 0) {
-            const currentAssetValue = (asset.weight * portfolioData.totalValue);
-            const historicalAssetValue = currentAssetValue * (historicalPoint.price / currentPoint.price);
-            portfolioValue += historicalAssetValue;
-          } else if (currentPoint) {
-            portfolioValue += (asset.weight * portfolioData.totalValue);
-          }
-        });
-        
-        portfolioValues.push(Math.round(portfolioValue));
-        
-        // 格式化标签 - 确保起始点和终点都显示，中间适当间隔
-        const dateObj = new Date(date);
-        let label = '';
-        
-        // 判断是否为关键点：起始点、终点、或间隔点
-        const isFirstPoint = index === 0;
-        const isLastPoint = index === recentDates.length - 1;
-        
-        if (targetDays <= 30) {
-          // 1M: 显示更多日期标签
-          const interval = Math.ceil(recentDates.length / 6); // 显示约6个标签
-          const isIntervalPoint = index % interval === 0;
-          
-          if (isFirstPoint || isLastPoint || isIntervalPoint) {
-            label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          } else {
-            label = '';
-          }
-        } else if (targetDays <= 90) {
-          // 3M: 显示更多日期标签，保证起始和终点
-          const interval = Math.ceil(recentDates.length / 8); // 显示约8个标签
-          const isIntervalPoint = index % interval === 0;
-          
-          if (isFirstPoint || isLastPoint || isIntervalPoint) {
-            label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          } else {
-            label = '';
-          }
-        } else if (targetDays <= 365) {
-          // 1Y: 显示月份标签，不显示具体日期
-          const interval = Math.ceil(recentDates.length / 12); // 显示约12个标签
-          const isIntervalPoint = index % interval === 0;
-          
-          if (isFirstPoint || isLastPoint || isIntervalPoint) {
-            label = dateObj.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-          } else {
-            label = '';
-          }
-        }
-        labels.push(label);
-      });
-      
-      const historyData = { labels, values: portfolioValues };
-      
-      // 统计标签显示情况
-      const nonEmptyLabels = labels.filter(label => label !== '');
-      const startDate = new Date(recentDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const endDate = new Date(recentDates[recentDates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      
-      console.log(`✅ ${timeRange} (${periodParam}) 历史数据获取完成: ${portfolioValues.length}个数据点`);
-      console.log(`📅 时间范围: ${startDate} → ${endDate}`);
-      console.log(`📋 显示标签 (${nonEmptyLabels.length}个):`, nonEmptyLabels);
+      console.log(`✅ ${timeRange} 历史数据获取完成: ${historyData.values.length}个数据点`);
       setIsLoadingHistory(false);
       return historyData;
       
@@ -344,7 +149,7 @@ const Dashboard = () => {
   // 🔄 时间范围变化时获取历史数据（支持所有时间范围）
   useEffect(() => {
     const loadHistoryData = async () => {
-      if (portfolioData) {
+      if (dashboardData?.data?.history) {
         console.log(`🔄 获取 ${selectedTimeRange} 历史数据`);
         
         const historyData = await fetchHistoryData(selectedTimeRange);
@@ -355,22 +160,22 @@ const Dashboard = () => {
 
     loadHistoryData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTimeRange, portfolioData]);
+  }, [selectedTimeRange, dashboardData]);
 
   // 🚀 组件初始化时准备数据加载
   useEffect(() => {
     console.log('📊 Dashboard组件加载完成，支持1M、3M、1Y时间范围');
   }, []);
 
-  // 📊 只使用真实数据，不生成任何模拟数据
+  // 📊 使用后端提供的简化历史数据
   const historicalData = useMemo(() => {
     if (currentHistoryData) {
-      console.log(`📈 Dashboard显示真实数据: ${currentHistoryData.values.length}个点 (${selectedTimeRange})`);
+      console.log(`📈 Dashboard显示简化数据: ${currentHistoryData.values.length}个点 (${selectedTimeRange})`);
       return currentHistoryData;
     }
     
-    console.log(`⏳ 等待 ${selectedTimeRange} 真实数据，不使用模拟数据`);
-    return null; // 没有真实数据就返回null，不画图表
+    console.log(`⏳ 等待 ${selectedTimeRange} 简化数据`);
+    return null; // 没有数据就返回null，不画图表
   }, [selectedTimeRange, currentHistoryData]);
 
   const netWorthChartData = {
@@ -913,10 +718,10 @@ const Dashboard = () => {
                   }}>
                     <CircularProgress size={40} sx={{ color: '#E8A855' }} />
                     <Typography variant="body2" color="text.secondary">
-                      Fetching real market data for {selectedTimeRange}...
+                      Loading portfolio data for {selectedTimeRange}...
                     </Typography>
                     <Typography variant="caption" color="text.disabled">
-                      Loading actual prices from Yahoo Finance
+                      Based on current holdings from database
                     </Typography>
                   </Box>
                 )}

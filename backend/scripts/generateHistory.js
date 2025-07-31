@@ -5,7 +5,7 @@ const mysql = require('mysql2/promise');
   const connection = await mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'wyt!!010611ABC',
+    password: 'n3u3da!',
     database: 'portfolio_manager',
   });
 
