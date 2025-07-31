@@ -5,7 +5,7 @@ const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
 //   port: 3306,
-  password: 'wyt!!010611ABC',
+  password: 'n3u3da!',
   database: 'portfolio_manager',
   waitForConnections: true,
   connectionLimit: 10,
