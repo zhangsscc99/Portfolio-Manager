@@ -11,7 +11,7 @@ const aiAnalysisHistoryService = require('../services/aiAnalysisHistoryService')
 // 🗣️ POST /api/ai-analysis/chat - AI Assistant Chat
 router.post('/chat', async (req, res) => {
   try {
-    const { sessionId, message, portfolioId, portfolioContext } = req.body;
+    const { sessionId, message, portfolioId, portfolioContext, requestFollowUpQuestions, conversationHistory } = req.body;
     
     if (!sessionId || !message) {
       return res.status(400).json({
@@ -21,17 +21,25 @@ router.post('/chat', async (req, res) => {
     }
 
     console.log(`💬 Chat request for session ${sessionId.substring(0, 8)}: "${message.substring(0, 50)}..."`);
+    if (requestFollowUpQuestions) {
+      console.log(`📝 Also requesting follow-up questions generation`);
+    }
 
     // Generate AI chat response
     const chatResult = await aiChatService.generateChatResponse(
       sessionId, 
       message, 
       portfolioContext,
-      portfolioId
+      portfolioId,
+      requestFollowUpQuestions,
+      conversationHistory
     );
     
     if (chatResult.success) {
       console.log('✅ Chat response generated successfully');
+      if (chatResult.followUpQuestions && chatResult.followUpQuestions.length > 0) {
+        console.log(`📝 Generated ${chatResult.followUpQuestions.length} follow-up questions`);
+      }
       res.json({
         success: true,
         data: {
@@ -39,7 +47,8 @@ router.post('/chat', async (req, res) => {
           sessionId: chatResult.sessionId,
           messageCount: chatResult.messageCount,
           isOffline: chatResult.isOffline || false,
-          usage: chatResult.usage
+          usage: chatResult.usage,
+          followUpQuestions: chatResult.followUpQuestions || []
         }
       });
     } else {

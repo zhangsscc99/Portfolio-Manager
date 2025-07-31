@@ -133,7 +133,7 @@ class AIChatService {
   }
 
   // Generate system prompt with portfolio context
-  generateSystemPrompt(portfolioContext) {
+  generateSystemPrompt(portfolioContext, requestFollowUpQuestions = false) {
     if (!portfolioContext?.portfolioData) {
       return `You are an expert AI investment advisor. Provide helpful, accurate investment advice based on modern portfolio theory and current market knowledge. Always be professional and remind users that this is for informational purposes only.`;
     }
@@ -194,7 +194,30 @@ Reference this analysis when discussing these specific stocks.
 - Be conversational but professional
 - Use bullet points for clarity when listing recommendations
 - Reference specific holdings by ticker symbols when relevant
-- Provide both short-term and long-term perspectives when appropriate`;
+- Provide both short-term and long-term perspectives when appropriate
+
+${requestFollowUpQuestions ? `
+## Follow-up Questions Generation:
+After providing your main response, generate 3 relevant follow-up questions based on:
+- The user's specific portfolio holdings and question
+- Natural conversation flow and investment topics
+- Current market conditions and portfolio optimization opportunities
+
+Format your complete response like this:
+[Your main investment advice response here]
+
+---FOLLOW_UP_QUESTIONS---
+1. [First follow-up question]
+2. [Second follow-up question]  
+3. [Third follow-up question]
+
+Example follow-up questions:
+- "Should I consider taking profits on [specific stock name]?"
+- "How should I rebalance my portfolio for the upcoming earnings season?"
+- "What's your take on the recent [sector/market] developments affecting my holdings?"
+
+Make questions specific to their holdings when possible, and ensure they encourage further productive investment discussion.
+` : ''}`;
   }
 
   // Format portfolio holdings for context
@@ -216,7 +239,7 @@ Reference this analysis when discussing these specific stocks.
   }
 
   // Call AI with chat context
-  async generateChatResponse(sessionId, userMessage, portfolioContext, portfolioId = null) {
+  async generateChatResponse(sessionId, userMessage, portfolioContext, portfolioId = null, requestFollowUpQuestions = false, conversationHistory = []) {
     try {
       console.log(`🗣️ Generating chat response for session ${sessionId.substring(0, 8)}...`);
       
@@ -229,7 +252,7 @@ Reference this analysis when discussing these specific stocks.
       await this.addMessageToSession(sessionId, 'user', userMessage, portfolioId);
       
       const session = await this.getSession(sessionId, portfolioId);
-      const systemPrompt = this.generateSystemPrompt(session.portfolioContext);
+      const systemPrompt = this.generateSystemPrompt(session.portfolioContext, requestFollowUpQuestions);
       
       // Prepare messages for AI
       const messages = [
@@ -260,17 +283,31 @@ Reference this analysis when discussing these specific stocks.
       if (response.data && response.data.choices && response.data.choices.length > 0) {
         const aiResponse = response.data.choices[0].message.content;
         
-        // Add AI response to session
-        await this.addMessageToSession(sessionId, 'assistant', aiResponse, portfolioId);
+        // Parse response if follow-up questions were requested
+        let mainResponse = aiResponse;
+        let followUpQuestions = [];
+        
+        if (requestFollowUpQuestions) {
+          const parsed = this.parseResponseWithQuestions(aiResponse);
+          mainResponse = parsed.response;
+          followUpQuestions = parsed.questions;
+        }
+        
+        // Add AI response to session (store only the main response, not questions)
+        await this.addMessageToSession(sessionId, 'assistant', mainResponse, portfolioId);
         
         console.log('✅ Chat response generated successfully');
+        if (followUpQuestions.length > 0) {
+          console.log(`📝 Extracted ${followUpQuestions.length} follow-up questions`);
+        }
         
         return {
           success: true,
-          response: aiResponse,
+          response: mainResponse,
           sessionId: session.id, // Use actual session ID (might be portfolio-based)
           messageCount: session.messages.length,
-          usage: response.data.usage
+          usage: response.data.usage,
+          followUpQuestions: followUpQuestions
         };
       } else {
         throw new Error('Invalid response format from AI service');
@@ -422,6 +459,44 @@ For personalized advice based on your specific portfolio, please try again when 
       isPersistent: session.isPersistent || false,
       portfolioId: session.portfolioId || null,
       found: true
+    };
+  }
+
+  // Parse AI response to extract main response and follow-up questions
+  parseResponseWithQuestions(aiResponse) {
+    const separator = '---FOLLOW_UP_QUESTIONS---';
+    
+    if (!aiResponse.includes(separator)) {
+      return {
+        response: aiResponse,
+        questions: []
+      };
+    }
+    
+    const parts = aiResponse.split(separator);
+    const mainResponse = parts[0].trim();
+    const questionsSection = parts[1] ? parts[1].trim() : '';
+    
+    // Extract questions from the questions section
+    const questions = [];
+    if (questionsSection) {
+      const lines = questionsSection.split('\n');
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        // Match patterns like "1. Question text" or "- Question text"
+        const questionMatch = trimmedLine.match(/^(?:\d+\.\s*|\-\s*|•\s*)(.+)$/);
+        if (questionMatch && questionMatch[1]) {
+          const question = questionMatch[1].trim();
+          if (question.length > 10) { // Filter out very short lines
+            questions.push(question);
+          }
+        }
+      }
+    }
+    
+    return {
+      response: mainResponse,
+      questions: questions.slice(0, 3) // Limit to 3 questions
     };
   }
 }
