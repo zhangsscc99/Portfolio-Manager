@@ -10,15 +10,19 @@ import {
   Button,
   useMediaQuery,
   useTheme,
+  Fab,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Close as CloseIcon,
   Chat as ChatIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import AIAssistantDialog from '../AIAssistantDialog';
+import AssetSearchDialog from '../AssetSearchDialog';
 import { buildApiUrl, API_ENDPOINTS } from '../../config/api';
 
 const drawerWidth = 280;
@@ -29,6 +33,7 @@ const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
 
   const handleDrawerToggle = () => {
@@ -59,6 +64,25 @@ const Layout = ({ children }) => {
 
   const handleCloseAssistant = () => {
     setAssistantOpen(false);
+  };
+
+  // Search handlers
+  const handleOpenSearch = () => {
+    setSearchOpen(true);
+  };
+
+  const handleCloseSearch = () => {
+    setSearchOpen(false);
+  };
+
+  const handleAddAsset = (asset) => {
+    console.log('Add asset to portfolio:', asset);
+    // TODO: Implement add to portfolio functionality
+  };
+
+  const handleViewAsset = (asset) => {
+    console.log('View asset details:', asset);
+    // TODO: Implement view asset details functionality
   };
 
   // Load portfolio data on component mount
@@ -233,6 +257,42 @@ const Layout = ({ children }) => {
             overallScore: 75 // Could be calculated based on portfolio performance
           }
         }}
+      />
+
+      {/* Floating Search Button */}
+      <Tooltip title="Search Assets" placement="left">
+        <Fab
+          color="primary"
+          onClick={handleOpenSearch}
+          aria-label="Search for assets"
+          sx={{
+            position: 'fixed',
+            bottom: { xs: 90, md: 24 }, // Higher on mobile to avoid bottom nav/AI button
+            right: 24,
+            background: 'linear-gradient(135deg, #9CA8DA 0%, #C49A71 100%)',
+            color: '#1a1a1a',
+            width: 56,
+            height: 56,
+            '&:hover': {
+              background: 'linear-gradient(135deg, #8A96C7 0%, #B8895E 100%)',
+              transform: 'scale(1.1)',
+              boxShadow: '0 8px 25px rgba(156, 168, 218, 0.4)',
+            },
+            transition: 'all 0.3s ease',
+            zIndex: 1000,
+            boxShadow: '0 4px 20px rgba(156, 168, 218, 0.3)',
+          }}
+        >
+          <SearchIcon sx={{ fontSize: 28 }} />
+        </Fab>
+      </Tooltip>
+
+      {/* Asset Search Dialog */}
+      <AssetSearchDialog
+        open={searchOpen}
+        onClose={handleCloseSearch}
+        onAddAsset={handleAddAsset}
+        onViewAsset={handleViewAsset}
       />
     </Box>
   );

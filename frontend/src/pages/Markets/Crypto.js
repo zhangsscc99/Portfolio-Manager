@@ -12,15 +12,23 @@ import {
   TableRow,
   CircularProgress,
   TablePagination,
+  Grid,
+  Button,
 } from '@mui/material';
+import {
+  Search as SearchIcon,
+} from '@mui/icons-material';
 import { useQuery } from 'react-query'; // Keep useQuery for API fetching
 
 // Ensure these paths are correct
 import { formatCurrency, getPercentageColorFromString, getChangeColor, marketAPI } from '../../services/api'; // Assuming marketAPI contains getCryptos
+import StockSearchField from '../../components/StockSearchField';
 import toast from 'react-hot-toast'; // For error notifications
 
 const Crypto = () => {
   const debounceTimerRef = useRef(null);
+  const [selectedCrypto, setSelectedCrypto] = useState(null);
+  const [searchValue, setSearchValue] = useState(null);
 
   // Pagination states
   const [page, setPage] = useState(0);
@@ -77,7 +85,17 @@ const Crypto = () => {
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // Reset to first page when rows per page changes
+    setPage(0); // Reset to first page when changing rows per page
+  };
+
+  // Search handlers
+  const handleSelectCrypto = (crypto) => {
+    setSelectedCrypto(crypto);
+  };
+
+  const handleClearSearch = () => {
+    setSelectedCrypto(null);
+    setSearchValue(null);
   };
 
   const renderCryptoTable = (data) => (
@@ -169,10 +187,92 @@ const Crypto = () => {
 
   return (
     <Box sx={{ py: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           Cryptocurrencies
         </Typography>
+      </Box>
+
+      {/* Search Section */}
+      <Box sx={{ p: 3, mb: 3, background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SearchIcon />
+          Search Cryptocurrencies
+        </Typography>
+        <Grid container spacing={3} alignItems="flex-start">
+          <Grid item xs={12} md={10}>
+            <StockSearchField
+              assetType="crypto"
+              label="Search cryptocurrencies..."
+              placeholder="Type symbol or name to search cryptocurrencies"
+              onSelectStock={handleSelectCrypto}
+              value={searchValue}
+              onChange={setSearchValue}
+            />
+          </Grid>
+          {selectedCrypto && (
+            <Grid item xs={12}>
+              <Card sx={{ 
+                background: 'rgba(156, 168, 218, 0.1)',
+                border: '1px solid rgba(156, 168, 218, 0.3)',
+                mt: 2
+              }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, color: '#9CA8DA' }}>
+                    Search Result:
+                  </Typography>
+                  
+                  {/* Table-style display */}
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Symbol</TableCell>
+                        <TableCell>Name</TableCell>
+                        <TableCell align="right">Price</TableCell>
+                        <TableCell align="right">Change</TableCell>
+                        <TableCell align="right">Change %</TableCell>
+                        <TableCell align="right">Volume</TableCell>
+                        <TableCell align="right">Market Cap</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ cursor: 'pointer' }}>
+                        <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{selectedCrypto.symbol}</TableCell>
+                        <TableCell>{selectedCrypto.name || selectedCrypto.longname}</TableCell>
+                        <TableCell align="right">{selectedCrypto.price ? `$${parseFloat(selectedCrypto.price).toFixed(2)}` : '-'}</TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: selectedCrypto.change && parseFloat(selectedCrypto.change) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                        >
+                          {selectedCrypto.change ? (selectedCrypto.change.toString().startsWith('-') ? selectedCrypto.change : '+' + selectedCrypto.change) : '-'}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: selectedCrypto.changePercent && parseFloat(selectedCrypto.changePercent) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                        >
+                          {selectedCrypto.changePercent ? (selectedCrypto.changePercent.toString().startsWith('-') ? selectedCrypto.changePercent + '%' : '+' + selectedCrypto.changePercent + '%') : '-'}
+                        </TableCell>
+                        <TableCell align="right">{selectedCrypto.volume || '-'}</TableCell>
+                        <TableCell align="right">{selectedCrypto.marketCap || '-'}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={handleClearSearch}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      Clear Search
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+        </Grid>
       </Box>
 
       {/* Removed Tabs component */}

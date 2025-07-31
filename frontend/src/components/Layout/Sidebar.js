@@ -22,7 +22,6 @@ import {
   ViewList as ETFIcon,
   AttachMoney as StocksIcon,
   CurrencyBitcoin as CryptoIcon,
-  ViewAgenda as BondsIcon,
 } from '@mui/icons-material';
 
 const navigationItems = [
@@ -55,12 +54,6 @@ const navigationItems = [
         label: 'Stocks',
         path: '/app/markets/stock',
         icon: StocksIcon,
-      },
-      {
-        id: 'bonds',
-        label: 'Bonds',
-        path: '/app/markets/bonds',
-        icon: BondsIcon,
       },
       {
         id: 'crypto',
@@ -219,13 +212,13 @@ const Sidebar = ({ onNavigate }) => {
                     '&:before': active ? {
                       content: '""',
                       position: 'absolute',
-                      left: 0,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
+                      left: -12,
+                      top: '12px',
+                      bottom: '12px',
                       width: 3,
-                      height: '70%',
-                      backgroundColor: 'primary.main',
-                      borderRadius: '0 2px 2px 0',
+                      backgroundColor: '#E8A855',
+                      borderRadius: '0 3px 3px 0',
+                      boxShadow: '0 0 6px rgba(232, 168, 85, 0.5)',
                     } : {},
                   }}
                 >
@@ -290,13 +283,13 @@ const Sidebar = ({ onNavigate }) => {
                               '&:before': childActive ? {
                                 content: '""',
                                 position: 'absolute',
-                                left: 0,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
+                                left: -12,
+                                top: '8px',
+                                bottom: '8px',
                                 width: 3,
-                                height: '70%',
-                                backgroundColor: 'primary.main',
-                                borderRadius: '0 2px 2px 0',
+                                backgroundColor: '#E8A855',
+                                borderRadius: '0 3px 3px 0',
+                                boxShadow: '0 0 6px rgba(232, 168, 85, 0.5)',
                               } : {},
                             }}
                           >

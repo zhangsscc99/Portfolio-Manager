@@ -16,6 +16,8 @@ import {
   TextField,
   InputAdornment,
   TablePagination,
+  Grid,
+  Button,
   // Removed TableSortLabel
 } from '@mui/material';
 import {
@@ -23,11 +25,13 @@ import {
   TrendingDown as TrendingDownIcon,
   LocalFireDepartment as ActiveIcon,
   Star as TrendingIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 // Ensure these paths are correct
 import { formatCurrency, getPercentageColorFromString, getChangeColor, marketAPI } from '../../services/api';
+import StockSearchField from '../../components/StockSearchField';
 import toast from 'react-hot-toast';
 
 // Tab Panel Helper Component (No change)
@@ -61,6 +65,8 @@ function a11yProps(index) {
 
 const Stock = () => {
   const [currentTab, setCurrentTab] = useState(0);
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [searchValue, setSearchValue] = useState(null);
 
   const debounceTimerRef = useRef(null);
 
@@ -221,12 +227,104 @@ const Stock = () => {
     setCurrentTab(newValue);
   };
 
+  // Search handlers
+  const handleSelectStock = (stock) => {
+    setSelectedStock(stock);
+  };
+
+  const handleClearSearch = () => {
+    setSelectedStock(null);
+    setSearchValue(null);
+  };
+
   return (
     <Box sx={{ py: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           Stocks
         </Typography>
+      </Box>
+
+      {/* Search Section */}
+      <Box sx={{ p: 3, mb: 3, background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SearchIcon />
+          Search Stocks
+        </Typography>
+        <Grid container spacing={3} alignItems="flex-start">
+          <Grid item xs={12} md={10}>
+            <StockSearchField
+              assetType="stock"
+              label="Search stocks..."
+              placeholder="Type symbol or company name to search stocks"
+              onSelectStock={handleSelectStock}
+              value={searchValue}
+              onChange={setSearchValue}
+            />
+          </Grid>
+          {selectedStock && (
+            <Grid item xs={12}>
+              <Card sx={{ 
+                background: 'rgba(156, 168, 218, 0.1)',
+                border: '1px solid rgba(156, 168, 218, 0.3)',
+                mt: 2
+              }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, color: '#9CA8DA' }}>
+                    Search Result:
+                  </Typography>
+                  
+                  {/* Table-style display */}
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Symbol</TableCell>
+                        <TableCell>Name</TableCell>
+                        <TableCell align="right">Price</TableCell>
+                        <TableCell align="right">Change</TableCell>
+                        <TableCell align="right">Change %</TableCell>
+                        <TableCell align="right">Volume</TableCell>
+                        <TableCell align="right">Market Cap</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ cursor: 'pointer' }}>
+                        <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{selectedStock.symbol}</TableCell>
+                        <TableCell>{selectedStock.name || selectedStock.longname}</TableCell>
+                        <TableCell align="right">{selectedStock.price ? `$${parseFloat(selectedStock.price).toFixed(2)}` : '-'}</TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: selectedStock.change && parseFloat(selectedStock.change) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                        >
+                          {selectedStock.change ? (selectedStock.change.toString().startsWith('-') ? selectedStock.change : '+' + selectedStock.change) : '-'}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: selectedStock.changePercent && parseFloat(selectedStock.changePercent) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                        >
+                          {selectedStock.changePercent ? (selectedStock.changePercent.toString().startsWith('-') ? selectedStock.changePercent + '%' : '+' + selectedStock.changePercent + '%') : '-'}
+                        </TableCell>
+                        <TableCell align="right">{selectedStock.volume || '-'}</TableCell>
+                        <TableCell align="right">{selectedStock.marketCap || '-'}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={handleClearSearch}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      Clear Search
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+        </Grid>
       </Box>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
