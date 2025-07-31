@@ -50,24 +50,29 @@ const StockSearchField = ({
           // 🎯 根据资产类型过滤结果
           const filteredResults = results.filter(stock => {
             console.log('🎯 检查股票:', stock.symbol, '类型:', stock.type, 'typeDisp:', stock.typeDisp);
-            
-            if (assetType === 'crypto') {
-              return stock.type?.toLowerCase().includes('crypto') || 
-                     stock.typeDisp?.toLowerCase().includes('crypto') ||
-                     stock.symbol?.includes('-USD') ||
-                     ['BTC', 'ETH', 'ADA', 'DOT', 'LINK'].some(crypto => 
-                       stock.symbol?.includes(crypto)
-                     );
-            } else if (assetType === 'etf') {
-              return stock.type?.toLowerCase().includes('etf') ||
-                     stock.typeDisp?.toLowerCase().includes('etf') ||
-                     stock.quoteType?.toLowerCase() === 'etf';
-            } else {
-              // 默认股票过滤 - 对于stocks类型，显示所有结果
-              return true; // 暂时显示所有结果，便于调试
-            }
-          });
 
+            // if (assetType === 'EQUITY') {
+            //   return stock.type?.toLowerCase().includes('stock') || 
+            //          stock.typeDisp?.toLowerCase().includes('stock') ||
+            //          stock.quoteType?.toLowerCase() === 'stock';
+            // }
+            // if (assetType === 'CRYPTOCURRENCY') {
+            //   return stock.type?.toLowerCase().includes('crypto') || 
+            //          stock.typeDisp?.toLowerCase().includes('crypto') ||
+            //          stock.symbol?.includes('-USD') ||
+            //          ['BTC', 'ETH', 'ADA', 'DOT', 'LINK'].some(crypto => 
+            //            stock.symbol?.includes(crypto)
+            //          );
+            // } else if (assetType === 'ETF') {
+            //   return stock.type?.toLowerCase().includes('etf') ||
+            //          stock.typeDisp?.toLowerCase().includes('etf') ||
+            //          stock.quoteType?.toLowerCase() === 'etf';
+            // } else {
+            //   // 默认股票过滤 - 对于stocks类型，显示所有结果
+            //   return true; // 暂时显示所有结果，便于调试
+            // }
+            return true;
+          });
           console.log('✅ 过滤后结果:', filteredResults);
           setOptions(filteredResults.slice(0, 10)); // 最多显示10个结果
         } else {

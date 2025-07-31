@@ -17,7 +17,8 @@ const marketDataRoutes = require('./routes/marketData');
 const assetsRoutes = require('./routes/assets');
 const aiAnalysisRoutes = require('./routes/ai-analysis');
 const portfolioHistoryRoutes = require('./routes/portfolioHistory');
-
+const transactionRoutes = require('./routes/transaction');
+const portfolioTrendRoutes = require('./routes/portfolioTrend'); 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,7 +36,9 @@ app.use('/api/holdings', holdingsRoutes);
 app.use('/api/market', marketDataRoutes);
 app.use('/api/assets', assetsRoutes);
 app.use('/api/ai-analysis', aiAnalysisRoutes);
+app.use('/api/transaction', transactionRoutes);
 app.use('/api/portfolio-history', portfolioHistoryRoutes);
+app.use('/api/portfolio-trend', portfolioTrendRoutes);
 
 
 // Swagger API Documentation
@@ -114,9 +117,9 @@ const startServer = async () => {
     await initializeDatabase();
     
     // 3. 生成SQL结构文件
-    console.log('📄 生成SQL结构文件...');
-    const { generateSQLSchema } = require('./scripts/generateSQL');
-    await generateSQLSchema();
+    // console.log('📄 生成SQL结构文件...');
+    // const { generateSQLSchema } = require('./scripts/generateSQL');
+    // await generateSQLSchema();
     
             // 4. 启动HTTP服务器
         app.listen(PORT, () => {
@@ -129,10 +132,10 @@ const startServer = async () => {
           console.log(`📁 SQL结构文件: ./database_schema.sql`);
           console.log('==========================================');
           
-          // 5. 启动定时数据更新服务
-          setTimeout(() => {
-            scheduledUpdatesService.startAllTasks();
-          }, 3000); // 延迟3秒启动，确保数据库完全就绪
+          // // 5. 启动定时数据更新服务
+          // setTimeout(() => {
+          //   scheduledUpdatesService.startAllTasks();
+          // }, 3000); // 延迟3秒启动，确保数据库完全就绪
         });
   } catch (error) {
     console.error('❌ 服务器启动失败:', error);

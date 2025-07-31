@@ -1,38 +1,40 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-
-const Asset = sequelize.define('asset', {
+const Transaction = sequelize.define('transaction', {
   id: { 
     type: DataTypes.INTEGER, 
     primaryKey: true, 
     autoIncrement: true 
   },
-  asset_id: { 
+  transaction_id: { 
     type: DataTypes.INTEGER, 
     unique: true,
     defaultValue: () => Math.floor(Math.random() * 1000000) + 100000
   },
-  symbol: { 
-    type: DataTypes.STRING(20), 
-    allowNull: false,
-    unique: true
-  },
-  name: { 
-    type: DataTypes.STRING(100), 
+  holding_id: { 
+    type: DataTypes.INTEGER, 
     allowNull: false 
   },
-  asset_type: { 
-    type: DataTypes.STRING(20), 
+  trade_type: { 
+    type: DataTypes.ENUM('buy','sell'), 
     allowNull: false 
   },
-  current_price: { 
+  quantity: { 
+    type: DataTypes.DECIMAL(15, 6), 
+    allowNull: false 
+  },
+  price: { 
     type: DataTypes.DECIMAL(15, 4), 
-    defaultValue: 0 
+    allowNull: false 
+  },
+  trade_time: { 
+    type: DataTypes.DATE, 
+    defaultValue: DataTypes.NOW 
   }
 }, {
-  tableName: 'asset',
+  tableName: 'transaction',
   timestamps: false
 });
 
-module.exports = Asset;
+module.exports = Transaction;
