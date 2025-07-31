@@ -43,22 +43,8 @@ exports.getPortfolioById = async (req, res) => {
       // 找到该 holding 的所有交易
       const holdingTransactions = transactions.filter(t => t.holding_id === holding.holding_id);
 
-      // 基于交易类型计算成本价格
-      let costPrice = 0;
-      let totalQuantity = 0;
-
-      if (holdingTransactions && holdingTransactions.length > 0) {
-        for (const transaction of holdingTransactions) {
-          if (transaction.trade_type === 'buy') {
-            costPrice += transaction.price * transaction.quantity;
-            totalQuantity += transaction.quantity;
-          } else if (transaction.trade_type === 'sell') {
-            const sellRatio = transaction.quantity / totalQuantity;
-            costPrice -= (costPrice * sellRatio);
-            totalQuantity -= transaction.quantity;
-          }
-        }
-      }
+      // 直接使用holding表中的avg_cost，这是正确的加权平均成本
+      const avgCost = holding.avg_cost;
 
       const assetType = asset.asset_type || 'other';
       if (!assetsByType[assetType]) {
@@ -73,11 +59,15 @@ exports.getPortfolioById = async (req, res) => {
         symbol: asset.symbol,
         name: asset.name,
         quantity: holding.quantity,
-        cost_price: costPrice
+        avg_cost: avgCost,
+        cost_price: avgCost * holding.quantity, // 总成本 = 平均成本 × 数量
+        holding_id: holding.holding_id,
+        asset_id: asset.asset_id,
+        asset_type: asset.asset_type
       });
 
       assetsByType[assetType].count += 1;
-      assetsByType[assetType].totalValue += costPrice;
+      assetsByType[assetType].totalValue += avgCost * holding.quantity;
     }
 
     res.json({

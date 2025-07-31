@@ -72,7 +72,6 @@ const StockSearchField = ({
             // }
             return true;
           });
-
           console.log('✅ 过滤后结果:', filteredResults);
           setOptions(filteredResults.slice(0, 10)); // 最多显示10个结果
         } else {

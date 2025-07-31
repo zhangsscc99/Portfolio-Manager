@@ -96,6 +96,10 @@ export const holdingsAPI = {
 
 // Market Data API
 export const marketAPI = {
+
+  getAssetPriceOnDate: (symbol, date) => api.get(`/assets/${symbol}?date=${date}`),
+
+  getAssetQuote: (symbol) => api.get(`/assets/quote?symbol=${symbol}`),
   // Get quote for symbol
   getQuote: (symbol) => api.get(`/market/quote/${symbol}`),
 

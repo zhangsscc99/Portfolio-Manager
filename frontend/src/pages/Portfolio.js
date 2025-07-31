@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { marketAPI } from '../services/api';
 import {
   Box,
   Typography,
@@ -36,8 +37,8 @@ import {
   TrendingDown as TrendingDownIcon,
   Analytics
 } from '@mui/icons-material';
-import { Line } from 'react-chartjs-2';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
+import { Line, Doughnut } from 'react-chartjs-2';
 
 // 🎯 Asset type configuration - 金色主题
 const ASSET_TYPES = {
@@ -45,6 +46,7 @@ const ASSET_TYPES = {
   crypto: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
   ETF: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
   bond: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
+  cash: { name: 'Cash', icon: '💰', color: '#28A745' }, // 现金绿色
 };
 
 const Portfolio = () => {
@@ -61,21 +63,24 @@ const Portfolio = () => {
   const [newAsset, setNewAsset] = useState({
     symbol: '',
     name: '',
-    asset_type: 'stock',
+    asset_type: 'EQUITY',
     quantity: '',
-    avg_cost: '',
+    price: '',
+    buy_date: '',
     currency: 'USD'
   });
   const [selectedStock, setSelectedStock] = useState(null);
   const [assetToRemove, setAssetToRemove] = useState({
     symbol: '',
     name: '',
-    asset_type: 'stock',
+    asset_type: 'EQUITY',
     quantity: '',
     maxQuantity: 0
   });
   const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
   const [assetPrices, setAssetPrices] = useState({});
+  const [portfolioTrendData, setPortfolioTrendData] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
   // 价格查询函数
   const fetchAssetPrice = async (symbol) => {
     if (assetPrices[symbol]) return;
@@ -96,6 +101,23 @@ const Portfolio = () => {
     } catch (error) {
       console.error(`Failed to fetch price for ${symbol}:`, error);
     }
+  };
+
+  // 计算总市值函数
+  const calculateTotalValue = () => {
+    if (!portfolioData?.assetsByType) return 0;
+    
+    let totalValue = 0;
+    Object.values(portfolioData.assetsByType).forEach(typeData => {
+      typeData.assets?.forEach(asset => {
+        const currentPrice = assetPrices[asset.symbol]?.price;
+        if (currentPrice) {
+          totalValue += currentPrice * asset.quantity;
+        }
+      });
+    });
+    
+    return totalValue;
   };
 
   // 在 useEffect 中查询所有价格
@@ -122,6 +144,22 @@ const Portfolio = () => {
       }
     } catch (error) {
       console.error('Failed to fetch portfolio data:', error);
+    }
+  };
+
+  // 📈 Fetch portfolio trend data
+  const fetchPortfolioTrendData = async () => {
+    setTrendLoading(true);
+    try {
+      const response = await fetch(buildApiUrl(`/portfolio-trend/1`));
+      const data = await response.json();
+      if (data.success) {
+        setPortfolioTrendData(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch portfolio trend data:', error);
+    } finally {
+      setTrendLoading(false);
     }
   };
 
@@ -247,7 +285,10 @@ const Portfolio = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await fetchPortfolioData();
+      await Promise.all([
+        fetchPortfolioData(),
+        fetchPortfolioTrendData()
+      ]);
       setLoading(false);
     };
     loadData();
@@ -305,20 +346,22 @@ const Portfolio = () => {
 
       // 如果卖出全部，使用DELETE请求
       if (sellQuantity >= asset.quantity) {
-        const response = await fetch(`/api/assets/${asset.id}`, {
+        const response = await fetch(buildApiUrl(`/holdings/${asset.holding_id}`), {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' }
         });
 
         if (response.ok) {
-          setRemoveMessage({ type: 'success', text: `${asset.symbol} completely sold (${sellQuantity} shares)` });
+          const result = await response.json();
+          const cashAmount = result.cashAdded || 0;
+          setRemoveMessage({ type: 'success', text: `${asset.symbol} completely sold (${sellQuantity} shares). Received $${cashAmount.toFixed(2)} cash.` });
           // 成功时延迟重置表单并刷新数据
           setTimeout(() => {
             setRemoveAssetOpen(false);
             setAssetToRemove({
               symbol: '',
               name: '',
-              asset_type: 'stock',
+              asset_type: 'EQUITY',
               quantity: '',
               maxQuantity: 0
             });
@@ -330,25 +373,28 @@ const Portfolio = () => {
           setRemoveMessage({ type: 'error', text: errorData.error || 'Failed to sell asset' });
         }
       } else {
-        // 部分卖出，使用PUT请求更新数量
-        const response = await fetch(`/api/assets/${asset.id}/sell`, {
-          method: 'PUT',
+        // 部分卖出，使用POST请求
+        const response = await fetch(buildApiUrl(`/holdings/${asset.holding_id}/sell`), {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            sellQuantity: sellQuantity
+            quantity: sellQuantity,
+            price: assetPrices[asset.symbol]?.price || asset.current_price
           })
         });
 
         if (response.ok) {
+          const result = await response.json();
           const newQuantity = asset.quantity - sellQuantity;
-          setRemoveMessage({ type: 'success', text: `Sold ${sellQuantity} shares of ${asset.symbol}. Remaining: ${newQuantity}` });
+          const cashAmount = result.cashAdded || 0;
+          setRemoveMessage({ type: 'success', text: `Sold ${sellQuantity} shares of ${asset.symbol}. Remaining: ${newQuantity}. Received $${cashAmount.toFixed(2)} cash.` });
           // 成功时延迟重置表单并刷新数据
           setTimeout(() => {
             setRemoveAssetOpen(false);
             setAssetToRemove({
               symbol: '',
               name: '',
-              asset_type: 'stock',
+              asset_type: 'EQUITY',
               quantity: '',
               maxQuantity: 0
             });
@@ -367,16 +413,68 @@ const Portfolio = () => {
   };
 
   // 🎯 处理股票选择 - 自动补全功能
-  const handleStockSelect = (stockData) => {
+  const handleStockSelect = async (stockData) => {
     console.log('Selected stock:', stockData);
     setSelectedStock(stockData);
+    
+    // 先设置基本信息
     setNewAsset(prev => ({
       ...prev,
       symbol: stockData.symbol,
       name: stockData.name,
       asset_type: stockData.type || prev.asset_type,
-      avg_cost: stockData.price || prev.avg_cost // 如果有当前价格，设为默认成本
+      price: stockData.price || prev.price
     }));
+    
+    // 如果已经选择了购买日期，优先获取该日期的历史价格
+    if (newAsset.buy_date) {
+      console.log(`🔄 获取 ${stockData.symbol} 在 ${newAsset.buy_date} 的历史价格...`);
+      const historicalPrice = await getPriceOnDate(stockData.symbol, newAsset.buy_date);
+      
+      if (historicalPrice) {
+        setNewAsset(prev => ({
+          ...prev,
+          price: historicalPrice
+        }));
+        console.log(`✅ 已使用 ${newAsset.buy_date} 的历史价格: $${historicalPrice}`);
+        return; // 如果获取到历史价格，就不需要获取实时价格了
+      }
+    }
+    
+    // 如果没有选择日期或无法获取历史价格，则获取实时价格
+    try {
+      const res = await marketAPI.getAssetQuote(stockData.symbol);
+      if (res.success && res.data.current_price) {
+        setNewAsset(prev => ({
+          ...prev,
+          price: res.data.current_price
+        }));
+        console.log(`✅ 已使用实时价格: $${res.data.current_price}`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch current price:', error);
+    }
+  };
+
+  // 📅 根据日期获取历史价格
+  const getPriceOnDate = async (symbol, date) => {
+    if (!symbol || !date) return null;
+    
+    try {
+      const response = await fetch(buildApiUrl(`/assets/price-on-date?symbol=${symbol}&date=${date}`));
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        console.log(`📅 ${symbol} 在 ${date} 的价格: $${result.data.price}`);
+        return result.data.price;
+      } else {
+        console.warn(`⚠️ 无法获取 ${symbol} 在 ${date} 的价格:`, result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error(`❌ 获取 ${symbol} 历史价格失败:`, error);
+      return null;
+    }
   };
 
   // 🔄 重置添加资产表单
@@ -384,60 +482,15 @@ const Portfolio = () => {
     setNewAsset({
       symbol: '',
       name: '',
-      asset_type: 'stock',
+      asset_type: 'EQUITY',
       quantity: '',
-      avg_cost: '',
+      price: '',
+      buy_date: '',
       currency: 'USD'
     });
     setSelectedStock(null);
   };
 
-  // ➕ Add asset
-  // const handleAddAsset = async () => {
-  //   console.log("assetResponse");
-  //   try {
-  //     const assetResponse = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         symbol: newAsset.symbol,
-  //       })
-  //     });
-  //     const assetResult = await assetResponse.json();
-
-  //     const response = await fetch(buildApiUrl(API_ENDPOINTS.holdings.create), {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         portfolio_id: 1,
-  //         asset_id: assetResult.data.asset_id,
-  //         quantity: newAsset.quantity,
-  //         avg_cost: newAsset.avg_cost
-  //       })
-  //     });
-
-
-
-  //     const result = await response.json();
-
-  //     if (response.ok) {
-  //       // 显示成功消息
-  //       console.log(`✅ Asset ${newAsset.symbol} added/updated successfully`);
-  //       setAddAssetOpen(false);
-  //       resetAddAssetForm(); // 使用新的重置函数
-  //       await fetchPortfolioData();
-  //     } else {
-  //       // 显示错误消息
-  //       console.error('Failed to add asset:', result.error);
-  //       alert(`Failed to add asset: ${result.error}`);
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to add asset:', error);
-  //     alert('Network error occurred while adding asset');
-  //   }
-  // };
-
-  // 📈 Format numbers
 
   const handleAddAsset = async () => {
     try {
@@ -459,7 +512,8 @@ const Portfolio = () => {
           portfolio_id: 1,
           asset_id: assetResult.data.asset_id,
           quantity: newAsset.quantity,
-          avg_cost: newAsset.avg_cost
+          price: newAsset.price,
+          buy_date: newAsset.buy_date
         })
       });
 
@@ -469,7 +523,7 @@ const Portfolio = () => {
       if (response.ok) {
         const quoteResponse = await fetch(buildApiUrl(`/assets/quote?symbol=${newAsset.symbol}`));
         const quoteResult = await quoteResponse.json();
-        const currentPrice = quoteResult.success ? quoteResult.data.current_price : newAsset.avg_cost;
+        const currentPrice = quoteResult.success ? quoteResult.data.current_price : newAsset.price;
         const transactionResponse = await fetch(buildApiUrl(API_ENDPOINTS.transactions.create), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -478,7 +532,7 @@ const Portfolio = () => {
             trade_type: 'buy',
             quantity: newAsset.quantity,
             price: currentPrice, // 使用实时价格
-            trade_time: new Date().toISOString()
+            trade_time: newAsset.buy_date ? new Date(newAsset.buy_date).toISOString() : new Date().toISOString()
           })
         });
 
@@ -584,55 +638,158 @@ const Portfolio = () => {
   return (
     <Box sx={{ py: 2 }}>
       {/* 📊 Header statistics */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography
-            variant="h4"
-            className="gradient-text"
-            sx={{
-              fontWeight: 600
-            }}
-          >
-            Portfolio Overview
-          </Typography>
-          <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mt: 1 }}>
-            {formatCurrency(portfolioData?.totalValue || 0)}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Analytics />}
-            onClick={handleAIAnalysis}
-            sx={{
-              background: 'linear-gradient(135deg, rgba(232, 168, 85, 0.1) 0%, rgba(244, 190, 126, 0.1) 100%)',
-              borderColor: '#E8A855',
-              color: '#E8A855',
-              '&:hover': {
-                borderColor: '#F4BE7E',
-                backgroundColor: 'rgba(232, 168, 85, 0.2)',
-              },
-            }}
-          >
-            AI Analysis
-          </Button>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <Box>
+            <Typography
+              variant="h4"
+              className="gradient-text"
+              sx={{
+                fontWeight: 600
+              }}
+            >
+              Portfolio Overview
+            </Typography>
+            <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mt: 1 }}>
+              {formatCurrency(calculateTotalValue())}
+            </Typography>
+            {portfolioTrendData?.performanceData && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: portfolioTrendData.performanceData.totalReturn >= 0 ? 'success.main' : 'error.main',
+                    fontWeight: 600
+                  }}
+                >
+                  {formatPercent(portfolioTrendData.performanceData.totalReturnPercent)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  ({formatCurrency(portfolioTrendData.performanceData.totalReturn)})
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<Analytics />}
+              onClick={handleAIAnalysis}
+              sx={{
+                background: 'linear-gradient(135deg, rgba(232, 168, 85, 0.1) 0%, rgba(244, 190, 126, 0.1) 100%)',
+                borderColor: '#E8A855',
+                color: '#E8A855',
+                '&:hover': {
+                  borderColor: '#F4BE7E',
+                  backgroundColor: 'rgba(232, 168, 85, 0.2)',
+                },
+              }}
+            >
+              AI Analysis
+            </Button>
 
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setAddAssetOpen(true)}
-          >
-            Buy Asset
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<RemoveIcon />}
-            // CHANGE THIS TO REMOVE 
-            onClick={() => setRemoveAssetOpen(true)}
-          >
-            Sell Asset
-          </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setAddAssetOpen(true)}
+            >
+              Buy Asset
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<RemoveIcon />}
+              onClick={() => setRemoveAssetOpen(true)}
+            >
+              Sell Asset
+            </Button>
+          </Box>
         </Box>
+
+        {/* 📊 Portfolio Statistics Cards */}
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, rgba(232, 168, 85, 0.1) 0%, rgba(244, 190, 126, 0.1) 100%)',
+              border: '1px solid rgba(232, 168, 85, 0.2)'
+            }}>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Total Assets
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#E8A855' }}>
+                  {Object.values(portfolioData?.assetsByType || {}).reduce((sum, type) => sum + (type.count || 0), 0)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(129, 199, 132, 0.1) 100%)',
+              border: '1px solid rgba(76, 175, 80, 0.2)'
+            }}>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Total Return
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>
+                  {portfolioTrendData?.performanceData ? formatCurrency(portfolioTrendData.performanceData.totalReturn) : 'N/A'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(100, 181, 246, 0.1) 100%)',
+              border: '1px solid rgba(33, 150, 243, 0.2)'
+            }}>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Best Performer
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  {(() => {
+                    let bestAsset = null;
+                    let bestReturn = -Infinity;
+                    
+                    Object.values(portfolioData?.assetsByType || {}).forEach(typeData => {
+                      typeData.assets?.forEach(asset => {
+                        const currentPrice = assetPrices[asset.symbol]?.price;
+                        const avgCost = asset.avg_cost || (asset.cost_price / asset.quantity);
+                        if (currentPrice && avgCost) {
+                          const returnPercent = ((currentPrice - avgCost) / avgCost) * 100;
+                          if (returnPercent > bestReturn) {
+                            bestReturn = returnPercent;
+                            bestAsset = asset.symbol;
+                          }
+                        }
+                      });
+                    });
+                    
+                    return bestAsset || 'N/A';
+                  })()}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.1) 0%, rgba(186, 104, 200, 0.1) 100%)',
+              border: '1px solid rgba(156, 39, 176, 0.2)'
+            }}>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Portfolio Age
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                  {portfolioTrendData?.summary?.startDate ? 
+                    `${Math.ceil((new Date() - new Date(portfolioTrendData.summary.startDate)) / (1000 * 60 * 60 * 24))} days` : 
+                    'N/A'
+                  }
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Box>
 
       <Grid container spacing={3}>
@@ -700,7 +857,7 @@ const Portfolio = () => {
                               {parseFloat(asset.quantity).toLocaleString()}
                             </TableCell>
                             <TableCell align="right">
-                              {formatCurrency(asset.avg_cost, asset.currency)}
+                              {formatCurrency(asset.price, asset.currency)}
                             </TableCell>
                             <TableCell align="right">
                               {formatCurrency(asset.current_price, asset.currency)}
@@ -731,7 +888,7 @@ const Portfolio = () => {
                       <TableBody>
                         {typeData?.assets?.map((asset) => {
                           const currentPrice = assetPrices[asset.symbol]?.price;
-                          const avgCost = asset.cost_price / asset.quantity;
+                          const avgCost = asset.avg_cost || (asset.cost_price / asset.quantity);
                           const currentValue = currentPrice ? currentPrice * asset.quantity : null;
                           const gainLoss = currentPrice ? currentPrice - avgCost : null;
                           const gainLossPercent = (gainLoss !== null && avgCost > 0) ? (gainLoss / avgCost) * 100 : null;
@@ -810,40 +967,178 @@ const Portfolio = () => {
 
         {/* 📋 Sidebar: Asset charts */}
         <Grid item xs={12} lg={4}>
+          {/* Portfolio trend chart */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Portfolio Trend
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {portfolioTrendData?.summary?.startDate ? 
+                      `${portfolioTrendData.summary.startDate} - ${portfolioTrendData.summary.endDate}` : 
+                      'Loading...'
+                    }
+                  </Typography>
+                  {portfolioTrendData?.performanceData && (
+                    <Typography
+                      sx={{
+                        color: portfolioTrendData.performanceData.totalReturn >= 0 ? 'success.main' : 'error.main',
+                        fontWeight: 600,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {formatPercent(portfolioTrendData.performanceData.totalReturnPercent)}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              <Box sx={{ height: 200, position: 'relative' }}>
+                {trendLoading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <Typography color="text.secondary">
+                      Loading portfolio trend...
+                    </Typography>
+                  </Box>
+                ) : portfolioTrendData?.timePoints && portfolioTrendData.timePoints.length > 0 ? (
+                  <Line
+                    data={{
+                      labels: portfolioTrendData.timePoints.map(date => {
+                        const d = new Date(date);
+                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      }),
+                      datasets: [
+                        {
+                          label: 'Portfolio Value',
+                          data: portfolioTrendData.portfolioValues,
+                          borderColor: '#E8A855',
+                          backgroundColor: '#E8A85520',
+                          borderWidth: 2,
+                          fill: true,
+                          tension: 0.4,
+                          pointRadius: 0,
+                          pointHoverRadius: 4,
+                        },
+                      ],
+                    }}
+                    options={chartOptions}
+                  />
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <Typography color="text.secondary">
+                      No portfolio trend data available
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {portfolioTrendData?.summary && (
+                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">
+                        Total Return
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {formatCurrency(portfolioTrendData.summary.totalReturn)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">
+                        Max Value
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {formatCurrency(portfolioTrendData.summary.maxValue)}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Selected asset trend chart */}
           {selectedAsset && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    {selectedAsset.symbol} Trend
-                  </Typography>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {selectedAsset.symbol} - {selectedAsset.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {ASSET_TYPES[selectedAsset.asset_type]?.name || selectedAsset.asset_type}
+                    </Typography>
+                  </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="body2" color="text.secondary">
                       30 Days
                     </Typography>
-                    <Typography
-                      sx={{
-                        color: selectedAsset.gainLoss >= 0 ? 'success.main' : 'error.main',
-                        fontWeight: 600,
-                        fontSize: '0.875rem'
-                      }}
-                    >
-                      {formatPercent(selectedAsset.gainLossPercent)}
-                    </Typography>
+                    {(() => {
+                      const currentPrice = assetPrices[selectedAsset.symbol]?.price;
+                      const avgCost = selectedAsset.avg_cost || (selectedAsset.cost_price / selectedAsset.quantity);
+                      const gainLoss = currentPrice ? currentPrice - avgCost : null;
+                      const gainLossPercent = (gainLoss !== null && avgCost > 0) ? (gainLoss / avgCost) * 100 : null;
+                      
+                      return gainLossPercent !== null ? (
+                        <Typography
+                          sx={{
+                            color: gainLoss >= 0 ? 'success.main' : 'error.main',
+                            fontWeight: 600,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {formatPercent(gainLossPercent)}
+                        </Typography>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          N/A
+                        </Typography>
+                      );
+                    })()}
                   </Box>
                 </Box>
 
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-                  {formatCurrency(selectedAsset.current_price, selectedAsset.currency)}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    {(() => {
+                      const currentPrice = assetPrices[selectedAsset.symbol]?.price;
+                      return currentPrice ? formatCurrency(currentPrice, selectedAsset.currency) : 'N/A';
+                    })()}
+                  </Typography>
+                  {(() => {
+                    const currentPrice = assetPrices[selectedAsset.symbol]?.price;
+                    const avgCost = selectedAsset.avg_cost || (selectedAsset.cost_price / selectedAsset.quantity);
+                    const gainLoss = currentPrice ? currentPrice - avgCost : null;
+                    
+                    return gainLoss !== null ? (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: gainLoss >= 0 ? 'success.main' : 'error.main',
+                          fontWeight: 600
+                        }}
+                      >
+                        {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, selectedAsset.currency)}
+                      </Typography>
+                    ) : null;
+                  })()}
+                </Box>
 
                 <Box sx={{ height: 200, position: 'relative' }}>
-                  {assetChartData ? (
+                  {chartLoading ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                      <Typography color="text.secondary">
+                        Loading chart...
+                      </Typography>
+                    </Box>
+                  ) : assetChartData ? (
                     <Line
                       data={assetChartData}
                       options={chartOptions}
-                      key={`chart-${selectedAsset.id}`}
+                      key={`chart-${selectedAsset.symbol}`}
                     />
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -856,7 +1151,7 @@ const Portfolio = () => {
 
                 <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                   <Grid container spacing={2}>
-                    <Grid item xs={6}>
+                    <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">
                         Holdings
                       </Typography>
@@ -864,12 +1159,27 @@ const Portfolio = () => {
                         {parseFloat(selectedAsset.quantity).toLocaleString()}
                       </Typography>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">
+                        Avg Cost
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {(() => {
+                          const avgCost = selectedAsset.avg_cost || (selectedAsset.cost_price / selectedAsset.quantity);
+                          return formatCurrency(avgCost, selectedAsset.currency);
+                        })()}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">
                         Total Value
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrency(selectedAsset.currentValue, selectedAsset.currency)}
+                        {(() => {
+                          const currentPrice = assetPrices[selectedAsset.symbol]?.price;
+                          const quantity = parseFloat(selectedAsset.quantity);
+                          return currentPrice ? formatCurrency(currentPrice * quantity, selectedAsset.currency) : 'N/A';
+                        })()}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -1023,7 +1333,26 @@ const Portfolio = () => {
                 label="Buy Date"
                 type="date"
                 value={newAsset.buy_date ? newAsset.buy_date.slice(0, 10) : ''}
-                onChange={(e) => setNewAsset(prev => ({ ...prev, buy_date: e.target.value }))}
+                onChange={async (e) => {
+                  const selectedDate = e.target.value;
+                  setNewAsset(prev => ({ ...prev, buy_date: selectedDate }));
+                  
+                  // 如果已经选择了股票，自动获取该日期的价格
+                  if (selectedDate && newAsset.symbol) {
+                    console.log(`🔄 获取 ${newAsset.symbol} 在 ${selectedDate} 的历史价格...`);
+                    const historicalPrice = await getPriceOnDate(newAsset.symbol, selectedDate);
+                    
+                    if (historicalPrice) {
+                      setNewAsset(prev => ({
+                        ...prev,
+                        price: historicalPrice
+                      }));
+                      console.log(`✅ 已自动填充 ${newAsset.symbol} 在 ${selectedDate} 的价格: $${historicalPrice}`);
+                    } else {
+                      console.log(`⚠️ 无法获取 ${newAsset.symbol} 在 ${selectedDate} 的价格，保持当前价格`);
+                    }
+                  }
+                }}
                 InputLabelProps={{
                   shrink: true,
                 }}
@@ -1102,13 +1431,35 @@ const Portfolio = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Average Cost"
-                type="number"
-                value={newAsset.avg_cost}
-                onChange={(e) => setNewAsset(prev => ({ ...prev, avg_cost: e.target.value }))}
-              />
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+                <TextField
+                  fullWidth
+                  label="Price"
+                  type="number"
+                  value={newAsset.price}
+                  onChange={(e) => setNewAsset(prev => ({ ...prev, price: e.target.value }))}
+                />
+                {newAsset.symbol && newAsset.buy_date && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={async () => {
+                      console.log(`🔄 手动获取 ${newAsset.symbol} 在 ${newAsset.buy_date} 的历史价格...`);
+                      const historicalPrice = await getPriceOnDate(newAsset.symbol, newAsset.buy_date);
+                      if (historicalPrice) {
+                        setNewAsset(prev => ({
+                          ...prev,
+                          price: historicalPrice
+                        }));
+                        console.log(`✅ 已更新为历史价格: $${historicalPrice}`);
+                      }
+                    }}
+                    sx={{ minWidth: 'auto', px: 1 }}
+                  >
+                    📅
+                  </Button>
+                )}
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
