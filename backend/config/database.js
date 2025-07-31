@@ -6,7 +6,7 @@ const DB_CONFIG = {
   port: 3306,
   database: 'portfolio_manager',
   username: 'root',
-  password: 'n3u3da!'
+  password: 'wyt!!010611ABC'
 };
 
 // 创建Sequelize实例 - 这是连接MySQL的核心原理：

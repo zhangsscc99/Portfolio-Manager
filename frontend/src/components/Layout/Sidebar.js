@@ -179,7 +179,7 @@ const Sidebar = ({ onNavigate }) => {
                 filter: 'brightness(1.2)',
               },
             }}
-            onClick={() => navigate('/app/dashboard')}
+            onClick={() => navigate('/')}
           >
             Portfolio Manager
           </Typography>
