@@ -567,7 +567,7 @@ const HomePage = () => {
                 fontStyle: 'italic'
               }}
             >
-              💼 Professional Portfolio Management • 📊 Real-time Analytics • 🤖 AI-Powered Insights
+              Professional Portfolio Management •  Real-time Analytics •  AI-Powered Insights
             </Typography>
           </Box>
         </Box>

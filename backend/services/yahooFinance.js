@@ -201,15 +201,26 @@ class YahooFinanceService {
         case '1y':
           startDate.setFullYear(startDate.getFullYear() - 1);  
           break;
+        case '5y':
+          startDate.setFullYear(startDate.getFullYear() - 5);  
+          break;
         default:
           startDate.setMonth(startDate.getMonth() - 1);
       }
       
       // 从Yahoo Finance获取历史数据 (使用chart方法替代已废弃的historical)
+      let interval = '1d'; // 默认日线数据
+      
+      // 对于5年数据，可能需要使用更长的间隔来避免API限制
+      if (period === '5y') {
+        interval = '1wk'; // 使用周线数据来获取更长的历史
+        console.log(`📊 5y数据使用周线间隔: ${interval}`);
+      }
+      
       const chartResult = await yahooFinance.chart(symbol, {
         period1: startDate,
         period2: endDate,
-        interval: '1d' // 日线数据
+        interval: interval
       });
       
       // chart方法返回的格式: { quotes: [...] }
@@ -218,6 +229,19 @@ class YahooFinanceService {
       if (!historicalResult || historicalResult.length === 0) {
         console.log(`⚠️ ${symbol} 没有历史数据`);
         return [];
+      }
+      
+      // 添加调试信息
+      if (period === '5y') {
+        console.log(`📊 ${symbol} 5y数据获取情况:`);
+        console.log(`   - 请求时间范围: ${startDate.toLocaleDateString()} 到 ${endDate.toLocaleDateString()}`);
+        console.log(`   - 使用间隔: ${interval}`);
+        console.log(`   - 获取到数据点: ${historicalResult.length}`);
+        if (historicalResult.length > 0) {
+          const firstDate = historicalResult[0].date;
+          const lastDate = historicalResult[historicalResult.length - 1].date;
+          console.log(`   - 实际数据范围: ${firstDate.toLocaleDateString()} 到 ${lastDate.toLocaleDateString()}`);
+        }
       }
       
       // 格式化数据 - chart数据格式与historical略有不同
