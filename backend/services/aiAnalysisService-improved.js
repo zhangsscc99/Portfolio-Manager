@@ -363,6 +363,9 @@ Under the current market environment, recommendations include:
 
   // Parse AI analysis content into structured data
   parseAnalysisContent(content) {
+    console.log('🔍 开始解析AI分析内容...');
+    console.log('📄 原始内容长度:', content.length);
+    
     const sections = {
       assetAllocation: '',
       riskAssessment: '',
@@ -376,10 +379,13 @@ Under the current market environment, recommendations include:
 
     // Split content into lines for better parsing
     const lines = content.split('\n');
+    console.log('📋 总行数:', lines.length);
+    
     let currentSection = '';
     let isInSection = false;
+    let processedLines = 0;
     
-    lines.forEach(line => {
+    lines.forEach((line, index) => {
       const trimmed = line.trim();
       
       // Skip empty lines
@@ -392,18 +398,31 @@ Under the current market environment, recommendations include:
       
       // Detect section headers
       if (this.isSectionHeader(trimmed)) {
-        currentSection = this.getSectionType(trimmed);
-        isInSection = true;
-        return;
+        const newSection = this.getSectionType(trimmed);
+        if (newSection) {
+          currentSection = newSection;
+          isInSection = true;
+          processedLines++;
+          console.log(`🎯 第${index + 1}行: 识别到section [${newSection}]: "${trimmed}"`);
+          return;
+        } else {
+          console.log(`⚠️ 第${index + 1}行: 检测为header但无法映射: "${trimmed}"`);
+        }
       }
       
       // Add content to current section
       if (currentSection && isInSection && trimmed) {
         // Skip markdown headers and numbering
         const cleanLine = trimmed.replace(/^#{1,6}\s*/, '').replace(/^\d+\.\s*\*?\*?/, '');
+        console.log(`📝 第${index + 1}行 [${currentSection}]: "${trimmed}" → 清理后: "${cleanLine}"`);
         if (cleanLine) {
           sections[currentSection] += cleanLine + '\n';
+          console.log(`✅ 内容已添加到 ${currentSection}, 当前长度: ${sections[currentSection].length}`);
+        } else {
+          console.log(`⚠️ 清理后内容为空，跳过`);
         }
+      } else if (trimmed) {
+        console.log(`⏭️ 第${index + 1}行: 跳过 - currentSection: ${currentSection}, isInSection: ${isInSection}, trimmed: "${trimmed}"`);
       }
     });
 
@@ -412,12 +431,78 @@ Under the current market environment, recommendations include:
       sections[key] = sections[key].trim();
     });
 
+    // 🐛 调试日志：输出解析结果
+    console.log('🔍 AI分析内容解析结果:');
+    console.log(`📊 处理了 ${processedLines} 个section headers`);
+    Object.keys(sections).forEach(key => {
+      const content = sections[key];
+      if (content) {
+        console.log(`  ✅ ${key}: ${content.length}字符`);
+        console.log(`    预览: "${content.substring(0, 100)}..."`);
+      } else {
+        console.log(`  ❌ ${key}: 空内容`);
+      }
+    });
+
     return sections;
+  }
+
+  // 🧪 测试内容解析功能
+  testParseAnalysisContent() {
+    const testContent = `**Comprehensive Portfolio Analysis: Professional Investment Perspective**
+
+---
+
+## **1. Asset Allocation Analysis**
+
+### Current Allocation Breakdown:
+您的投资组合呈现出高度的加密货币集中配置，其中加密货币占比高达95.39%，这表明投资策略非常激进。
+
+## **2. Risk Assessment**  
+由于加密货币占主导地位，您的投资组合承担着极高的波动性风险。
+
+## **3. Performance Analysis**
+基于当前的资产配置，您的投资组合在牛市中可能获得超额收益。
+
+## **4. Market Outlook**
+加密货币市场正处于关键的技术突破阶段。
+
+## **5. Individual Stock Analysis**
+ETF和股票持仓相对较少，建议适当增加传统资产配置。
+
+## **6. Optimization Recommendations**
+建议降低加密货币占比至60-70%，增加股票和债券配置。
+
+## **7. Investment Strategy**
+采用分散化投资策略，平衡风险和收益。
+
+## **8. Overall Portfolio Score**
+基于综合分析，给出总体评分75/100。
+
+OVERALL PORTFOLIO SCORE: 75/100
+`;
+
+    console.log('🧪 开始测试AI内容解析...');
+    console.log('📄 测试内容预览:');
+    console.log(testContent.substring(0, 200) + '...');
+    
+    const result = this.parseAnalysisContent(testContent);
+    
+    console.log('📊 测试解析结果:');
+    Object.keys(result).forEach(key => {
+      console.log(`${key}: ${result[key] ? '✅ 有内容' : '❌ 无内容'}`);
+      if (result[key]) {
+        console.log(`  内容预览: "${result[key].substring(0, 50)}..."`);
+      }
+    });
+    
+    return result;
   }
 
   // Check if a line is a section header
   isSectionHeader(line) {
     const headerPatterns = [
+      // 数字编号格式
       /^\d+\.\s*\*?\*?Asset Allocation/i,
       /^\d+\.\s*\*?\*?Risk Assessment/i,
       /^\d+\.\s*\*?\*?Performance Analysis/i,
@@ -427,6 +512,8 @@ Under the current market environment, recommendations include:
       /^\d+\.\s*\*?\*?Optimization/i,
       /^\d+\.\s*\*?\*?Investment Strategy/i,
       /^\d+\.\s*\*?\*?Overall.*Score/i,
+      
+      // Markdown标题格式
       /^#{1,6}\s*Asset Allocation/i,
       /^#{1,6}\s*Risk Assessment/i,
       /^#{1,6}\s*Performance Analysis/i,
@@ -435,23 +522,87 @@ Under the current market environment, recommendations include:
       /^#{1,6}\s*Stock Analysis/i,
       /^#{1,6}\s*Optimization/i,
       /^#{1,6}\s*Investment Strategy/i,
-      /^#{1,6}\s*Overall.*Score/i
+      /^#{1,6}\s*Overall.*Score/i,
+      
+      // 复合格式：Markdown + 数字 + 粗体
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Asset Allocation/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Risk Assessment/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Performance Analysis/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Market Outlook/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Individual Stock/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Stock Analysis/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Optimization/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Investment Strategy/i,
+      /^#{1,6}\s*\*?\*?\d+\.\s*\*?\*?Overall.*Score/i,
+      
+      // 更灵活的格式 (直接关键词)
+      /^Asset Allocation/i,
+      /^Risk Assessment/i,
+      /^Performance Analysis/i,
+      /^Market Outlook/i,
+      /^Individual Stock/i,
+      /^Stock Analysis/i,
+      /^Optimization/i,
+      /^Investment Strategy/i,
+      /^Overall.*Score/i,
+      
+      // 带标点符号的格式
+      /^Asset Allocation:/i,
+      /^Risk Assessment:/i,
+      /^Performance Analysis:/i,
+      /^Market Outlook:/i,
+      /^Individual Stock:/i,
+      /^Stock Analysis:/i,
+      /^Optimization:/i,
+      /^Investment Strategy:/i,
+      
+      // 包含"Analysis"关键词的格式
+      /Asset Allocation Analysis/i,
+      /Risk Assessment Analysis/i,
+      /Performance Analysis/i,
+      /Market Outlook Analysis/i,
+      /Individual Stock Analysis/i,
+      /Stock Analysis/i,
+      /Optimization Analysis/i,
+      /Investment Strategy Analysis/i,
+      
+      // 中文格式
+      /资产配置/i,
+      /风险评估/i,
+      /业绩分析/i,
+      /市场展望/i,
+      /个股分析/i,
+      /优化建议/i,
+      /投资策略/i
     ];
     
-    return headerPatterns.some(pattern => pattern.test(line));
+    const isHeader = headerPatterns.some(pattern => pattern.test(line));
+    if (isHeader) {
+      console.log(`🎯 检测到section header: "${line}"`);
+    }
+    return isHeader;
   }
 
   // Get section type from header line
   getSectionType(line) {
-    if (/Asset Allocation/i.test(line)) return 'assetAllocation';
-    if (/Risk Assessment/i.test(line)) return 'riskAssessment';
-    if (/Performance Analysis/i.test(line)) return 'performanceAnalysis';
-    if (/Market Outlook/i.test(line)) return 'marketOutlook';
-    if (/Individual Stock|Stock Analysis/i.test(line)) return 'stockAnalysis';
-    if (/Optimization|Recommendations/i.test(line)) return 'optimizationRecommendations';
-    if (/Investment Strategy/i.test(line)) return 'investmentStrategy';
-    if (/Overall.*Score/i.test(line)) return 'overallScore';
-    return '';
+    let sectionType = '';
+    
+    if (/Asset Allocation|资产配置/i.test(line)) sectionType = 'assetAllocation';
+    else if (/Risk Assessment|风险评估/i.test(line)) sectionType = 'riskAssessment';
+    else if (/Performance Analysis|业绩分析/i.test(line)) sectionType = 'performanceAnalysis';
+    else if (/Market Outlook|市场展望/i.test(line)) sectionType = 'marketOutlook';
+    else if (/Individual Stock|Stock Analysis|个股分析/i.test(line)) sectionType = 'stockAnalysis';
+    else if (/Optimization|Recommendations|优化建议/i.test(line)) sectionType = 'optimizationRecommendations';
+    else if (/Investment Strategy|投资策略/i.test(line)) sectionType = 'investmentStrategy';
+    else if (/Overall.*Score|总分|评分/i.test(line)) sectionType = 'overallScore';
+    
+    if (sectionType) {
+      console.log(`📝 映射section类型: "${line}" -> ${sectionType}`);
+    } else {
+      console.log(`❓ 未识别的section header: "${line}"`);
+    }
+    
+    return sectionType;
   }
 
   // Generate analysis summary

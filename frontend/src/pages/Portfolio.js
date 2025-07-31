@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -52,15 +53,10 @@ const ASSET_TYPES = {
 
 const Portfolio = () => {
   const navigate = useNavigate();
-  const [portfolioData, setPortfolioData] = useState(null);
-
-  const [selectedAsset, setSelectedAsset] = useState(null);
-  const [assetChartData, setAssetChartData] = useState(null);
-  const [chartLoading, setChartLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [addAssetOpen, setAddAssetOpen] = useState(false);
-  const [removeAssetOpen, setRemoveAssetOpen] = useState(false);
-  const [expandedTypes, setExpandedTypes] = useState({});
+  
+  // 📊 状态管理
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openRemoveDialog, setOpenRemoveDialog] = useState(false);
   const [newAsset, setNewAsset] = useState({
     symbol: '',
     name: '',
@@ -79,47 +75,48 @@ const Portfolio = () => {
   });
   const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
 
-  // 📊 Fetch portfolio data
-  const fetchPortfolioData = async () => {
-    try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1)));
-      const data = await response.json();
-      if (data.success) {
-        setPortfolioData(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch portfolio data:', error);
+  // 🎯 使用React Query获取portfolio数据，与Dashboard保持一致
+  const { data: portfolio, isLoading: portfolioLoading, refetch: refetchPortfolio } = useQuery(
+    'portfolioAssets',
+    () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
+    {
+      staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
+      cacheTime: 10 * 60 * 1000, // 10分钟后清除缓存
     }
-  };
+  );
+
+  // 📊 处理portfolio数据，与Dashboard保持一致的数据结构
+  const portfolioData = portfolio?.data || null;
+
+  // 📊 状态管理
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [assetChartData, setAssetChartData] = useState(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [expandedTypes, setExpandedTypes] = useState({});
 
   // 🔄 手动更新价格
   const handleUpdatePrices = async () => {
     try {
       console.log('🔄 手动更新资产价格...');
-      const response = await fetch(buildApiUrl('/assets/update-prices'), {
+      const response = await fetch(buildApiUrl('/assets/refresh-market-data'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ portfolioId: 1 })
+        headers: { 'Content-Type': 'application/json' }
       });
       
       const result = await response.json();
       
-      if (response.ok) {
+      if (response.ok && result.success) {
         console.log('✅ 价格更新成功:', result);
-        await fetchPortfolioData(); // 刷新数据
+        await refetchPortfolio(); // 刷新数据
         
-        if (result.updatedCount > 0) {
-          alert(`✅ ${result.message}\n📊 总计: ${result.totalCount} 个资产\n🔄 更新: ${result.updatedCount} 个\n✓ 无变化: ${result.successCount - result.updatedCount} 个`);
-        } else {
-          alert(`ℹ️ 价格更新完成\n所有 ${result.totalCount} 个资产价格均为最新`);
-        }
+        alert(`✅ Market data refreshed successfully!\n🕐 Updated at: ${new Date(result.timestamp).toLocaleTimeString()}`);
       } else {
         console.error('❌ 价格更新失败:', result.error);
-        alert('❌ 价格更新失败: ' + result.error);
+        alert('❌ 价格更新失败: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('❌ 价格更新网络错误:', error);
-      alert('❌ 网络错误: ' + error.message);
+      console.error('❌ 价格更新异常:', error);
+      alert('❌ 价格更新异常: ' + error.message);
     }
   };
 
@@ -242,15 +239,6 @@ const Portfolio = () => {
     fetchAssetChartData(asset);
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await fetchPortfolioData();
-      setLoading(false);
-    };
-    loadData();
-  }, []);
-
   // AI Portfolio Analysis - Navigate to Analytics page and scroll to AI Analysis section
   const handleAIAnalysis = async () => {
     try {
@@ -312,7 +300,7 @@ const Portfolio = () => {
           setRemoveMessage({ type: 'success', text: `${asset.symbol} completely sold (${sellQuantity} shares)` });
           // 成功时延迟重置表单并刷新数据
           setTimeout(() => {
-            setRemoveAssetOpen(false);
+            setOpenRemoveDialog(false);
             setAssetToRemove({
               symbol: '',
               name: '',
@@ -321,7 +309,7 @@ const Portfolio = () => {
               maxQuantity: 0
             });
             setRemoveMessage({ type: '', text: '' });
-            fetchPortfolioData();
+            refetchPortfolio();
           }, 1500);
         } else {
           const errorData = await response.json();
@@ -342,7 +330,7 @@ const Portfolio = () => {
           setRemoveMessage({ type: 'success', text: `Sold ${sellQuantity} shares of ${asset.symbol}. Remaining: ${newQuantity}` });
           // 成功时延迟重置表单并刷新数据
           setTimeout(() => {
-            setRemoveAssetOpen(false);
+            setOpenRemoveDialog(false);
             setAssetToRemove({
               symbol: '',
               name: '',
@@ -351,7 +339,7 @@ const Portfolio = () => {
               maxQuantity: 0
             });
             setRemoveMessage({ type: '', text: '' });
-            fetchPortfolioData();
+            refetchPortfolio();
           }, 1500);
         } else {
           const errorData = await response.json();
@@ -488,9 +476,9 @@ const Portfolio = () => {
       if (response.ok) {
         // 显示成功消息
         console.log(`✅ Asset ${newAsset.symbol} added/updated successfully`);
-        setAddAssetOpen(false);
+        setOpenAddDialog(false);
         resetAddAssetForm(); // 使用新的重置函数
-        await fetchPortfolioData();
+        await refetchPortfolio();
       } else {
         // 显示错误消息
         console.error('Failed to add asset:', result.error);
@@ -599,7 +587,7 @@ const Portfolio = () => {
             Portfolio Overview
           </Typography>
           <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mt: 1 }}>
-            {formatCurrency(portfolioData?.totalValue || 0)}
+            {portfolioLoading ? 'Loading...' : formatCurrency(portfolioData?.totalValue || 0)}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -623,204 +611,219 @@ const Portfolio = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setAddAssetOpen(true)}
+            onClick={() => setOpenAddDialog(true)}
           >
             Add Asset
           </Button>
+          
           <Button
-            variant="contained"
+            variant="outlined"
             startIcon={<RemoveIcon />}
             // CHANGE THIS TO REMOVE 
-            onClick={() => setRemoveAssetOpen(true)}
+            onClick={() => setOpenRemoveDialog(true)}
           >
             Remove Asset
           </Button>
           <Button
-            variant="contained"
+            variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={handleUpdatePrices}
-            sx={{ ml: 1 }}
           >
             Update Prices
           </Button>
         </Box>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* 📈 Main assets area */}
-        <Grid item xs={12} lg={8}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Asset Categories
+      {/* ⏳ Loading状态 */}
+      {portfolioLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Typography variant="h6" color="text.secondary">
+            Loading portfolio data...
           </Typography>
-          
-          {Object.entries(ASSET_TYPES).map(([type, config]) => {
-            const typeData = portfolioData?.assetsByType?.[type];
-            const hasAssets = typeData?.count > 0;
+        </Box>
+      ) : !portfolioData ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Typography variant="h6" color="text.secondary">
+            No portfolio data available
+          </Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {/* 📈 Main assets area */}
+          <Grid item xs={12} lg={8}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Asset Categories
+            </Typography>
             
-            return (
-              <Accordion 
-                key={type}
-                expanded={expandedTypes[type] || hasAssets}
-                onChange={(_, isExpanded) => setExpandedTypes(prev => ({...prev, [type]: isExpanded}))}
-                sx={{ mb: 1, display: hasAssets ? 'block' : 'none' }}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <Typography sx={{ fontSize: '1.2em', mr: 1 }}>
-                      {config.icon}
-                    </Typography>
-                    <Typography sx={{ flexGrow: 1, fontWeight: 600 }}>
-                      {config.name} ({typeData?.count || 0})
-                    </Typography>
-                    <Typography sx={{ fontWeight: 600, color: config.color }}>
-                      {formatCurrency(typeData?.totalValue || 0)}
-                    </Typography>
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <TableContainer component={Paper} variant="outlined" className="portfolio-table-container table-container">
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Symbol</TableCell>
-                          <TableCell>Name</TableCell>
-                          <TableCell align="right">Quantity</TableCell>
-                          <TableCell align="right">Avg Cost</TableCell>
-                          <TableCell align="right">Current Price</TableCell>
-                          <TableCell align="right">Total Value</TableCell>
-                          <TableCell align="right">Gain/Loss</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {typeData?.assets?.map((asset) => (
-                          <TableRow 
-                            key={asset.id}
-                            hover
-                            sx={{ 
-                              cursor: 'pointer',
-                              backgroundColor: selectedAsset?.id === asset.id ? 'action.selected' : 'inherit'
-                            }}
-                            onClick={() => handleAssetSelection(asset)}
-                          >
-                            <TableCell sx={{ fontWeight: 600 }}>
-                              {asset.symbol}
-                            </TableCell>
-                            <TableCell>{asset.name}</TableCell>
-                            <TableCell align="right">
-                              {parseFloat(asset.quantity).toLocaleString()}
-                            </TableCell>
-                            <TableCell align="right">
-                              {formatCurrency(asset.avg_cost, asset.currency)}
-                            </TableCell>
-                            <TableCell align="right">
-                              {formatCurrency(asset.current_price, asset.currency)}
-                            </TableCell>
-                            <TableCell align="right">
-                              {formatCurrency(asset.currentValue, asset.currency)}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                                {asset.gainLoss >= 0 ? (
-                                  <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main', mr: 0.5 }} />
-                                ) : (
-                                  <TrendingDownIcon sx={{ fontSize: 16, color: 'error.main', mr: 0.5 }} />
-                                )}
-                                <Typography
-                                  sx={{
-                                    color: asset.gainLoss >= 0 ? 'success.main' : 'error.main',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  {formatPercent(asset.gainLossPercent)}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </AccordionDetails>
-              </Accordion>
-            );
-          })}
-        </Grid>
-
-        {/* 📋 Sidebar: Asset charts */}
-        <Grid item xs={12} lg={4}>
-          {/* Selected asset trend chart */}
-          {selectedAsset && (
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    {selectedAsset.symbol} Trend
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      30 Days
-                    </Typography>
-                    <Typography
-                      sx={{
-                        color: selectedAsset.gainLoss >= 0 ? 'success.main' : 'error.main',
-                        fontWeight: 600,
-                        fontSize: '0.875rem'
-                      }}
-                    >
-                      {formatPercent(selectedAsset.gainLossPercent)}
-                    </Typography>
-                  </Box>
-                </Box>
-                
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-                  {formatCurrency(selectedAsset.current_price, selectedAsset.currency)}
-                </Typography>
-                
-                <Box sx={{ height: 200, position: 'relative' }}>
-                  {assetChartData ? (
-                    <Line 
-                      data={assetChartData} 
-                      options={chartOptions}
-                      key={`chart-${selectedAsset.id}`}
-                    />
-                  ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                      <Typography color="text.secondary">
-                        No chart data available
+            {Object.entries(ASSET_TYPES).map(([type, config]) => {
+              const typeData = portfolioData?.assetsByType?.[type];
+              const hasAssets = typeData?.count > 0;
+              
+              return (
+                <Accordion 
+                  key={type}
+                  expanded={expandedTypes[type] || hasAssets}
+                  onChange={(_, isExpanded) => setExpandedTypes(prev => ({...prev, [type]: isExpanded}))}
+                  sx={{ mb: 1, display: hasAssets ? 'block' : 'none' }}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <Typography sx={{ fontSize: '1.2em', mr: 1 }}>
+                        {config.icon}
+                      </Typography>
+                      <Typography sx={{ flexGrow: 1, fontWeight: 600 }}>
+                        {config.name} ({typeData?.count || 0})
+                      </Typography>
+                      <Typography sx={{ fontWeight: 600, color: config.color }}>
+                        {formatCurrency(typeData?.totalValue || 0)}
                       </Typography>
                     </Box>
-                  )}
-                </Box>
-                
-                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
-                        Holdings
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <TableContainer component={Paper} variant="outlined" className="portfolio-table-container table-container">
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Symbol</TableCell>
+                            <TableCell>Name</TableCell>
+                            <TableCell align="right">Quantity</TableCell>
+                            <TableCell align="right">Avg Cost</TableCell>
+                            <TableCell align="right">Current Price</TableCell>
+                            <TableCell align="right">Total Value</TableCell>
+                            <TableCell align="right">Gain/Loss</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {typeData?.assets?.map((asset) => (
+                            <TableRow 
+                              key={asset.id}
+                              hover
+                              sx={{ 
+                                cursor: 'pointer',
+                                backgroundColor: selectedAsset?.id === asset.id ? 'action.selected' : 'inherit'
+                              }}
+                              onClick={() => handleAssetSelection(asset)}
+                            >
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                {asset.symbol}
+                              </TableCell>
+                              <TableCell>{asset.name}</TableCell>
+                              <TableCell align="right">
+                                {parseFloat(asset.quantity).toLocaleString()}
+                              </TableCell>
+                              <TableCell align="right">
+                                {formatCurrency(asset.avg_cost, asset.currency)}
+                              </TableCell>
+                              <TableCell align="right">
+                                {formatCurrency(asset.current_price, asset.currency)}
+                              </TableCell>
+                              <TableCell align="right">
+                                {formatCurrency(asset.currentValue, asset.currency)}
+                              </TableCell>
+                              <TableCell align="right">
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                  {asset.gainLoss >= 0 ? (
+                                    <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main', mr: 0.5 }} />
+                                  ) : (
+                                    <TrendingDownIcon sx={{ fontSize: 16, color: 'error.main', mr: 0.5 }} />
+                                  )}
+                                  <Typography
+                                    sx={{
+                                      color: asset.gainLoss >= 0 ? 'success.main' : 'error.main',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    {formatPercent(asset.gainLossPercent)}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </AccordionDetails>
+                </Accordion>
+              );
+            })}
+          </Grid>
+
+          {/* 📋 Sidebar: Asset charts */}
+          <Grid item xs={12} lg={4}>
+            {/* Selected asset trend chart */}
+            {selectedAsset && (
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      {selectedAsset.symbol} Trend
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        30 Days
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {parseFloat(selectedAsset.quantity).toLocaleString()}
+                      <Typography
+                        sx={{
+                          color: selectedAsset.gainLoss >= 0 ? 'success.main' : 'error.main',
+                          fontWeight: 600,
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        {formatPercent(selectedAsset.gainLossPercent)}
                       </Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                    {formatCurrency(selectedAsset.current_price, selectedAsset.currency)}
+                  </Typography>
+                  
+                  <Box sx={{ height: 200, position: 'relative' }}>
+                    {assetChartData ? (
+                      <Line 
+                        data={assetChartData} 
+                        options={chartOptions}
+                        key={`chart-${selectedAsset.id}`}
+                      />
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <Typography color="text.secondary">
+                          No chart data available
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">
+                          Holdings
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {parseFloat(selectedAsset.quantity).toLocaleString()}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">
+                          Total Value
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {formatCurrency(selectedAsset.currentValue, selectedAsset.currency)}
+                        </Typography>
+                      </Grid>
                     </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
-                        Total Value
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrency(selectedAsset.currentValue, selectedAsset.currency)}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Box>
-              </CardContent>
-            </Card>
-          )}
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
 
 
+          </Grid>
         </Grid>
-      </Grid>
+      )}
       {/* 📝 Remove asset dialog */}
-      <Dialog open={removeAssetOpen} onClose={() => setRemoveAssetOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openRemoveDialog} onClose={() => setOpenRemoveDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Remove Asset</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -910,7 +913,7 @@ const Portfolio = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRemoveAssetOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpenRemoveDialog(false)}>Cancel</Button>
           <Button 
             variant="contained" 
             color="error"
@@ -931,7 +934,7 @@ const Portfolio = () => {
 
 
       {/* 📝 Add asset dialog */}
-      <Dialog open={addAssetOpen} onClose={() => { setAddAssetOpen(false); resetAddAssetForm(); }} maxWidth="sm" fullWidth>
+      <Dialog open={openAddDialog} onClose={() => { setOpenAddDialog(false); resetAddAssetForm(); }} maxWidth="sm" fullWidth>
         <DialogTitle>Add New Asset</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -1088,7 +1091,7 @@ const Portfolio = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setAddAssetOpen(false); resetAddAssetForm(); }}>Cancel</Button>
+          <Button onClick={() => { setOpenAddDialog(false); resetAddAssetForm(); }}>Cancel</Button>
           <Button variant="contained" onClick={handleAddAsset}>Add</Button>
         </DialogActions>
       </Dialog>

@@ -15,11 +15,11 @@ import {
   TableRow,
   useTheme,
   useMediaQuery,
-  CircularProgress,
+  CircularProgress
 } from '@mui/material';
 import {
   TrendingUp,
-  TrendingDown,
+  TrendingDown
 } from '@mui/icons-material';
 import { Line, Doughnut } from 'react-chartjs-2';
 import {
@@ -42,6 +42,7 @@ import {
   getChangeColor,
 } from '../services/api';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
+import '../styles/localGlow.css'; // 导入渐变和动画样式
 
 ChartJS.register(
   CategoryScale,
@@ -65,15 +66,13 @@ const Dashboard = () => {
 
   // 🎯 使用assets API获取真实的portfolio数据
   const { data: portfolio, isLoading: portfolioLoading } = useQuery(
-    'portfolioAssets', 
+    'portfolioAssets',
     () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
     {
       staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
       cacheTime: 10 * 60 * 1000, // 10分钟后清除缓存
     }
   );
-
-
 
   const { data: gainers } = useQuery('marketGainers', () => marketAPI.getGainers(5));
   const { data: losers } = useQuery('marketLosers', () => marketAPI.getLosers(5));
@@ -104,9 +103,31 @@ const Dashboard = () => {
       }
     });
     
-    // 🚫 不使用模拟的今日变化数据，需要基于真实当日价格变化计算
-    const todayChange = 0; // 暂时设为0，等待真实当日价格变化数据
-    const todayChangePercentValue = 0;
+    // 🔄 计算真实的今日变化数据
+    let totalTodayChange = 0;
+    let totalCurrentValue = 0;
+    
+    Object.values(assetsByType).forEach(typeData => {
+      if (typeData.assets) {
+        typeData.assets.forEach(asset => {
+          const currentValue = asset.quantity * asset.current_price;
+          totalCurrentValue += currentValue;
+          
+          // 如果资产有日变化数据，计算加权变化
+          if (asset.dailyChange !== undefined && asset.dailyChange !== null) {
+            totalTodayChange += asset.dailyChange * asset.quantity;
+          } else if (asset.changePercent !== undefined && asset.changePercent !== null) {
+            // 如果有百分比变化，转换为绝对值
+            const previousPrice = asset.current_price / (1 + asset.changePercent / 100);
+            const dailyChange = asset.current_price - previousPrice;
+            totalTodayChange += dailyChange * asset.quantity;
+          }
+        });
+      }
+    });
+    
+    const todayChange = totalTodayChange;
+    const todayChangePercentValue = totalCurrentValue > 0 ? (totalTodayChange / totalCurrentValue) * 100 : 0;
     
     // 🏦 获取现金数据
     const cashAmount = assetsByType.cash?.totalValue || 0;
@@ -432,100 +453,262 @@ const Dashboard = () => {
   // 资产分布保持不变
   // 🎯 动态生成资产配置数据
   const allocationData = useMemo(() => {
-    if (!portfolioData?.allocation) {
-      return {
-        labels: ['No Data'],
-        datasets: [{
-          data: [1],
-          backgroundColor: ['#374151'],
-          borderWidth: 0,
-        }]
-      };
-    }
+    if (!portfolioData) return null;
 
-    const allocation = portfolioData.allocation;
     const labels = [];
     const data = [];
-    const colors = [];
-    const hoverColors = [];
+    const allocation = portfolioData.allocation;
+
+    // 🎨 创建渐变色函数
+    const createGradient = (ctx, centerX, centerY, radius, colorStart, colorMid, colorEnd) => {
+      try {
+        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+        gradient.addColorStop(0, colorStart);
+        gradient.addColorStop(0.3, colorMid);
+        gradient.addColorStop(0.7, colorEnd);
+        
+        // 边缘淡化效果
+        const fadeColor = hexToRgba(colorStart, 0.3);
+        gradient.addColorStop(1, fadeColor);
+        
+        return gradient;
+      } catch (error) {
+        console.error('Gradient creation error:', error);
+        return colorStart; // 回退到基本颜色
+      }
+    };
+
+    // 🔧 hex转rgba工具函数（增强版）
+    const hexToRgba = (hex, alpha = 1) => {
+      try {
+        // 移除#符号
+        let cleanHex = hex.replace('#', '');
+        
+        // 支持3位hex格式
+        if (cleanHex.length === 3) {
+          cleanHex = cleanHex.split('').map(char => char + char).join('');
+        }
+        
+        // 确保是6位格式
+        if (cleanHex.length !== 6) {
+          throw new Error(`Invalid hex length: ${cleanHex.length}`);
+        }
+        
+        const r = parseInt(cleanHex.slice(0, 2), 16);
+        const g = parseInt(cleanHex.slice(2, 4), 16);
+        const b = parseInt(cleanHex.slice(4, 6), 16);
+        
+        // 检查是否解析成功
+        if (isNaN(r) || isNaN(g) || isNaN(b)) {
+          throw new Error(`Failed to parse RGB values`);
+        }
+        
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      } catch (error) {
+        console.warn(`Color conversion error for ${hex}:`, error.message);
+        return `rgba(156, 168, 218, ${alpha})`; // 默认蓝色
+      }
+    };
+
+    // 🌚 创建深色版本的颜色
+    const darkenColor = (hex, factor = 0.75) => {
+      try {
+        let cleanHex = hex.replace('#', '');
+        if (cleanHex.length === 3) {
+          cleanHex = cleanHex.split('').map(char => char + char).join('');
+        }
+        
+        const r = Math.round(parseInt(cleanHex.slice(0, 2), 16) * factor);
+        const g = Math.round(parseInt(cleanHex.slice(2, 4), 16) * factor);
+        const b = Math.round(parseInt(cleanHex.slice(4, 6), 16) * factor);
+        
+        // 确保值在0-255范围内
+        const clampedR = Math.max(0, Math.min(255, r));
+        const clampedG = Math.max(0, Math.min(255, g));
+        const clampedB = Math.max(0, Math.min(255, b));
+        
+        // 转换回hex格式
+        const toHex = (n) => n.toString(16).padStart(2, '0');
+        return `#${toHex(clampedR)}${toHex(clampedG)}${toHex(clampedB)}`;
+      } catch (error) {
+        console.warn(`Error darkening color ${hex}:`, error.message);
+        return hex; // 返回原色作为备用
+      }
+    };
+
+    // 🌈 简化的渐变色配置
+    const gradientConfigs = [
+      { start: '#9CA8DA', mid: '#A8B4E0', end: '#B1B8DD', name: 'Stocks' },
+      { start: '#C49A71', mid: '#D0A47D', end: '#D4AA85', name: 'Crypto' },
+      { start: '#9CA8DA', mid: '#B3A196', end: '#C49A71', name: 'ETFs' },
+      { start: '#B1B8DD', mid: '#C3B1B1', end: '#D4AA85', name: 'Bonds' },
+      { start: '#8B9FD6', mid: '#A3A2A1', end: '#BC9166', name: 'Cash' }
+    ];
+
+    let colorIndex = 0;
 
     // 股票
     if (allocation.stocks && allocation.stocks.totalValue > 0) {
       labels.push('Stocks');
       data.push(allocation.stocks.totalValue);
-      colors.push('#E8A855');
-      hoverColors.push('#F4BE7E');
+      colorIndex++;
     }
 
     // 加密货币
     if (allocation.crypto && allocation.crypto.totalValue > 0) {
       labels.push('Crypto');
       data.push(allocation.crypto.totalValue);
-      colors.push('#f59e0b');
-      hoverColors.push('#fbbf24');
+      colorIndex++;
     }
 
     // ETFs
     if (allocation.etfs && allocation.etfs.totalValue > 0) {
       labels.push('ETFs');
       data.push(allocation.etfs.totalValue);
-      colors.push('#6366f1');
-      hoverColors.push('#8b5cf6');
+      colorIndex++;
     }
 
     // 债券
     if (allocation.bonds && allocation.bonds.totalValue > 0) {
       labels.push('Bonds');
       data.push(allocation.bonds.totalValue);
-      colors.push('#F4BE7E');
-      hoverColors.push('#E8A855');
+      colorIndex++;
     }
 
     // 现金
     if (portfolioData.cash > 0) {
       labels.push('Cash');
       data.push(portfolioData.cash);
-      colors.push('#10b981');
-      hoverColors.push('#34d399');
+      colorIndex++;
     }
 
     // 如果没有任何数据，显示空状态
     if (data.length === 0) {
       labels.push('No Investments');
       data.push(1);
-      colors.push('#374151');
-      hoverColors.push('#4b5563');
     }
 
     return {
       labels,
       datasets: [{
         data,
-        backgroundColor: colors,
-        hoverBackgroundColor: hoverColors,
-        borderWidth: 0,
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          
+          if (!chartArea) {
+            return null;
+          }
+          
+          const centerX = (chartArea.left + chartArea.right) / 2;
+          const centerY = (chartArea.top + chartArea.bottom) / 2;
+          const radius = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top) / 2;
+          
+          const dataIndex = context.dataIndex;
+          const config = gradientConfigs[dataIndex] || gradientConfigs[0];
+          
+          return createGradient(ctx, centerX, centerY, radius * 0.8, config.start, config.mid, config.end);
+        },
+        hoverBackgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          
+          if (!chartArea) {
+            return null;
+          }
+          
+          const centerX = (chartArea.left + chartArea.right) / 2;
+          const centerY = (chartArea.top + chartArea.bottom) / 2;
+          const radius = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top) / 2;
+          
+          const dataIndex = context.dataIndex;
+          const config = gradientConfigs[dataIndex] || gradientConfigs[0];
+          
+          // 🌚 创建深色版本的渐变
+          const darkStart = darkenColor(config.start, 0.8);
+          const darkMid = darkenColor(config.mid, 0.8);
+          const darkEnd = darkenColor(config.end, 0.8);
+          
+          return createGradient(ctx, centerX, centerY, radius * 0.85, darkStart, darkMid, darkEnd);
+        },
+        borderWidth: 2,
+        borderColor: function(context) {
+          const dataIndex = context.dataIndex;
+          const config = gradientConfigs[dataIndex] || gradientConfigs[0];
+          return hexToRgba(config.start, 0.3);
+        },
         hoverBorderWidth: 3,
-        hoverBorderColor: '#ffffff',
+        hoverBorderColor: function(context) {
+          const dataIndex = context.dataIndex;
+          const config = gradientConfigs[dataIndex] || gradientConfigs[0];
+          const darkBorderColor = darkenColor(config.start, 0.7);
+          return hexToRgba(darkBorderColor, 0.8); // 更深的边框色
+        },
       }]
-  };
+    };
   }, [portfolioData]);
 
   const allocationOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 1500,
+      easing: 'easeOutQuart'
+    },
     plugins: {
       legend: {
         position: 'bottom',
         labels: {
           color: '#ffffff',
-          padding: 20,
+          padding: 15,
           usePointStyle: true,
+          pointStyle: 'circle',
+          font: {
+            size: 12,
+            weight: '500'
+          },
+          generateLabels: function(chart) {
+            const data = chart.data;
+            if (data.labels.length && data.datasets.length) {
+              // 🌈 渐变色配置
+              const gradientConfigs = [
+                { start: '#9CA8DA', mid: '#A8B4E0', end: '#B1B8DD' },
+                { start: '#C49A71', mid: '#D0A47D', end: '#D4AA85' },
+                { start: '#9CA8DA', mid: '#B3A196', end: '#C49A71' },
+                { start: '#B1B8DD', mid: '#C3B1B1', end: '#D4AA85' },
+                { start: '#8B9FD6', mid: '#A3A2A1', end: '#BC9166' }
+              ];
+              
+              return data.labels.map((label, i) => {
+                const meta = chart.getDatasetMeta(0);
+                const config = gradientConfigs[i] || gradientConfigs[0];
+                
+                return {
+                  text: label,
+                  fillStyle: config.start, // 使用渐变起始色作为legend颜色
+                  strokeStyle: config.mid, // 使用中间色作为边框
+                  lineWidth: 2,
+                  pointStyle: 'circle',
+                  hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                  index: i
+                };
+              });
+            }
+            return [];
+          }
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
         titleColor: '#ffffff',
         bodyColor: '#ffffff',
+        borderColor: 'rgba(156, 168, 218, 0.3)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 12,
+        displayColors: true,
         callbacks: {
           label: function (context) {
             const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -535,7 +718,19 @@ const Dashboard = () => {
         },
       },
     },
-    cutout: '60%',
+    cutout: '65%',
+    radius: '90%',
+    interaction: {
+      intersect: false,
+      mode: 'nearest'
+    },
+    elements: {
+      arc: {
+        borderWidth: 2,
+        hoverBorderWidth: 4,
+        borderAlign: 'inner'
+      }
+    }
   };
 
   return (
@@ -628,14 +823,16 @@ const Dashboard = () => {
                       {portfolioData.todayChange >= 0 ? '+' : ''}{formatCurrency(portfolioData.todayChange)}
                     </Typography>
                   </Box>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      color: portfolioData.todayChange >= 0 ? 'success.main' : 'error.main'
-                    }}
-                  >
-                    {portfolioData.todayChangePercent >= 0 ? '+' : ''}{formatPercentage(portfolioData.todayChangePercent)}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: portfolioData.todayChange >= 0 ? 'success.main' : 'error.main'
+                      }}
+                    >
+                      {portfolioData.todayChangePercent >= 0 ? '+' : ''}{formatPercentage(portfolioData.todayChangePercent)}
+                    </Typography>
+                  </Box>
                 </>
               ) : (
                 <Typography variant="body2" color="text.secondary">
@@ -728,15 +925,123 @@ const Dashboard = () => {
           </Card>
         </Grid>
 
-        {/* Doughnut 图部分保持不变 */}
+        {/* 🍰 精致饼图 - Asset Allocation */}
         <Grid item xs={12} lg={4}>
-          <Card sx={{ height: 400 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+          <Card 
+            sx={{ 
+              height: 400,
+              background: 'linear-gradient(135deg, rgba(156, 168, 218, 0.05) 0%, rgba(196, 154, 113, 0.05) 100%)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(156, 168, 218, 0.1)',
+              boxShadow: `
+                0 8px 32px rgba(156, 168, 218, 0.15),
+                0 0 0 1px rgba(156, 168, 218, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1)
+              `,
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'radial-gradient(circle at 50% 50%, rgba(156, 168, 218, 0.08) 0%, transparent 70%)',
+                pointerEvents: 'none'
+              },
+              '&:hover': {
+                boxShadow: `
+                  0 12px 40px rgba(156, 168, 218, 0.2),
+                  0 0 0 1px rgba(156, 168, 218, 0.1),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.15)
+                `,
+                transform: 'translateY(-2px)',
+                transition: 'all 0.3s ease-in-out'
+              }
+            }}
+          >
+            <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+              <Typography 
+                variant="h6" 
+                className="gradient-text"
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 3,
+                  textAlign: 'center',
+                  fontSize: '1.2rem'
+                }}
+              >
                 Asset Allocation
               </Typography>
-              <Box sx={{ height: 300 }}>
-                <Doughnut data={allocationData} options={allocationOptions} />
+              <Box 
+                sx={{ 
+                  height: 300,
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '160px',
+                    height: '160px',
+                    background: `
+                      radial-gradient(circle, 
+                        rgba(156, 168, 218, 0.15) 0%, 
+                        rgba(196, 154, 113, 0.10) 40%,
+                        rgba(156, 168, 218, 0.05) 70%,
+                        transparent 100%
+                      )
+                    `,
+                    borderRadius: '50%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                  },
+                  '& .pie-chart-pulse': {
+                    animation: 'pieChartPulse 3s ease-in-out infinite'
+                  }
+                }}
+              >
+                <Box sx={{ position: 'relative', zIndex: 2, height: '100%' }}>
+                  {/* 🌟 中心脉冲光晕 */}
+                  <Box 
+                    className="pie-chart-pulse"
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: '80px',
+                      height: '80px',
+                      background: `
+                        radial-gradient(circle, 
+                          rgba(156, 168, 218, 0.25) 0%, 
+                          rgba(196, 154, 113, 0.15) 50%,
+                          transparent 100%
+                        )
+                      `,
+                      borderRadius: '50%',
+                      pointerEvents: 'none',
+                      zIndex: 1
+                    }}
+                  />
+                  
+                  {allocationData ? (
+                    <Doughnut data={allocationData} options={allocationOptions} />
+                  ) : (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center', 
+                      height: '100%' 
+                    }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Loading allocation data...
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </CardContent>
           </Card>

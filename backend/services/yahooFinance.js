@@ -65,24 +65,28 @@ class YahooFinanceService {
       return stockData;
     } catch (error) {
       console.error(`❌ 获取股票数据失败 ${symbol}:`, error.message);
-      
-      // 返回默认数据避免崩溃
       return {
-        symbol: symbol.toUpperCase(),
-        name: symbol.toUpperCase(),
+        error: error.message,
+        symbol: symbol,
         price: 0,
         change: 0,
-        changePercent: 0,
-        dayHigh: 0,
-        dayLow: 0,
-        open: 0,
-        previousClose: 0,
-        volume: 0,
-        marketCap: 0,
-        lastUpdated: new Date().toISOString(),
-        error: error.message
+        changePercent: 0
       };
     }
+  }
+
+  // 📦 获取缓存数据
+  getCachedData(symbol) {
+    const cacheKey = symbol.toUpperCase();
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      const now = Date.now();
+      // 如果缓存还有效，返回数据
+      if (now - cached.timestamp < this.cacheExpiry) {
+        return cached.data;
+      }
+    }
+    return null;
   }
 
   // 📈 批量获取多个股票价格

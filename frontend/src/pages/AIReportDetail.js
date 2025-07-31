@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from 'react-query';
 import {
   Box,
   Typography,
@@ -44,10 +45,37 @@ import { formatCurrency, formatPercentage } from '../services/api';
 const AIReportDetail = () => {
   const { reportId } = useParams();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+
+  // 🎯 获取最新Portfolio价值，与Dashboard保持一致
+  const { data: currentPortfolio } = useQuery(
+    'currentPortfolioValue',
+    () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
+    {
+      staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
+      enabled: !!reportData, // 只有在报告数据加载完成后才获取最新价值
+    }
+  );
+
+  // 🧮 计算使用的Portfolio价值（优先使用最新价值）
+  const portfolioValue = currentPortfolio?.data?.totalValue || reportData?.portfolio_value || 0;
+
+  // 🧪 测试AI解析功能
+  const testAIParsing = async () => {
+    try {
+      const response = await fetch(buildApiUrl('/ai-analysis/test-parsing'));
+      const result = await response.json();
+      console.log('🧪 AI解析测试结果:', result);
+      alert(`AI解析测试完成!\n填充的sections: ${result.data.statistics.populatedSections}/${result.data.statistics.totalSections}\n请查看控制台了解详细信息`);
+    } catch (error) {
+      console.error('❌ 测试AI解析失败:', error);
+      alert('测试失败: ' + error.message);
+    }
+  };
 
   useEffect(() => {
     if (reportId) {
@@ -167,27 +195,43 @@ const AIReportDetail = () => {
 
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      {/* Back Button and Report Title */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Button
-            variant="outlined"
-            onClick={() => navigate('/app/analytics')}
             startIcon={<ArrowBack />}
-            size="small"
+            onClick={() => navigate('/app/analytics')}
+            sx={{ 
+              color: '#E8A855',
+              '&:hover': { backgroundColor: 'rgba(232, 168, 85, 0.1)' }
+            }}
           >
             Back
           </Button>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            AI Analysis Report #{reportData.id}
+            AI Analysis Report #{reportId}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Chip 
-            label={reportData.risk_level || 'Medium'} 
-            color={getRiskColor(reportData.risk_level)}
-            variant="outlined"
-          />
+          <Button 
+            variant="outlined" 
+            size="small"
+            onClick={() => setShowDebugInfo(!showDebugInfo)}
+            sx={{ 
+              borderColor: showDebugInfo ? 'success.main' : 'warning.main',
+              color: showDebugInfo ? 'success.main' : 'warning.main'
+            }}
+          >
+            {showDebugInfo ? '隐藏调试信息' : '显示调试信息'}
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small"
+            onClick={testAIParsing}
+            sx={{ borderColor: 'info.main', color: 'info.main' }}
+          >
+            测试AI解析
+          </Button>
         </Box>
       </Box>
 
@@ -217,10 +261,24 @@ const AIReportDetail = () => {
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   Portfolio Value
                 </Typography>
+                {currentPortfolio?.data?.totalValue && currentPortfolio.data.totalValue !== reportData?.portfolio_value && (
+                  <Chip 
+                    label="Latest" 
+                    size="small" 
+                    color="success" 
+                    variant="outlined"
+                    sx={{ fontSize: '0.7rem' }}
+                  />
+                )}
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                {formatCurrency(reportData.portfolio_value)}
+                {formatCurrency(portfolioValue)}
               </Typography>
+              {currentPortfolio?.data?.totalValue && currentPortfolio.data.totalValue !== reportData?.portfolio_value && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  Report time: {formatCurrency(reportData.portfolio_value)}
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -313,8 +371,8 @@ const AIReportDetail = () => {
       {reportData.raw_analysis_data && reportData.raw_analysis_data.analysis && (
         <>
           {/* Asset Allocation Analysis */}
-          {reportData.raw_analysis_data.analysis.assetAllocation && (
-            <Accordion sx={{ mb: 2 }}>
+          {(reportData.raw_analysis_data?.analysis?.assetAllocation || reportData.raw_analysis_data?.rawAnalysis) && (
+            <Accordion defaultExpanded sx={{ mb: 2 }}>
               <AccordionSummary expandIcon={<ExpandMore />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AccountBalance sx={{ color: '#E8A855' }} />
@@ -325,7 +383,9 @@ const AIReportDetail = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
-                  {reportData.raw_analysis_data.analysis.assetAllocation}
+                  {reportData.raw_analysis_data.analysis?.assetAllocation || 
+                   (reportData.raw_analysis_data?.rawAnalysis && 
+                    `⚠️ 原始AI分析（解析失败，显示完整内容）:\n\n${reportData.raw_analysis_data.rawAnalysis}`)}
                 </Typography>
               </AccordionDetails>
             </Accordion>
@@ -445,6 +505,83 @@ const AIReportDetail = () => {
             </Accordion>
           )}
         </>
+      )}
+
+      {/* 🧪 调试信息区域 */}
+      {showDebugInfo && reportData && (
+        <Card sx={{ mt: 4, backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'warning.main' }}>
+              🧪 调试信息
+            </Typography>
+            
+            {/* 原始分析数据状态 */}
+            <Accordion sx={{ mb: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  📊 数据结构状态
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    🔍 raw_analysis_data: {reportData.raw_analysis_data ? '✅ 存在' : '❌ 缺失'}
+                  </Typography>
+                  {reportData.raw_analysis_data && (
+                    <>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        📝 rawAnalysis: {reportData.raw_analysis_data.rawAnalysis ? '✅ 存在' : '❌ 缺失'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        🏗️ analysis: {reportData.raw_analysis_data.analysis ? '✅ 存在' : '❌ 缺失'}
+                      </Typography>
+                      {reportData.raw_analysis_data.analysis && (
+                        <Box sx={{ ml: 2 }}>
+                          {Object.keys(reportData.raw_analysis_data.analysis).map(key => (
+                            <Typography key={key} variant="body2" sx={{ mb: 0.5 }}>
+                              📋 {key}: {reportData.raw_analysis_data.analysis[key] ? '✅ 有内容' : '❌ 空'}
+                              {reportData.raw_analysis_data.analysis[key] && 
+                                ` (${reportData.raw_analysis_data.analysis[key].length} 字符)`
+                              }
+                            </Typography>
+                          ))}
+                        </Box>
+                      )}
+                    </>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            {/* 原始AI分析内容 */}
+            {reportData.raw_analysis_data?.rawAnalysis && (
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    📄 原始AI分析内容 ({reportData.raw_analysis_data.rawAnalysis.length} 字符)
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Box 
+                    sx={{ 
+                      maxHeight: '400px', 
+                      overflow: 'auto',
+                      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                      p: 2,
+                      borderRadius: 1,
+                      fontFamily: 'monospace',
+                      fontSize: '0.8rem',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.4
+                    }}
+                  >
+                    {reportData.raw_analysis_data.rawAnalysis}
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Action Buttons */}

@@ -207,14 +207,6 @@ const Analytics = () => {
                     <Typography variant="body2" color="text.secondary">
                       Portfolio Value: {report.portfolioValue ? `$${Number(report.portfolioValue).toLocaleString()}` : 'N/A'}
                     </Typography>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: report.totalReturn && report.totalReturn.startsWith('+') ? 'success.main' : 'error.main'
-                      }}
-                    >
-                      Total Return: {report.totalReturn || 'N/A'}
-                    </Typography>
                   </Box>
                 }
               />

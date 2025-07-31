@@ -524,6 +524,35 @@ router.get('/report/:reportId', async (req, res) => {
   }
 });
 
+// 🧪 测试AI分析内容解析 - 调试端点
+router.get('/test-parsing', async (req, res) => {
+  try {
+    console.log('🧪 测试AI分析内容解析...');
+    
+    const aiAnalysisService = require('../services/aiAnalysisService-improved');
+    const testResult = aiAnalysisService.testParseAnalysisContent();
+    
+    res.json({
+      success: true,
+      message: 'AI parsing test completed',
+      data: {
+        sections: testResult,
+        statistics: {
+          totalSections: Object.keys(testResult).length,
+          populatedSections: Object.keys(testResult).filter(key => testResult[key]).length,
+          emptySections: Object.keys(testResult).filter(key => !testResult[key]).length
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ 测试AI解析失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // 🧹 Cleanup old chat sessions periodically
 setInterval(() => {
   aiChatService.cleanupOldSessions(24); // Clean sessions older than 24 hours

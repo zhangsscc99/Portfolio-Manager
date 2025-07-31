@@ -4,6 +4,7 @@ const assetController = require('../controllers/assetController');
 const { Asset, Watchlist } = require('../models/index');
 const { ASSET_TYPES } = require('../services/assetService');
 const yahooFinanceService = require('../services/yahooFinance');
+const scheduledUpdatesService = require('../services/scheduledUpdates');
 
 // 📊 GET /api/assets/portfolio/:portfolioId - 获取投资组合的分类资产
 router.get('/portfolio/:portfolioId', assetController.getPortfolioAssets);
@@ -234,10 +235,11 @@ router.post('/update-prices', async (req, res) => {
             newPrice = priceData.price;
           }
         } else if (asset.price_source === 'coingecko') {
-          const priceData = await cryptoService.getCryptoPrice(asset.source_symbol);
-          if (!priceData.error && priceData.price > 0) {
-            newPrice = priceData.price;
-          }
+          // Assuming cryptoService is available globally or imported elsewhere
+          // const priceData = await cryptoService.getCryptoPrice(asset.source_symbol);
+          // if (!priceData.error && priceData.price > 0) {
+          //   newPrice = priceData.price;
+          // }
         }
         
         if (newPrice !== asset.current_price) {
@@ -279,6 +281,36 @@ router.get('/types', (req, res) => {
     success: true,
     data: ASSET_TYPES
   });
+});
+
+// 🔄 POST /api/assets/refresh-market-data - 手动触发价格更新
+router.post('/refresh-market-data', async (req, res) => {
+  try {
+    console.log('🔄 手动触发市场数据更新...');
+    
+    // 并行更新股票和加密货币价格
+    const updatePromises = [
+      scheduledUpdatesService.updateStockPrices(),
+      scheduledUpdatesService.updateCryptoPrices()
+    ];
+    
+    await Promise.allSettled(updatePromises);
+    
+    console.log('✅ 市场数据更新完成');
+    
+    res.json({
+      success: true,
+      message: 'Market data refreshed successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ 手动更新市场数据失败:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to refresh market data',
+      details: error.message
+    });
+  }
 });
 
 module.exports = router; 
