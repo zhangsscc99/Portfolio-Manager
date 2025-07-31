@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const yahooFinanceService = require("../services/yahooFinance");
+const cryptoService = require("../services/cryptoService"); // 添加crypto服务
 const scheduledUpdatesService = require("../services/scheduledUpdates");
 const { Holding } = require("../models/index");
 const { HttpsProxyAgent } = require("https-proxy-agent");
@@ -690,6 +691,49 @@ router.get("/crypto", async (req, res) => {
   }
 });
 
+// 💎 GET /api/market/crypto/:symbol - 获取单个加密货币详细数据
+router.get('/crypto/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    console.log(`💎 获取加密货币详细数据: ${symbol}`);
+    
+    // 清理symbol格式（移除-USD后缀等）
+    const cleanSymbol = symbol.replace('-USD', '').replace('-USDT', '').toLowerCase();
+    
+    const cryptoData = await cryptoService.getCryptoPrice(cleanSymbol);
+    
+    if (cryptoData && !cryptoData.error) {
+      res.json({
+        success: true,
+        data: {
+          symbol: symbol.toUpperCase(),
+          name: cryptoData.name,
+          price: cryptoData.price,
+          change: cryptoData.change,
+          changePercent: cryptoData.changePercent,
+          volume: cryptoData.volume,
+          marketCap: cryptoData.marketCap,
+          lastUpdated: cryptoData.lastUpdated
+        }
+      });
+    } else {
+      res.json({
+        success: false,
+        error: `无法获取 ${symbol} 的加密货币数据`,
+        data: null
+      });
+    }
+    
+  } catch (error) {
+    console.error(`❌ 获取加密货币数据失败 ${req.params.symbol}:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: null
+    });
+  }
+});
+
 router.get("/etfs/most-active", async (req, res) => {
   const page = parseInt(req.query.page || "1", 10);
   const limit = parseInt(req.query.limit || "10", 10);
@@ -1008,6 +1052,43 @@ router.get("/bonds", async (req, res) => {
       success: false,
       message: "获取国债趋势失败。",
       error: error.message,
+    });
+  }
+});
+
+// 🔥 GET /api/market/crypto/:symbol - 获取单个加密货币详细数据
+router.get('/crypto/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    console.log(`🧪 测试获取 ${symbol} 价格...`);
+    
+    const cryptoData = await cryptoService.getCryptoPrice(symbol);
+    
+    if (cryptoData) {
+      res.json({
+        success: true,
+        symbol: symbol.toUpperCase(),
+        price: parseFloat(cryptoData.price),
+        currency: cryptoData.currency || 'USD',
+        marketTime: cryptoData.marketTime || new Date().toISOString(),
+        data: cryptoData, // 保留完整数据以备调试
+        message: `成功获取 ${symbol} 的价格信息`
+      });
+    } else {
+      res.json({
+        success: false,
+        symbol: symbol.toUpperCase(),
+        error: `无法获取 ${symbol} 的有效价格`,
+        data: cryptoData
+      });
+    }
+    
+  } catch (error) {
+    console.error(`❌ 测试获取 ${symbol} 价格失败:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      symbol: req.params.symbol
     });
   }
 });

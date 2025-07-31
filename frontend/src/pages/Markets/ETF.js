@@ -18,12 +18,15 @@ import {
   TablePagination,
   TableSortLabel,
   Alert,
+  Grid,
+  Button,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   LocalFireDepartment as ActiveIcon,
   Star as TrendingIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query'; // Import useQuery
 import toast from 'react-hot-toast'; // Import toast for notifications
@@ -36,6 +39,7 @@ import {
   marketAPI,
   getPercentageColorFromString
 } from '../../services/api';
+import StockSearchField from '../../components/StockSearchField';
 
 /**
  * TabPanel component for managing tab content visibility.
@@ -82,6 +86,8 @@ function a11yProps(index) {
  */
 const ETF = () => {
   const [currentTab, setCurrentTab] = useState(0);
+  const [selectedETF, setSelectedETF] = useState(null);
+  const [searchValue, setSearchValue] = useState(null);
 
   const debounceTimerRef = useRef(null);
 
@@ -223,7 +229,17 @@ const ETF = () => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
-    setPage(0); // Reset page on sort
+    setPage(0); // Reset to first page when sorting changes
+  };
+
+  // Search handlers
+  const handleSelectETF = (etf) => {
+    setSelectedETF(etf);
+  };
+
+  const handleClearSearch = () => {
+    setSelectedETF(null);
+    setSearchValue(null);
   };
 
 
@@ -381,10 +397,92 @@ const ETF = () => {
 
   return (
     <Box sx={{ py: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           ETFs
         </Typography>
+      </Box>
+
+      {/* Search Section */}
+      <Box sx={{ p: 3, mb: 3, background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SearchIcon />
+          Search ETFs
+        </Typography>
+        <Grid container spacing={3} alignItems="flex-start">
+          <Grid item xs={12} md={10}>
+            <StockSearchField
+              assetType="etf"
+              label="Search ETFs..."
+              placeholder="Type symbol or name to search ETFs"
+              onSelectStock={handleSelectETF}
+              value={searchValue}
+              onChange={setSearchValue}
+            />
+          </Grid>
+          {selectedETF && (
+            <Grid item xs={12}>
+              <Card sx={{ 
+                background: 'rgba(156, 168, 218, 0.1)',
+                border: '1px solid rgba(156, 168, 218, 0.3)',
+                mt: 2
+              }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, color: '#9CA8DA' }}>
+                    Search Result:
+                  </Typography>
+                  
+                  {/* Table-style display */}
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Symbol</TableCell>
+                        <TableCell>Name</TableCell>
+                        <TableCell align="right">Price</TableCell>
+                        <TableCell align="right">Change</TableCell>
+                        <TableCell align="right">Change %</TableCell>
+                        <TableCell align="right">Volume</TableCell>
+                        <TableCell align="right">Market Cap</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ cursor: 'pointer' }}>
+                        <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{selectedETF.symbol}</TableCell>
+                        <TableCell>{selectedETF.name || selectedETF.longname}</TableCell>
+                        <TableCell align="right">{selectedETF.price ? `$${parseFloat(selectedETF.price).toFixed(2)}` : '-'}</TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: selectedETF.change && parseFloat(selectedETF.change) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                        >
+                          {selectedETF.change ? (selectedETF.change.toString().startsWith('-') ? selectedETF.change : '+' + selectedETF.change) : '-'}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ color: selectedETF.changePercent && parseFloat(selectedETF.changePercent) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                        >
+                          {selectedETF.changePercent ? (selectedETF.changePercent.toString().startsWith('-') ? selectedETF.changePercent + '%' : '+' + selectedETF.changePercent + '%') : '-'}
+                        </TableCell>
+                        <TableCell align="right">{selectedETF.volume || '-'}</TableCell>
+                        <TableCell align="right">{selectedETF.marketCap || '-'}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={handleClearSearch}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      Clear Search
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+        </Grid>
       </Box>
 
       {/* Tabs for ETF Categories */}
