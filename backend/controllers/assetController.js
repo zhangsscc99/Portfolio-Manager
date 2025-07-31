@@ -8,11 +8,13 @@ exports.searchAsset = async (req, res) => {
   }
   try {
     const results = await yahooFinance.search(symbol);
+    console.log(results);
     const list = await Promise.all(results.quotes.map(async q => ({
       symbol: q.symbol,
       name: q.shortname || q.longname,
       type: q.quoteType,
       typeDisp: q.typeDisp,
+      price: q.regularMarketPrice || 'N/A',
     })));
     res.json({ success: true, data: list });
   } catch (err) {

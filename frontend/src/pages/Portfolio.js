@@ -440,7 +440,6 @@ const Portfolio = () => {
   // 📈 Format numbers
 
   const handleAddAsset = async () => {
-    console.log("assetResponse");
     try {
       // 1. 创建资产
       const assetResponse = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
@@ -1017,6 +1016,18 @@ const Portfolio = () => {
                   </MenuItem>
                 ))}
               </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Buy Date"
+                type="date"
+                value={newAsset.buy_date ? newAsset.buy_date.slice(0, 10) : ''}
+                onChange={(e) => setNewAsset(prev => ({ ...prev, buy_date: e.target.value }))}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+              />
             </Grid>
             <Grid item xs={12}>
               <StockSearchField
