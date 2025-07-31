@@ -43,9 +43,9 @@ import { Line, Doughnut } from 'react-chartjs-2';
 // 🎯 Asset type configuration - 金色主题
 const ASSET_TYPES = {
   EQUITY: { name: 'Stocks', icon: '📈', color: '#E8A855' }, // 主金色
-  crypto: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
+  CRYPTOCURRENCY: { name: 'Cryptocurrency', icon: '₿', color: '#F4BE7E' }, // 浅金色  
   ETF: { name: 'ETF Funds', icon: '🏛️', color: '#D4961F' }, // 深金色
-  bond: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
+  INDEX: { name: 'Bonds', icon: '📜', color: '#B8821A' }, // 更深金色
   cash: { name: 'Cash', icon: '💰', color: '#28A745' }, // 现金绿色
 };
 
