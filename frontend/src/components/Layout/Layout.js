@@ -61,6 +61,8 @@ const Layout = ({ children }) => {
     setAssistantOpen(false);
   };
 
+
+
   // Load portfolio data on component mount
   React.useEffect(() => {
     fetchPortfolioData();
@@ -234,6 +236,8 @@ const Layout = ({ children }) => {
           }
         }}
       />
+
+
     </Box>
   );
 };

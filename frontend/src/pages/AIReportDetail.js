@@ -41,6 +41,7 @@ import {
 } from '@mui/icons-material';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import { formatCurrency, formatPercentage } from '../services/api';
+import MarkdownText from '../components/MarkdownText';
 
 const AIReportDetail = () => {
   const { reportId } = useParams();
@@ -362,11 +363,11 @@ const AIReportDetail = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                <MarkdownText variant="body1">
                   {reportData.raw_analysis_data.analysis?.assetAllocation || 
                    (reportData.raw_analysis_data?.rawAnalysis && 
                     `⚠️ 原始AI分析（解析失败，显示完整内容）:\n\n${reportData.raw_analysis_data.rawAnalysis}`)}
-                </Typography>
+                </MarkdownText>
               </AccordionDetails>
             </Accordion>
           )}
@@ -383,9 +384,9 @@ const AIReportDetail = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                <MarkdownText variant="body1">
                   {reportData.raw_analysis_data.analysis.riskAssessment}
-                </Typography>
+                </MarkdownText>
               </AccordionDetails>
             </Accordion>
           )}
@@ -402,9 +403,9 @@ const AIReportDetail = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                <MarkdownText variant="body1">
                   {reportData.raw_analysis_data.analysis.performanceAnalysis}
-                </Typography>
+                </MarkdownText>
               </AccordionDetails>
             </Accordion>
           )}
@@ -421,9 +422,9 @@ const AIReportDetail = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                <MarkdownText variant="body1">
                   {reportData.raw_analysis_data.analysis.stockAnalysis}
-                </Typography>
+                </MarkdownText>
               </AccordionDetails>
             </Accordion>
           )}
@@ -440,9 +441,9 @@ const AIReportDetail = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                <MarkdownText variant="body1">
                   {reportData.raw_analysis_data.analysis.marketOutlook}
-                </Typography>
+                </MarkdownText>
               </AccordionDetails>
             </Accordion>
           )}
@@ -459,9 +460,9 @@ const AIReportDetail = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                <MarkdownText variant="body1">
                   {reportData.raw_analysis_data.analysis.optimizationRecommendations}
-                </Typography>
+                </MarkdownText>
               </AccordionDetails>
             </Accordion>
           )}
@@ -478,9 +479,9 @@ const AIReportDetail = () => {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                <MarkdownText variant="body1">
                   {reportData.raw_analysis_data.analysis.investmentStrategy}
-                </Typography>
+                </MarkdownText>
               </AccordionDetails>
             </Accordion>
           )}

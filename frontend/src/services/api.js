@@ -126,6 +126,9 @@ export const marketAPI = {
 
   getCryptos: (page = 1, rowsPerPage = 10) => api.get(`/market/crypto?page=${page}&limit=${rowsPerPage}`),
 
+  // Get single crypto quote
+  getCryptoQuote: (symbol) => api.get(`/market/crypto/${symbol}`),
+
   getETFsMostActive: (page = 1, rowsPerPage = 10) => api.get(`/market/etfs/most-active?page=${page}&limit=${rowsPerPage}`),
 
   getETFGainers: (page = 1, rowsPerPage = 10) => api.get(`/market/etfs/gainers?page=${page}&limit=${rowsPerPage}`),  

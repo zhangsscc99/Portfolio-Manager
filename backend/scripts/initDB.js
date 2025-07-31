@@ -93,7 +93,7 @@ const initializeDatabase = async () => {
       host: 'localhost',
       port: 3306,
       user: 'root',
-      password: 'n3u3da!'
+      password: 'wyt!!010611ABC'
     });
 
     console.log('🔗 连接到MySQL服务器成功!');
