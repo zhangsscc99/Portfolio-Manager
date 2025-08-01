@@ -136,6 +136,26 @@ class AssetService {
         throw new Error('缺少必填字段：symbol, name, asset_type, quantity, avg_cost, portfolio_id');
       }
 
+      // ✅ 验证数值字段必须为正数
+      const quantityNum = parseFloat(quantity);
+      const avgCostNum = parseFloat(avg_cost);
+      
+      if (isNaN(quantityNum) || quantityNum <= 0) {
+        throw new Error('数量必须大于0');
+      }
+      
+      if (isNaN(avgCostNum) || avgCostNum <= 0) {
+        throw new Error('购买价格必须大于0');
+      }
+      
+      // 如果提供了当前价格，也验证它
+      if (current_price !== null && current_price !== undefined) {
+        const currentPriceNum = parseFloat(current_price);
+        if (isNaN(currentPriceNum) || currentPriceNum < 0) {
+          throw new Error('当前价格不能为负数');
+        }
+      }
+
       // 验证资产类型
       if (!ASSET_TYPES[asset_type]) {
         throw new Error(`不支持的资产类型: ${asset_type}`);
