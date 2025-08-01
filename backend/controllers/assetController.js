@@ -129,14 +129,14 @@ exports.getAssetPriceOnDate = async (req, res) => {
       throw new Error('Invalid date format');
     }
 
-    // 查询该日期的历史数据
-    const historicalResult = await yahooFinance.historical(symbol, {
+    // 查询该日期的历史数据 - 使用chart API替代historical API
+    const historicalResult = await yahooFinance.chart(symbol, {
       period1: targetDate,
-      period2: targetDate,
+      period2: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000), // 加一天
       interval: '1d'
     });
 
-    if (!historicalResult || historicalResult.length === 0) {
+    if (!historicalResult || !historicalResult.quotes || historicalResult.quotes.length === 0) {
       console.log(`⚠️ ${symbol} 在 ${date} 没有价格数据`);
       return res.status(404).json({
         success: false,
@@ -144,7 +144,7 @@ exports.getAssetPriceOnDate = async (req, res) => {
       });
     }
 
-    const priceData = historicalResult[0];
+    const priceData = historicalResult.quotes[0];
     res.json({
       success: true, data: {
         symbol: symbol.toUpperCase(),

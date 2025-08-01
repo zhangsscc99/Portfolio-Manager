@@ -426,17 +426,20 @@ const Portfolio = () => {
       price: stockData.price || prev.price
     }));
     
+    // 获取当前表单状态中的购买日期
+    const currentBuyDate = newAsset.buy_date;
+    
     // 如果已经选择了购买日期，优先获取该日期的历史价格
-    if (newAsset.buy_date) {
-      console.log(`🔄 获取 ${stockData.symbol} 在 ${newAsset.buy_date} 的历史价格...`);
-      const historicalPrice = await getPriceOnDate(stockData.symbol, newAsset.buy_date);
+    if (currentBuyDate) {
+      console.log(`🔄 获取 ${stockData.symbol} 在 ${currentBuyDate} 的历史价格...`);
+      const historicalPrice = await getPriceOnDate(stockData.symbol, currentBuyDate);
       
       if (historicalPrice) {
         setNewAsset(prev => ({
           ...prev,
           price: historicalPrice
         }));
-        console.log(`✅ 已使用 ${newAsset.buy_date} 的历史价格: $${historicalPrice}`);
+        console.log(`✅ 已使用 ${currentBuyDate} 的历史价格: $${historicalPrice}`);
         return; // 如果获取到历史价格，就不需要获取实时价格了
       }
     }
@@ -519,11 +522,27 @@ const Portfolio = () => {
 
       const result = await response.json();
 
-      // 3. 获取实时价格并创建交易记录
+      // 3. 创建交易记录 - 使用历史价格或实时价格
       if (response.ok) {
-        const quoteResponse = await fetch(buildApiUrl(`/assets/quote?symbol=${newAsset.symbol}`));
-        const quoteResult = await quoteResponse.json();
-        const currentPrice = quoteResult.success ? quoteResult.data.current_price : newAsset.price;
+        // 如果有购买日期，优先使用历史价格；否则使用实时价格
+        let tradePrice = newAsset.price; // 默认使用表单中的价格（可能是历史价格）
+        
+        // 如果没有指定购买日期或历史价格获取失败，则获取实时价格
+        if (!newAsset.buy_date) {
+          try {
+            const quoteResponse = await fetch(buildApiUrl(`/assets/quote?symbol=${newAsset.symbol}`));
+            const quoteResult = await quoteResponse.json();
+            if (quoteResult.success && quoteResult.data.current_price) {
+              tradePrice = quoteResult.data.current_price;
+              console.log(`📈 使用实时价格: $${tradePrice}`);
+            }
+          } catch (error) {
+            console.warn('Failed to fetch current price, using form price:', error);
+          }
+        } else {
+          console.log(`📅 使用历史价格: $${tradePrice} (购买日期: ${newAsset.buy_date})`);
+        }
+        
         const transactionResponse = await fetch(buildApiUrl(API_ENDPOINTS.transactions.create), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -531,7 +550,7 @@ const Portfolio = () => {
             holding_id: result.data.holding_id,
             trade_type: 'buy',
             quantity: newAsset.quantity,
-            price: currentPrice, // 使用实时价格
+            price: tradePrice, // 使用历史价格或实时价格
             trade_time: newAsset.buy_date ? new Date(newAsset.buy_date).toISOString() : new Date().toISOString()
           })
         });
