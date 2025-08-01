@@ -38,7 +38,7 @@ services:
     image: styletang/rocketmq-console-ng
     container_name: rmqconsole
     ports:
-      - "8080:8080"
+      - "9080:8080"
     depends_on:
       - rmqnamesrv
     environment:

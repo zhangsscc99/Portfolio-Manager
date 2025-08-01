@@ -276,3 +276,10 @@ cp -r build/* /var/www/portfolio-manager/
 ./bin/jmeter -n -t ../performance-test/portfolio-manager-test-plan.jmx -l test.jtl -e -o server-report
 
 
+
+./bin/jmeter -n -t ../performance-test/portfolio-manager-test-plan.jmx -l test.jtl -e -o server-report-success6
+
+python3 -m http.server 8888
+
+
+

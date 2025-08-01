@@ -12,7 +12,7 @@ const rocketMQConfig = {
     // NameServer地址，支持多个
     nameServer: process.env.ROCKETMQ_NAME_SERVER || 'localhost:9876',
     // HTTP API 端点（RocketMQ Console 或者自定义代理）
-    httpEndpoint: process.env.ROCKETMQ_HTTP_ENDPOINT || 'http://localhost:8080',
+    httpEndpoint: process.env.ROCKETMQ_HTTP_ENDPOINT || 'http://localhost:9080',
     // 访问密钥（如果启用了认证）
     accessKey: process.env.ROCKETMQ_ACCESS_KEY || '',
     secretKey: process.env.ROCKETMQ_SECRET_KEY || '',
