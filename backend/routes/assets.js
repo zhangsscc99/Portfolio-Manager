@@ -225,14 +225,31 @@ router.post('/update-prices', async (req, res) => {
     
     const updateResults = { success: 0, failed: 0, details: [] };
     
+    // 首先清除所有缓存，强制获取最新数据
+    console.log('🗑️ 清除Yahoo Finance缓存，强制获取最新数据...');
+    yahooFinanceService.clearCache();
+    
     for (const asset of assetsToUpdate) {
       try {
         let newPrice = asset.current_price;
+        let updateInfo = {
+          symbol: asset.symbol,
+          oldPrice: asset.current_price,
+          status: 'no_change'
+        };
         
         if (asset.price_source === 'yahoo_finance') {
-          const priceData = await yahooFinanceService.getStockPrice(asset.source_symbol);
+          const symbol = asset.source_symbol || asset.symbol;
+          console.log(`🔄 强制更新 ${symbol} 的价格数据...`);
+          
+          const priceData = await yahooFinanceService.getStockPrice(symbol);
           if (!priceData.error && priceData.price > 0) {
             newPrice = priceData.price;
+            updateInfo.newPrice = newPrice;
+            updateInfo.change = priceData.change || 0;
+            updateInfo.changePercent = priceData.changePercent || 0;
+            
+            console.log(`📊 ${symbol}: 价格=${newPrice}, 变化=${priceData.change}, 变化%=${priceData.changePercent}%`);
           }
         } else if (asset.price_source === 'coingecko') {
           // Assuming cryptoService is available globally or imported elsewhere
@@ -242,16 +259,15 @@ router.post('/update-prices', async (req, res) => {
           // }
         }
         
+        // 总是更新资产记录，即使价格没变化（为了刷新updated_at时间戳）
+        await asset.update({ current_price: newPrice });
+        updateResults.success++;
+        
         if (newPrice !== asset.current_price) {
-          await asset.update({ current_price: newPrice });
-          updateResults.success++;
-          updateResults.details.push({
-            symbol: asset.symbol,
-            oldPrice: asset.current_price,
-            newPrice,
-            status: 'updated'
-          });
+          updateInfo.status = 'updated';
         }
+        
+        updateResults.details.push(updateInfo);
       } catch (error) {
         updateResults.failed++;
         updateResults.details.push({
