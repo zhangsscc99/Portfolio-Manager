@@ -763,7 +763,7 @@ const Dashboard = () => {
                       color: portfolioData.todayChange >= 0 ? 'success.main' : 'error.main' 
                     }}
                   >
-                    {portfolioData.todayChange >= 0 ? '+' : ''}{formatCurrency(portfolioData.todayChange)} ({formatPercentage(portfolioData.todayChangePercent)})
+                    {portfolioData.todayChange >= 0 ? '+' : ''}{formatCurrency(portfolioData.todayChange)}
                   </Typography>
                 </Box>
               )}
@@ -830,7 +830,7 @@ const Dashboard = () => {
                         color: portfolioData.todayChange >= 0 ? 'success.main' : 'error.main'
                       }}
                     >
-                      {portfolioData.todayChangePercent >= 0 ? '+' : ''}{formatPercentage(portfolioData.todayChangePercent)}
+                      {portfolioData.todayChange >= 0 ? '+' : ''}{formatCurrency(portfolioData.todayChange)}
                     </Typography>
                   </Box>
                 </>
