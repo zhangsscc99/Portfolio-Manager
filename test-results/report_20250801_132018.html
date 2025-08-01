@@ -1,0 +1,102 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Portfolio Manager Performance Test Report</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .header { background: #2196F3; color: white; padding: 30px; border-radius: 8px; }
+        .result { margin: 20px 0; padding: 20px; background: white; border-radius: 8px; border-left: 4px solid #2196F3; }
+        .metric { display: inline-block; margin: 10px 20px 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; }
+        .metric-label { font-weight: bold; color: #666; }
+        .metric-value { color: #2196F3; font-size: 20px; font-weight: bold; }
+        .excellent { border-left-color: #4CAF50; }
+        .good { border-left-color: #8BC34A; }
+        .average { border-left-color: #FF9800; }
+        .poor { border-left-color: #F44336; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Portfolio Manager Performance Test Report</h1>
+        <p>Test Time: 2025-08-01 13:21:25</p>
+    </div>    <div class="result poor">
+        <h2>Health Check API</h2>
+        <p><strong>Performance Grade: Needs Optimization</strong></p>
+        <div class="metric">
+            <div class="metric-label">QPS</div>
+            <div class="metric-value">12.35</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Avg Time (ms)</div>
+            <div class="metric-value">41.58</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Min Time (ms)</div>
+            <div class="metric-value">20.75</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Max Time (ms)</div>
+            <div class="metric-value">200.35</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Error Rate (%)</div>
+            <div class="metric-value">0</div>
+        </div>
+    </div>    <div class="result poor">
+        <h2>Portfolio API</h2>
+        <p><strong>Performance Grade: Needs Optimization</strong></p>
+        <div class="metric">
+            <div class="metric-label">QPS</div>
+            <div class="metric-value">11.9</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Avg Time (ms)</div>
+            <div class="metric-value">48.65</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Min Time (ms)</div>
+            <div class="metric-value">24.25</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Max Time (ms)</div>
+            <div class="metric-value">215.93</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Error Rate (%)</div>
+            <div class="metric-value">0</div>
+        </div>
+    </div>    <div class="result poor">
+        <h2>Market Data API</h2>
+        <p><strong>Performance Grade: Needs Optimization</strong></p>
+        <div class="metric">
+            <div class="metric-label">QPS</div>
+            <div class="metric-value">9.97</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Avg Time (ms)</div>
+            <div class="metric-value">202.73</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Min Time (ms)</div>
+            <div class="metric-value">18.8</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Max Time (ms)</div>
+            <div class="metric-value">3700.43</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Error Rate (%)</div>
+            <div class="metric-value">0</div>
+        </div>
+    </div>    <div class="result">
+        <h2>Performance Standards</h2>
+        <ul>
+            <li><strong>Excellent:</strong> QPS > 500, Response Time < 100ms</li>
+            <li><strong>Good:</strong> QPS > 200, Response Time < 200ms</li>
+            <li><strong>Average:</strong> QPS > 100, Response Time < 500ms</li>
+            <li><strong>Needs Optimization:</strong> QPS < 100, Response Time > 500ms</li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -1,0 +1,5 @@
+﻿API,QPS,AvgTime,MinTime,MaxTime,ErrorRate,TotalRequests
+Health Check API,12.35,41.58,20.75,200.35,0,500
+Portfolio API,11.9,48.65,24.25,215.93,0,200
+Market Data API,9.97,202.73,18.8,3700.43,0,100
+

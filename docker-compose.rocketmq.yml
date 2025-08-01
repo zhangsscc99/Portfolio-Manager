@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # RocketMQ NameServer
+  rmqnamesrv:
+    image: rocketmqinc/rocketmq:4.4.0
+    container_name: rmqnamesrv
+    ports:
+      - "9876:9876"
+    volumes:
+      - rmq_logs:/opt/logs
+      - rmq_store:/opt/store
+    command: sh mqnamesrv
+    networks:
+      - rmq
+
+  # RocketMQ Broker
+  rmqbroker:
+    image: rocketmqinc/rocketmq:4.4.0
+    container_name: rmqbroker
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    volumes:
+      - rmq_logs:/opt/logs
+      - rmq_store:/opt/store
+      - ./broker.conf:/opt/rocketmq-4.4.0/conf/broker.conf
+    depends_on:
+      - rmqnamesrv
+    environment:
+      - NAMESRV_ADDR=rmqnamesrv:9876
+    command: sh mqbroker -c ../conf/broker.conf
+    networks:
+      - rmq
+
+  # RocketMQ Console (管理界面)
+  rmqconsole:
+    image: styletang/rocketmq-console-ng
+    container_name: rmqconsole
+    ports:
+      - "8080:8080"
+    depends_on:
+      - rmqnamesrv
+    environment:
+      - JAVA_OPTS=-Drocketmq.namesrv.addr=rmqnamesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false
+    networks:
+      - rmq
+
+networks:
+  rmq:
+    driver: bridge
+
+volumes:
+  rmq_logs:
+  rmq_store: 

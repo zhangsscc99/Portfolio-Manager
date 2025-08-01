@@ -10,6 +10,9 @@ const { testConnection } = require('./config/database');
 const { syncDatabase } = require('./models/index');
 const scheduledUpdatesService = require('./services/scheduledUpdates');
 
+// RocketMQ 消息管理器
+const messageManager = require('./services/rocketmq/messageManager');
+
 // Import routes
 const portfolioRoutes = require('./routes/portfolio');
 const holdingsRoutes = require('./routes/holdings');
@@ -47,6 +50,15 @@ app.get('/api-docs/swagger.json', (req, res) => {
   res.sendFile(path.join(__dirname, 'swagger.json'));
 });
 
+// Health check endpoint (必须在通配符路由之前)
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Portfolio Manager API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // 服务前端静态文件 (仅在生产环境或build文件存在时)
 const path = require('path');
 const fs = require('fs');
@@ -81,15 +93,6 @@ app.get('*', (req, res) => {
   });
 }
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Portfolio Manager API is running',
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -118,7 +121,16 @@ const startServer = async () => {
     const { generateSQLSchema } = require('./scripts/generateSQL');
     await generateSQLSchema();
     
-            // 4. 启动HTTP服务器
+    // 4. 初始化RocketMQ
+    console.log('🚀 初始化RocketMQ消息队列...');
+    try {
+      await messageManager.initialize();
+      console.log('✅ RocketMQ初始化成功');
+    } catch (mqError) {
+      console.warn('⚠️ RocketMQ初始化失败，将以非消息队列模式运行:', mqError.message);
+    }
+    
+            // 5. 启动HTTP服务器
         app.listen(PORT, () => {
           console.log('');
           console.log('🎉 ===== Portfolio Manager 启动成功! =====');
@@ -127,9 +139,10 @@ const startServer = async () => {
           console.log(`🏥 健康检查: http://localhost:${PORT}/api/health`);
           console.log(`💾 MySQL数据库: portfolio_manager`);
           console.log(`📁 SQL结构文件: ./database_schema.sql`);
+          console.log(`📨 RocketMQ状态: ${messageManager.isHealthy() ? '✅ 已连接' : '❌ 未连接'}`);
           console.log('==========================================');
           
-          // 5. 启动定时数据更新服务
+          // 6. 启动定时数据更新服务
           setTimeout(() => {
             scheduledUpdatesService.startAllTasks();
           }, 3000); // 延迟3秒启动，确保数据库完全就绪
@@ -140,4 +153,40 @@ const startServer = async () => {
   }
 };
 
-startServer(); 
+startServer();
+
+// 优雅关闭处理
+const gracefulShutdown = async (signal) => {
+  console.log(`\n🔄 收到 ${signal} 信号，开始优雅关闭...`);
+  
+  try {
+    // 关闭RocketMQ
+    console.log('📨 关闭RocketMQ连接...');
+    await messageManager.shutdown();
+    
+    // 关闭定时任务
+    console.log('⏰ 停止定时任务...');
+    // scheduledUpdatesService.stopAllTasks(); // 如果有这个方法的话
+    
+    console.log('✅ 优雅关闭完成');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ 优雅关闭过程中出错:', error);
+    process.exit(1);
+  }
+};
+
+// 监听退出信号
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// 未捕获异常处理
+process.on('uncaughtException', (error) => {
+  console.error('❌ 未捕获的异常:', error);
+  gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ 未处理的Promise拒绝:', reason);
+  gracefulShutdown('unhandledRejection');
+}); 
