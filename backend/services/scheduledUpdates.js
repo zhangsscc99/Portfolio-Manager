@@ -3,6 +3,9 @@ const { Asset, Watchlist } = require('../models/index');
 const yahooFinanceService = require('./yahooFinance');
 const cryptoService = require('./cryptoService');
 
+// RocketMQ 消息管理器
+const messageManager = require('./rocketmq/messageManager');
+
 // 📅 定时数据更新服务
 class ScheduledUpdatesService {
   constructor() {
@@ -128,6 +131,23 @@ class ScheduledUpdatesService {
             const changePercent = oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice * 100) : 0;
             console.log(`✅ ${asset.symbol}: ${oldPrice} → ${newPrice} (${changePercent.toFixed(2)}%)`);
             successCount++;
+
+            // 发送市场数据更新消息到RocketMQ
+            try {
+              if (messageManager.isHealthy()) {
+                await messageManager.publishMarketDataUpdate({
+                  symbol: asset.symbol,
+                  price: newPrice,
+                  change: newPrice - oldPrice,
+                  changePercent: changePercent,
+                  volume: priceData.volume || 0,
+                  type: 'stock',
+                  timestamp: new Date().toISOString()
+                });
+              }
+            } catch (mqError) {
+              console.warn(`⚠️ Failed to publish market data update for ${asset.symbol}:`, mqError.message);
+            }
           } else {
             console.log(`⚠️ ${asset.symbol}: 无法获取价格数据`);
             errorCount++;
@@ -197,6 +217,23 @@ class ScheduledUpdatesService {
             const changePercent = oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice * 100) : 0;
             console.log(`✅ ${asset.symbol}: $${oldPrice} → $${newPrice} (${changePercent.toFixed(2)}%)`);
             successCount++;
+
+            // 发送市场数据更新消息到RocketMQ
+            try {
+              if (messageManager.isHealthy()) {
+                await messageManager.publishMarketDataUpdate({
+                  symbol: asset.symbol,
+                  price: newPrice,
+                  change: newPrice - oldPrice,
+                  changePercent: changePercent,
+                  volume: priceData.volume || 0,
+                  type: 'crypto',
+                  timestamp: new Date().toISOString()
+                });
+              }
+            } catch (mqError) {
+              console.warn(`⚠️ Failed to publish market data update for ${asset.symbol}:`, mqError.message);
+            }
           } else {
             console.log(`⚠️ ${asset.symbol}: 无法获取价格数据`);
             errorCount++;

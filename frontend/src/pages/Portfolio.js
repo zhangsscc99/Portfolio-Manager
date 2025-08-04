@@ -456,14 +456,33 @@ const Portfolio = () => {
   // ➕ Add asset
   const handleAddAsset = async () => {
     try {
+      // ✅ Validate input values
+      const quantity = parseFloat(newAsset.quantity);
+      const avgCost = parseFloat(newAsset.avg_cost);
+      
+      if (isNaN(quantity) || quantity <= 0) {
+        alert('❌ Quantity must be a positive number');
+        return;
+      }
+      
+      if (isNaN(avgCost) || avgCost <= 0) {
+        alert('❌ Purchase price must be a positive number');
+        return;
+      }
+      
+      if (!newAsset.symbol || newAsset.symbol.trim() === '') {
+        alert('❌ Asset symbol is required');
+        return;
+      }
+      
       const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newAsset,
           portfolio_id: 1,
-          quantity: parseFloat(newAsset.quantity),
-          avg_cost: parseFloat(newAsset.avg_cost),
+          quantity: quantity,
+          avg_cost: avgCost,
           // 使用获取到的实时价格，而不是搜索结果中的价格
           current_price: selectedStock?.realTimePrice || selectedStock?.price || null,
           // 添加30天历史平均价格
@@ -1057,8 +1076,17 @@ const Portfolio = () => {
                 fullWidth
                 label="Quantity"
                 type="number"
+                min="0"
+                step="0.001"
                 value={newAsset.quantity}
-                onChange={(e) => setNewAsset(prev => ({...prev, quantity: e.target.value}))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (value >= 0 || e.target.value === '') {
+                    setNewAsset(prev => ({...prev, quantity: e.target.value}));
+                  }
+                }}
+                inputProps={{ min: 0, step: 0.001 }}
+                helperText="Quantity must be positive"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1066,8 +1094,16 @@ const Portfolio = () => {
                 fullWidth
                 label="Purchase Price"
                 type="number"
+                min="0"
+                step="0.01"
                 value={newAsset.avg_cost}
-                onChange={(e) => setNewAsset(prev => ({...prev, avg_cost: e.target.value}))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (value >= 0 || e.target.value === '') {
+                    setNewAsset(prev => ({...prev, avg_cost: e.target.value}));
+                  }
+                }}
+                inputProps={{ min: 0, step: 0.01 }}
                 helperText={(() => {
                   if (selectedStock?.loading) return "🔄 Loading real-time price...";
                   if (selectedStock?.error) return "⚠️ Price data unavailable - enter manually";
@@ -1080,7 +1116,7 @@ const Portfolio = () => {
                   if (selectedStock?.price) {
                     return `📋 Search price: $${parseFloat(selectedStock.price).toFixed(2)} (auto-filled)`;
                   }
-                  return "Enter the price you paid for this asset";
+                  return "Price must be positive";
                 })()}
                 InputProps={{
                   startAdornment: <Typography sx={{ mr: 1, color: 'text.secondary' }}>$</Typography>

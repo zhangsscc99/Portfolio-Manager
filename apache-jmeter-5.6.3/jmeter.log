@@ -1,0 +1,377 @@
+2025-08-01 15:27:29,705 INFO o.a.j.u.JMeterUtils: Setting Locale to zh_CN
+2025-08-01 15:27:29,778 INFO o.a.j.JMeter: Loading user properties from: C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\bin\user.properties
+2025-08-01 15:27:29,779 INFO o.a.j.JMeter: Loading system properties from: C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\bin\system.properties
+2025-08-01 15:27:29,796 INFO o.a.j.JMeter: Copyright (c) 1998-2024 The Apache Software Foundation
+2025-08-01 15:27:29,796 INFO o.a.j.JMeter: Version 5.6.3
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: java.version=17.0.15
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: java.vm.name=OpenJDK 64-Bit Server VM
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: os.name=Windows 11
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: os.arch=amd64
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: os.version=10.0
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: file.encoding=GBK
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: java.awt.headless=true
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: Max memory     =8447328256
+2025-08-01 15:27:29,797 INFO o.a.j.JMeter: Available Processors =18
+2025-08-01 15:27:29,815 INFO o.a.j.JMeter: Default Locale=中文 (中国)
+2025-08-01 15:27:29,817 INFO o.a.j.JMeter: JMeter  Locale=中文 (中国)
+2025-08-01 15:27:29,817 INFO o.a.j.JMeter: JMeterHome=C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3
+2025-08-01 15:27:29,817 INFO o.a.j.JMeter: user.dir  =C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3
+2025-08-01 15:27:29,818 INFO o.a.j.JMeter: PWD       =C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3
+2025-08-01 15:27:29,821 INFO o.a.j.JMeter: IP: 192.168.71.232 Name: ZhuanZ FullName: host.docker.internal
+2025-08-01 15:27:29,851 INFO o.a.j.JMeter: Setting property 'jmeter.reportgenerator.outputdir' to:'C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\professional-report'
+2025-08-01 15:27:29,857 INFO o.a.j.s.FileServer: Default base='C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3'
+2025-08-01 15:27:29,864 INFO o.a.j.s.FileServer: Set new base='C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\..\performance-test'
+2025-08-01 15:27:30,389 INFO o.a.j.s.SaveService: Testplan (JMX) version: 2.2. Testlog (JTL) version: 2.2
+2025-08-01 15:27:30,437 INFO o.a.j.s.SaveService: Using SaveService properties version 5.0
+2025-08-01 15:27:30,444 INFO o.a.j.s.SaveService: Using SaveService properties file encoding UTF-8
+2025-08-01 15:27:30,452 INFO o.a.j.s.SaveService: Loading file: ..\performance-test\portfolio-manager-test-plan.jmx
+2025-08-01 15:27:30,605 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/html is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-08-01 15:27:30,605 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xhtml+xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-08-01 15:27:30,606 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-08-01 15:27:30,606 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-08-01 15:27:30,606 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/vnd.wap.wml is org.apache.jmeter.protocol.http.parser.RegexpHTMLParser
+2025-08-01 15:27:30,606 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/css is org.apache.jmeter.protocol.http.parser.CssParser
+2025-08-01 15:27:30,667 INFO o.a.j.JMeter: Creating summariser <summary>
+2025-08-01 15:27:30,674 INFO o.a.j.r.d.ReportGenerator: ReportGenerator will use for Parsing the separator: ','
+2025-08-01 15:27:30,674 INFO o.a.j.r.d.ReportGenerator: Will generate report at end of test from  results file: professional-test.jtl
+2025-08-01 15:27:30,675 INFO o.a.j.r.d.ReportGenerator: Reading report generator properties from: C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\bin\reportgenerator.properties
+2025-08-01 15:27:30,676 INFO o.a.j.r.d.ReportGenerator: Merging with JMeter properties
+2025-08-01 15:27:30,683 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.temp_dir' not found, using default value 'temp' instead.
+2025-08-01 15:27:30,688 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.apdex_per_transaction' not found, using default value 'null' instead.
+2025-08-01 15:27:30,688 INFO o.a.j.r.c.ReportGeneratorConfiguration: apdex_per_transaction is empty, not APDEX per transaction customization
+2025-08-01 15:27:30,688 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.sample_filter' not found, using default value 'null' instead.
+2025-08-01 15:27:30,689 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.report_title' not found, using default value 'null' instead.
+2025-08-01 15:27:30,689 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.start_date' not found, using default value 'null' instead.
+2025-08-01 15:27:30,689 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.end_date' not found, using default value 'null' instead.
+2025-08-01 15:27:30,689 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.date_format' not found, using default value 'null' instead.
+2025-08-01 15:27:30,695 INFO o.a.j.r.c.ReportGeneratorConfiguration: Will use date range start date: null, end date: null
+2025-08-01 15:27:30,712 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.totalTPS.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,712 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.activeThreadsOverTime.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,712 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.timeVsThreads.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,712 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimeDistribution.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,712 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.transactionsPerSecond.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,713 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimePercentiles.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,713 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimePercentilesOverTime.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,713 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.responseTimesOverTime.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,714 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.connectTimeOverTime.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,714 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.graph.latenciesOverTime.exclude_controllers' not found, using default value 'false' instead.
+2025-08-01 15:27:30,715 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.json.filters_only_sample_series' not found, using default value 'true' instead.
+2025-08-01 15:27:30,715 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.json.series_filter' not found, using default value '' instead.
+2025-08-01 15:27:30,715 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.json.show_controllers_only' not found, using default value 'false' instead.
+2025-08-01 15:27:30,716 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.html.filters_only_sample_series' not found, using default value 'true' instead.
+2025-08-01 15:27:30,716 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.html.series_filter' not found, using default value '' instead.
+2025-08-01 15:27:30,716 INFO o.a.j.r.c.ReportGeneratorConfiguration: Property 'jmeter.reportgenerator.exporter.html.show_controllers_only' not found, using default value 'false' instead.
+2025-08-01 15:27:30,754 INFO o.a.j.e.StandardJMeterEngine: Running the test!
+2025-08-01 15:27:30,755 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2025-08-01 15:27:30,755 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2025-08-01 15:27:30,763 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must contain the string: '.functions.'
+2025-08-01 15:27:30,763 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must not contain the string: '.gui.'
+2025-08-01 15:27:30,878 INFO o.a.j.JMeter: 正在运行的测试 (1754033250878)
+2025-08-01 15:27:30,902 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 1 : Health Check Test
+2025-08-01 15:27:30,902 INFO o.a.j.e.StandardJMeterEngine: Starting 50 threads for group Health Check Test.
+2025-08-01 15:27:30,902 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2025-08-01 15:27:30,902 INFO o.a.j.t.ThreadGroup: Starting thread group... number=1 threads=50 ramp-up=10 delayedStart=false
+2025-08-01 15:27:30,915 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-1
+2025-08-01 15:27:30,935 INFO o.a.j.t.ThreadGroup: Started thread group number 1
+2025-08-01 15:27:30,935 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 2 : Portfolio API Test
+2025-08-01 15:27:30,935 INFO o.a.j.e.StandardJMeterEngine: Starting 20 threads for group Portfolio API Test.
+2025-08-01 15:27:30,935 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2025-08-01 15:27:30,935 INFO o.a.j.t.ThreadGroup: Starting thread group... number=2 threads=20 ramp-up=5 delayedStart=false
+2025-08-01 15:27:30,937 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-1
+2025-08-01 15:27:30,947 INFO o.a.j.t.ThreadGroup: Started thread group number 2
+2025-08-01 15:27:30,947 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 3 : Market Data Test
+2025-08-01 15:27:30,947 INFO o.a.j.e.StandardJMeterEngine: Starting 10 threads for group Market Data Test.
+2025-08-01 15:27:30,947 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2025-08-01 15:27:30,947 INFO o.a.j.t.ThreadGroup: Starting thread group... number=3 threads=10 ramp-up=3 delayedStart=false
+2025-08-01 15:27:30,948 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-1
+2025-08-01 15:27:30,950 INFO o.a.j.t.ThreadGroup: Started thread group number 3
+2025-08-01 15:27:30,950 INFO o.a.j.e.StandardJMeterEngine: All thread groups have been started
+2025-08-01 15:27:30,955 INFO o.a.j.p.h.s.HTTPHCAbstractImpl: Local host = ZhuanZ
+2025-08-01 15:27:30,962 INFO o.a.j.p.h.s.HTTPHC4Impl: HTTP request retry count = 0
+2025-08-01 15:27:30,964 INFO o.a.j.s.SampleResult: Note: Sample TimeStamps are START times
+2025-08-01 15:27:30,964 INFO o.a.j.s.SampleResult: sampleresult.default.encoding is set to UTF-8
+2025-08-01 15:27:30,964 INFO o.a.j.s.SampleResult: sampleresult.useNanoTime=true
+2025-08-01 15:27:30,964 INFO o.a.j.s.SampleResult: sampleresult.nanoThreadSleep=5000
+2025-08-01 15:27:31,061 INFO o.a.j.r.Summariser: summary +      1 in 00:00:00 =    5.6/s Avg:     0 Min:     0 Max:     0 Err:     1 (100.00%) Active: 3 Started: 3 Finished: 0
+2025-08-01 15:27:31,087 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-1
+2025-08-01 15:27:31,088 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-1
+2025-08-01 15:27:31,110 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-2
+2025-08-01 15:27:31,164 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-1
+2025-08-01 15:27:31,164 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-1
+2025-08-01 15:27:31,165 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-1
+2025-08-01 15:27:31,165 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-1
+2025-08-01 15:27:31,186 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-2
+2025-08-01 15:27:31,187 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-2
+2025-08-01 15:27:31,187 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-2
+2025-08-01 15:27:31,248 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-2
+2025-08-01 15:27:31,261 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-2
+2025-08-01 15:27:31,261 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-2
+2025-08-01 15:27:31,263 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-2
+2025-08-01 15:27:31,263 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-2
+2025-08-01 15:27:31,309 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-3
+2025-08-01 15:27:31,341 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-3
+2025-08-01 15:27:31,341 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-3
+2025-08-01 15:27:31,438 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-3
+2025-08-01 15:27:31,455 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-3
+2025-08-01 15:27:31,456 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-3
+2025-08-01 15:27:31,507 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-4
+2025-08-01 15:27:31,523 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-4
+2025-08-01 15:27:31,524 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-4
+2025-08-01 15:27:31,548 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-3
+2025-08-01 15:27:31,554 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-3
+2025-08-01 15:27:31,555 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-3
+2025-08-01 15:27:31,688 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-4
+2025-08-01 15:27:31,705 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-4
+2025-08-01 15:27:31,705 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-4
+2025-08-01 15:27:31,707 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-5
+2025-08-01 15:27:31,729 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-5
+2025-08-01 15:27:31,729 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-5
+2025-08-01 15:27:31,848 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-4
+2025-08-01 15:27:31,855 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-4
+2025-08-01 15:27:31,855 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-4
+2025-08-01 15:27:31,907 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-6
+2025-08-01 15:27:31,924 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-6
+2025-08-01 15:27:31,925 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-6
+2025-08-01 15:27:31,936 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-5
+2025-08-01 15:27:31,947 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-5
+2025-08-01 15:27:31,947 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-5
+2025-08-01 15:27:32,104 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-7
+2025-08-01 15:27:32,117 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-7
+2025-08-01 15:27:32,118 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-7
+2025-08-01 15:27:32,149 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-5
+2025-08-01 15:27:32,156 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-5
+2025-08-01 15:27:32,156 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-5
+2025-08-01 15:27:32,187 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-6
+2025-08-01 15:27:32,204 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-6
+2025-08-01 15:27:32,204 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-6
+2025-08-01 15:27:32,307 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-8
+2025-08-01 15:27:32,317 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-8
+2025-08-01 15:27:32,317 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-8
+2025-08-01 15:27:32,436 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-7
+2025-08-01 15:27:32,442 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-7
+2025-08-01 15:27:32,442 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-7
+2025-08-01 15:27:32,447 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-6
+2025-08-01 15:27:32,451 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-6
+2025-08-01 15:27:32,452 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-6
+2025-08-01 15:27:32,504 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-9
+2025-08-01 15:27:32,512 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-9
+2025-08-01 15:27:32,512 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-9
+2025-08-01 15:27:32,687 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-8
+2025-08-01 15:27:32,703 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-8
+2025-08-01 15:27:32,703 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-8
+2025-08-01 15:27:32,703 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-10
+2025-08-01 15:27:32,718 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-10
+2025-08-01 15:27:32,718 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-10
+2025-08-01 15:27:32,748 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-7
+2025-08-01 15:27:32,752 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-7
+2025-08-01 15:27:32,752 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-7
+2025-08-01 15:27:32,903 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-11
+2025-08-01 15:27:32,918 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-11
+2025-08-01 15:27:32,919 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-11
+2025-08-01 15:27:32,938 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-9
+2025-08-01 15:27:32,951 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-9
+2025-08-01 15:27:32,951 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-9
+2025-08-01 15:27:33,050 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-8
+2025-08-01 15:27:33,066 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-8
+2025-08-01 15:27:33,068 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-8
+2025-08-01 15:27:33,104 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-12
+2025-08-01 15:27:33,118 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-12
+2025-08-01 15:27:33,118 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-12
+2025-08-01 15:27:33,189 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-10
+2025-08-01 15:27:33,202 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-10
+2025-08-01 15:27:33,202 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-10
+2025-08-01 15:27:33,303 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-13
+2025-08-01 15:27:33,325 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-13
+2025-08-01 15:27:33,326 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-13
+2025-08-01 15:27:33,348 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-9
+2025-08-01 15:27:33,352 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-9
+2025-08-01 15:27:33,352 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-9
+2025-08-01 15:27:33,437 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-11
+2025-08-01 15:27:33,448 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-11
+2025-08-01 15:27:33,448 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-11
+2025-08-01 15:27:33,503 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-14
+2025-08-01 15:27:33,518 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-14
+2025-08-01 15:27:33,518 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-14
+2025-08-01 15:27:33,647 INFO o.a.j.t.JMeterThread: Thread started: Market Data Test 3-10
+2025-08-01 15:27:33,651 INFO o.a.j.t.JMeterThread: Thread is done: Market Data Test 3-10
+2025-08-01 15:27:33,652 INFO o.a.j.t.JMeterThread: Thread finished: Market Data Test 3-10
+2025-08-01 15:27:33,686 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-12
+2025-08-01 15:27:33,695 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-12
+2025-08-01 15:27:33,695 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-12
+2025-08-01 15:27:33,704 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-15
+2025-08-01 15:27:33,711 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-15
+2025-08-01 15:27:33,711 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-15
+2025-08-01 15:27:33,903 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-16
+2025-08-01 15:27:33,910 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-16
+2025-08-01 15:27:33,910 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-16
+2025-08-01 15:27:33,936 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-13
+2025-08-01 15:27:33,945 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-13
+2025-08-01 15:27:33,945 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-13
+2025-08-01 15:27:34,103 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-17
+2025-08-01 15:27:34,110 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-17
+2025-08-01 15:27:34,110 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-17
+2025-08-01 15:27:34,188 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-14
+2025-08-01 15:27:34,196 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-14
+2025-08-01 15:27:34,197 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-14
+2025-08-01 15:27:34,303 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-18
+2025-08-01 15:27:34,314 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-18
+2025-08-01 15:27:34,315 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-18
+2025-08-01 15:27:34,436 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-15
+2025-08-01 15:27:34,447 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-15
+2025-08-01 15:27:34,448 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-15
+2025-08-01 15:27:34,502 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-19
+2025-08-01 15:27:34,514 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-19
+2025-08-01 15:27:34,514 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-19
+2025-08-01 15:27:34,686 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-16
+2025-08-01 15:27:34,694 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-16
+2025-08-01 15:27:34,694 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-16
+2025-08-01 15:27:34,703 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-20
+2025-08-01 15:27:34,716 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-20
+2025-08-01 15:27:34,717 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-20
+2025-08-01 15:27:34,904 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-21
+2025-08-01 15:27:34,911 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-21
+2025-08-01 15:27:34,912 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-21
+2025-08-01 15:27:34,937 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-17
+2025-08-01 15:27:34,945 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-17
+2025-08-01 15:27:34,945 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-17
+2025-08-01 15:27:35,102 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-22
+2025-08-01 15:27:35,116 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-22
+2025-08-01 15:27:35,116 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-22
+2025-08-01 15:27:35,187 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-18
+2025-08-01 15:27:35,200 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-18
+2025-08-01 15:27:35,200 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-18
+2025-08-01 15:27:35,302 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-23
+2025-08-01 15:27:35,308 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-23
+2025-08-01 15:27:35,308 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-23
+2025-08-01 15:27:35,437 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-19
+2025-08-01 15:27:35,445 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-19
+2025-08-01 15:27:35,445 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-19
+2025-08-01 15:27:35,504 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-24
+2025-08-01 15:27:35,509 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-24
+2025-08-01 15:27:35,509 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-24
+2025-08-01 15:27:35,687 INFO o.a.j.t.JMeterThread: Thread started: Portfolio API Test 2-20
+2025-08-01 15:27:35,704 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-25
+2025-08-01 15:27:35,706 INFO o.a.j.t.JMeterThread: Thread is done: Portfolio API Test 2-20
+2025-08-01 15:27:35,706 INFO o.a.j.t.JMeterThread: Thread finished: Portfolio API Test 2-20
+2025-08-01 15:27:35,714 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-25
+2025-08-01 15:27:35,715 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-25
+2025-08-01 15:27:35,903 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-26
+2025-08-01 15:27:35,919 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-26
+2025-08-01 15:27:35,919 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-26
+2025-08-01 15:27:36,104 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-27
+2025-08-01 15:27:36,114 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-27
+2025-08-01 15:27:36,115 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-27
+2025-08-01 15:27:36,306 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-28
+2025-08-01 15:27:36,317 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-28
+2025-08-01 15:27:36,317 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-28
+2025-08-01 15:27:36,503 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-29
+2025-08-01 15:27:36,515 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-29
+2025-08-01 15:27:36,515 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-29
+2025-08-01 15:27:36,703 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-30
+2025-08-01 15:27:36,709 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-30
+2025-08-01 15:27:36,710 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-30
+2025-08-01 15:27:36,904 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-31
+2025-08-01 15:27:36,914 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-31
+2025-08-01 15:27:36,914 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-31
+2025-08-01 15:27:37,105 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-32
+2025-08-01 15:27:37,115 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-32
+2025-08-01 15:27:37,115 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-32
+2025-08-01 15:27:37,305 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-33
+2025-08-01 15:27:37,323 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-33
+2025-08-01 15:27:37,324 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-33
+2025-08-01 15:27:37,503 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-34
+2025-08-01 15:27:37,519 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-34
+2025-08-01 15:27:37,519 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-34
+2025-08-01 15:27:37,704 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-35
+2025-08-01 15:27:37,720 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-35
+2025-08-01 15:27:37,720 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-35
+2025-08-01 15:27:37,904 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-36
+2025-08-01 15:27:37,911 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-36
+2025-08-01 15:27:37,911 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-36
+2025-08-01 15:27:38,104 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-37
+2025-08-01 15:27:38,117 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-37
+2025-08-01 15:27:38,118 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-37
+2025-08-01 15:27:38,303 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-38
+2025-08-01 15:27:38,317 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-38
+2025-08-01 15:27:38,318 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-38
+2025-08-01 15:27:38,503 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-39
+2025-08-01 15:27:38,509 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-39
+2025-08-01 15:27:38,509 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-39
+2025-08-01 15:27:38,705 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-40
+2025-08-01 15:27:38,717 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-40
+2025-08-01 15:27:38,717 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-40
+2025-08-01 15:27:38,904 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-41
+2025-08-01 15:27:38,917 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-41
+2025-08-01 15:27:38,917 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-41
+2025-08-01 15:27:39,104 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-42
+2025-08-01 15:27:39,116 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-42
+2025-08-01 15:27:39,116 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-42
+2025-08-01 15:27:39,304 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-43
+2025-08-01 15:27:39,315 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-43
+2025-08-01 15:27:39,315 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-43
+2025-08-01 15:27:39,504 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-44
+2025-08-01 15:27:39,519 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-44
+2025-08-01 15:27:39,519 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-44
+2025-08-01 15:27:39,704 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-45
+2025-08-01 15:27:39,713 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-45
+2025-08-01 15:27:39,714 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-45
+2025-08-01 15:27:39,904 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-46
+2025-08-01 15:27:39,910 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-46
+2025-08-01 15:27:39,910 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-46
+2025-08-01 15:27:40,103 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-47
+2025-08-01 15:27:40,111 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-47
+2025-08-01 15:27:40,111 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-47
+2025-08-01 15:27:40,303 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-48
+2025-08-01 15:27:40,311 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-48
+2025-08-01 15:27:40,311 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-48
+2025-08-01 15:27:40,502 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-49
+2025-08-01 15:27:40,518 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-49
+2025-08-01 15:27:40,518 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-49
+2025-08-01 15:27:40,707 INFO o.a.j.t.JMeterThread: Thread started: Health Check Test 1-50
+2025-08-01 15:27:40,737 INFO o.a.j.t.JMeterThread: Thread is done: Health Check Test 1-50
+2025-08-01 15:27:40,737 INFO o.a.j.t.JMeterThread: Thread finished: Health Check Test 1-50
+2025-08-01 15:27:40,738 INFO o.a.j.e.StandardJMeterEngine: Notifying test listeners of end of test
+2025-08-01 15:27:40,741 INFO o.a.j.r.Summariser: summary +   7299 in 00:00:10 =  753.9/s Avg:     0 Min:     0 Max:     0 Err:  7299 (100.00%) Active: 0 Started: 80 Finished: 80
+2025-08-01 15:27:40,746 INFO o.a.j.r.Summariser: summary =   7300 in 00:00:10 =  740.0/s Avg:     0 Min:     0 Max:     0 Err:  7300 (100.00%)
+2025-08-01 15:27:40,749 INFO o.a.j.JMeter: Generating Dashboard
+2025-08-01 15:27:40,750 INFO o.a.j.r.d.ReportGenerator: Flushing result collector before report Generation
+2025-08-01 15:27:40,779 INFO o.a.j.r.p.NormalizerSampleConsumer: Using format, 'ms', to parse timeStamp field
+2025-08-01 15:27:41,871 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.AggregateConsumer#stopProducing(): beginDate produced 0 samples
+2025-08-01 15:27:41,871 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.AggregateConsumer#stopProducing(): endDate produced 0 samples
+2025-08-01 15:27:41,884 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.ApdexSummaryConsumer#stopProducing(): apdexSummary produced 0 samples
+2025-08-01 15:27:41,884 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.RequestsSummaryConsumer#stopProducing(): requestsSummary produced 0 samples
+2025-08-01 15:27:41,903 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.StatisticsSummaryConsumer#stopProducing(): statisticsSummary produced 0 samples
+2025-08-01 15:27:41,910 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.Top5ErrorsBySamplerConsumer#stopProducing(): top5ErrorsBySampler produced 0 samples
+2025-08-01 15:27:41,910 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.ErrorsSummaryConsumer#stopProducing(): errorsSummary produced 0 samples
+2025-08-01 15:27:41,911 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.HitsPerSecondGraphConsumer#stopProducing(): hitsPerSecond produced 0 samples
+2025-08-01 15:27:42,187 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.LatencyVSRequestGraphConsumer#stopProducing(): latencyVsRequest produced 0 samples
+2025-08-01 15:27:42,189 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.SyntheticResponseTimeDistributionGraphConsumer#stopProducing(): syntheticResponseTimeDistribution produced 0 samples
+2025-08-01 15:27:42,190 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.BytesThroughputGraphConsumer#stopProducing(): bytesThroughputOverTime produced 0 samples
+2025-08-01 15:27:42,193 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.CodesPerSecondGraphConsumer#stopProducing(): codesPerSecond produced 0 samples
+2025-08-01 15:27:42,348 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimeVSRequestGraphConsumer#stopProducing(): responseTimeVsRequest produced 0 samples
+2025-08-01 15:27:42,349 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.FilterConsumer#stopProducing(): startIntervalControlerFilter produced 51100 samples
+2025-08-01 15:27:42,349 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.TotalTPSGraphConsumer#stopProducing(): totalTPS produced 0 samples
+2025-08-01 15:27:42,349 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ActiveThreadsGraphConsumer#stopProducing(): activeThreadsOverTime produced 0 samples
+2025-08-01 15:27:42,350 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.TimeVSThreadGraphConsumer#stopProducing(): timeVsThreads produced 0 samples
+2025-08-01 15:27:42,350 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimeDistributionGraphConsumer#stopProducing(): responseTimeDistribution produced 0 samples
+2025-08-01 15:27:42,350 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.TransactionsPerSecondGraphConsumer#stopProducing(): transactionsPerSecond produced 0 samples
+2025-08-01 15:27:42,350 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimePercentilesGraphConsumer#stopProducing(): responseTimePercentiles produced 0 samples
+2025-08-01 15:27:42,351 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimePercentilesOverTimeGraphConsumer#stopProducing(): responseTimePercentilesOverTime produced 0 samples
+2025-08-01 15:27:42,352 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ResponseTimeOverTimeGraphConsumer#stopProducing(): responseTimesOverTime produced 0 samples
+2025-08-01 15:27:42,352 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.ConnectTimeOverTimeGraphConsumer#stopProducing(): connectTimeOverTime produced 0 samples
+2025-08-01 15:27:42,352 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.graph.impl.LatencyOverTimeGraphConsumer#stopProducing(): latenciesOverTime produced 0 samples
+2025-08-01 15:27:42,352 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.FilterConsumer#stopProducing(): nameFilter produced 109500 samples
+2025-08-01 15:27:42,352 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.FilterConsumer#stopProducing(): dateRangeFilter produced 21900 samples
+2025-08-01 15:27:42,352 INFO o.a.j.r.p.AbstractSampleConsumer: class org.apache.jmeter.report.processor.NormalizerSampleConsumer#stopProducing(): normalizer produced 7300 samples
+2025-08-01 15:27:42,353 INFO o.a.j.r.p.CsvFileSampleSource: produce(): 7300 samples produced in 1s 510 ms on channel 0
+2025-08-01 15:27:42,353 INFO o.a.j.r.d.ReportGenerator: Exporting data using exporter:'json' of className:'org.apache.jmeter.report.dashboard.JsonExporter'
+2025-08-01 15:27:42,614 INFO o.a.j.r.d.JsonExporter: Found data for consumer statisticsSummary?in context
+2025-08-01 15:27:42,614 INFO o.a.j.r.d.JsonExporter: Creating statistics for overall
+2025-08-01 15:27:42,615 INFO o.a.j.r.d.JsonExporter: Creating statistics for other transactions
+2025-08-01 15:27:42,616 INFO o.a.j.r.d.JsonExporter: Checking output folder
+2025-08-01 15:27:42,620 INFO o.a.j.r.d.JsonExporter: Writing statistics JSON to C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\professional-report\statistics.json
+2025-08-01 15:27:42,750 INFO o.a.j.r.d.ReportGenerator: Exporting data using exporter:'html' of className:'org.apache.jmeter.report.dashboard.HtmlTemplateExporter'
+2025-08-01 15:27:42,754 INFO o.a.j.r.d.HtmlTemplateExporter: Will generate dashboard in folder: C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\professional-report
+2025-08-01 15:27:43,082 INFO o.a.j.r.d.HtmlTemplateExporter: Report will be generated in: C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\professional-report, creating folder structure
+2025-08-01 15:27:43,086 INFO o.a.j.r.d.TemplateVisitor: Copying folder from 'C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\bin\report-template' to 'C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\professional-report', got message: C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\professional-report, found non empty folder with following content [C:\Users\ZhuanZ（无密码）\Desktop\Portfolio_Manager\apache-jmeter-5.6.3\professional-report\statistics.json], will be ignored
+2025-08-01 15:27:43,622 INFO o.a.j.JMeter: Dashboard generated

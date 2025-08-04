@@ -60,10 +60,13 @@ class AssetService {
         // 对于股票和ETF，尝试从缓存或最近的API调用中获取日变化
         if ((asset.asset_type === 'stock' || asset.asset_type === 'etf') && asset.price_source === 'yahoo_finance') {
           // 尝试从Yahoo Finance缓存中获取日变化数据
-          const cachedData = yahooFinanceService.getCachedData(asset.source_symbol);
+          const cachedData = yahooFinanceService.getCachedData(asset.source_symbol || asset.symbol);
           if (cachedData && cachedData.change !== undefined) {
-            dailyChange = cachedData.change;
-            dailyChangePercent = cachedData.changePercent;
+            dailyChange = parseFloat(cachedData.change) || 0;
+            dailyChangePercent = parseFloat(cachedData.changePercent) || 0;
+            console.log(`📊 ${asset.symbol}: 使用缓存数据 change=${dailyChange}, changePercent=${dailyChangePercent}%`);
+          } else {
+            console.log(`⚠️ ${asset.symbol}: 没有缓存的日变化数据`);
           }
         }
         // 对于加密货币，尝试从CoinGecko获取日变化
@@ -131,6 +134,26 @@ class AssetService {
       // 业务验证
       if (!symbol || !name || !asset_type || !quantity || !avg_cost || !portfolio_id) {
         throw new Error('缺少必填字段：symbol, name, asset_type, quantity, avg_cost, portfolio_id');
+      }
+
+      // ✅ 验证数值字段必须为正数
+      const quantityNum = parseFloat(quantity);
+      const avgCostNum = parseFloat(avg_cost);
+      
+      if (isNaN(quantityNum) || quantityNum <= 0) {
+        throw new Error('数量必须大于0');
+      }
+      
+      if (isNaN(avgCostNum) || avgCostNum <= 0) {
+        throw new Error('购买价格必须大于0');
+      }
+      
+      // 如果提供了当前价格，也验证它
+      if (current_price !== null && current_price !== undefined) {
+        const currentPriceNum = parseFloat(current_price);
+        if (isNaN(currentPriceNum) || currentPriceNum < 0) {
+          throw new Error('当前价格不能为负数');
+        }
       }
 
       // 验证资产类型

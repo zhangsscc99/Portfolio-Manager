@@ -29,22 +29,46 @@ const Asset = sequelize.define('Asset', {
   quantity: {
     type: DataTypes.DECIMAL(15, 8),
     allowNull: false,
-    comment: '持有数量'
+    comment: '持有数量',
+    validate: {
+      min: {
+        args: [0.00000001],
+        msg: '持有数量必须大于0'
+      }
+    }
   },
   avg_cost: {
     type: DataTypes.DECIMAL(12, 2),
     allowNull: false,
-    comment: '平均成本价'
+    comment: '平均成本价',
+    validate: {
+      min: {
+        args: [0.01],
+        msg: '平均成本价必须大于0'
+      }
+    }
   },
   current_price: {
     type: DataTypes.DECIMAL(12, 2),
     defaultValue: 0,
-    comment: '当前市场价格'
+    comment: '当前市场价格',
+    validate: {
+      min: {
+        args: [0],
+        msg: '当前价格不能为负数'
+      }
+    }
   },
   historical_avg_price: {
     type: DataTypes.DECIMAL(12, 2),
     allowNull: true,
-    comment: '历史平均价格 (30天)'
+    comment: '历史平均价格 (30天)',
+    validate: {
+      min: {
+        args: [0],
+        msg: '历史平均价格不能为负数'
+      }
+    }
   },
   
   // 市场信息

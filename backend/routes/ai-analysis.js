@@ -8,6 +8,9 @@ const portfolioService = require('../services/portfolioService');
 const assetService = require('../services/assetService'); // 添加assetService
 const aiAnalysisHistoryService = require('../services/aiAnalysisHistoryService');
 
+// RocketMQ 消息管理器
+const messageManager = require('../services/rocketmq/messageManager');
+
 // 🗣️ POST /api/ai-analysis/chat - AI Assistant Chat
 router.post('/chat', async (req, res) => {
   try {
@@ -529,6 +532,167 @@ router.get('/report/:reportId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Internal server error while fetching analysis report'
+    });
+  }
+});
+
+// 🚀 POST /api/ai-analysis/async - Asynchronous AI Portfolio Analysis
+router.post('/async', async (req, res) => {
+  try {
+    const { portfolioId, analysisType = 'full', userId } = req.body;
+    
+    if (!portfolioId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Portfolio ID is required'
+      });
+    }
+
+    console.log(`🚀 Requesting async AI analysis for portfolio ${portfolioId}`);
+
+    // 检查RocketMQ连接状态
+    if (!messageManager.isHealthy()) {
+      console.warn('⚠️ RocketMQ not available, falling back to synchronous analysis');
+      
+      // 回退到同步分析
+      const portfolioData = await assetService.getPortfolioAssets(portfolioId);
+      if (!portfolioData || !portfolioData.assetsByType) {
+        return res.status(404).json({
+          success: false,
+          error: 'Portfolio not found or has no assets'
+        });
+      }
+
+      const aiAnalysisService = require('../services/aiAnalysisService-improved');
+      const analysisResult = await aiAnalysisService.analyzePortfolio(portfolioData);
+      
+      if (analysisResult.success) {
+        // 保存分析结果
+        const saveResult = await aiAnalysisHistoryService.saveAnalysisReport(
+          portfolioId,
+          analysisResult.data,
+          portfolioData
+        );
+        
+        return res.json({
+          success: true,
+          mode: 'synchronous',
+          data: analysisResult.data,
+          reportId: saveResult.reportId
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          error: analysisResult.error
+        });
+      }
+    }
+
+    // 获取投资组合数据
+    const portfolioData = await assetService.getPortfolioAssets(portfolioId);
+    if (!portfolioData || !portfolioData.assetsByType) {
+      return res.status(404).json({
+        success: false,
+        error: 'Portfolio not found or has no assets'
+      });
+    }
+
+    // 异步发送AI分析请求到消息队列
+    const asyncResult = await messageManager.requestAIAnalysisAsync({
+      portfolioId,
+      portfolioData,
+      analysisType,
+      userId
+    });
+
+    if (asyncResult.success) {
+      console.log(`✅ Async AI analysis request submitted: ${asyncResult.requestId}`);
+      res.json({
+        success: true,
+        mode: 'asynchronous',
+        requestId: asyncResult.requestId,
+        messageId: asyncResult.messageId,
+        message: asyncResult.message,
+        estimatedTime: '1-3 minutes'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: asyncResult.error
+      });
+    }
+
+  } catch (error) {
+    console.error('Async AI Analysis API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while requesting async analysis'
+    });
+  }
+});
+
+// 📊 GET /api/ai-analysis/status/:requestId - Check async analysis status
+router.get('/status/:requestId', async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    
+    if (!requestId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Request ID is required'
+      });
+    }
+
+    console.log(`🔍 Checking status for analysis request: ${requestId}`);
+
+    // 查询分析结果 - 这里可以通过数据库查询或缓存查询
+    // 由于我们的系统会自动保存结果到数据库，我们可以查询最近的报告
+    const historyResult = await aiAnalysisHistoryService.getAnalysisHistory(null, 50);
+    
+    if (historyResult.success) {
+      // 查找匹配的请求ID（这里需要在保存时包含请求ID）
+      const matchingReport = historyResult.data.find(report => 
+        report.raw_analysis_data && 
+        JSON.stringify(report.raw_analysis_data).includes(requestId)
+      );
+      
+      if (matchingReport) {
+        res.json({
+          success: true,
+          status: 'completed',
+          data: {
+            requestId,
+            reportId: matchingReport.id,
+            completedAt: matchingReport.created_at,
+            analysisData: matchingReport
+          }
+        });
+      } else {
+        res.json({
+          success: true,
+          status: 'processing',
+          data: {
+            requestId,
+            message: 'Analysis is still in progress'
+          }
+        });
+      }
+    } else {
+      res.json({
+        success: true,
+        status: 'processing',
+        data: {
+          requestId,
+          message: 'Analysis is still in progress'
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('Check Analysis Status API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while checking analysis status'
     });
   }
 });
