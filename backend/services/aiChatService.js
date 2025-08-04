@@ -3,7 +3,7 @@ const chatDatabaseService = require('./chatDatabaseService');
 
 class AIChatService {
   constructor() {
-    this.apiKey = "sk-18fcc076d5d746fea3c922d20aef7364";
+    this.apiKey = "";
     this.baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/";
     this.endpoint = `${this.baseUrl}chat/completions`;
     

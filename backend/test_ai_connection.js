@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // Test AI API connection
 async function testAIConnection() {
-  const apiKey = "sk-18fcc076d5d746fea3c922d20aef7364";
+  const apiKey = "";
   const baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/";
   const endpoint = `${baseUrl}chat/completions`;
 
