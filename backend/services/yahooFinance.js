@@ -386,6 +386,95 @@ class YahooFinanceService {
     }
   }
 
+  decodeHtmlEntities(text = "") {
+    return String(text)
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&amp;/g, "&")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/&#([0-9]+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)));
+  }
+
+  stripHtmlTags(text = "") {
+    return String(text)
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  extractRssTag(itemBlock, tagName) {
+    const regex = new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`, "i");
+    const match = String(itemBlock || "").match(regex);
+    return match ? match[1].trim() : "";
+  }
+
+  parseRssItems(xmlText, count = 5, defaultSource = "Google News") {
+    const itemBlocks = String(xmlText || "").match(/<item\b[\s\S]*?<\/item>/gi) || [];
+
+    const parsedItems = itemBlocks
+      .slice(0, count)
+      .map((itemBlock) => {
+        const rawTitle = this.extractRssTag(itemBlock, "title");
+        const rawLink = this.extractRssTag(itemBlock, "link");
+        const rawDescription = this.extractRssTag(itemBlock, "description");
+        const rawPubDate = this.extractRssTag(itemBlock, "pubDate");
+        const rawSource = this.extractRssTag(itemBlock, "source");
+
+        const title = this.decodeHtmlEntities(rawTitle);
+        const link = this.decodeHtmlEntities(rawLink);
+        const summaryText = this.stripHtmlTags(this.decodeHtmlEntities(rawDescription));
+        const compactSummary = summaryText.length > 280
+          ? `${summaryText.slice(0, 277)}...`
+          : summaryText;
+        const source = this.stripHtmlTags(this.decodeHtmlEntities(rawSource)) || defaultSource;
+        const publishDate = new Date(rawPubDate);
+        const publishTime = Number.isNaN(publishDate.getTime())
+          ? new Date().toISOString()
+          : publishDate.toISOString();
+
+        return {
+          title,
+          summary: compactSummary || "No summary available.",
+          url: link,
+          publishTime,
+          source,
+        };
+      })
+      .filter((item) => item.title && item.url);
+
+    return parsedItems;
+  }
+
+  // Google News RSS兜底（免费、免API Key）
+  async getStockNewsFromGoogle(symbol, count = 5) {
+    const safeSymbol = String(symbol || "").trim().toUpperCase();
+    if (!safeSymbol) return [];
+
+    try {
+      const query = encodeURIComponent(`${safeSymbol} stock`);
+      const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
+
+      const response = await axios.get(rssUrl, {
+        timeout: 8000,
+        responseType: "text",
+        transformResponse: [(data) => data],
+      });
+
+      const parsed = this.parseRssItems(response.data, count, "Google News");
+      if (parsed.length > 0) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn(`⚠️ Google News RSS兜底失败 ${safeSymbol}:`, error.message);
+    }
+
+    return [];
+  }
+
   // 📰 获取股票新闻
   async getStockNews(symbol, count = 5) {
     try {
@@ -394,16 +483,23 @@ class YahooFinanceService {
         newsCount: count,
       });
 
-      return news.news.map((item) => ({
+      const yahooNews = (news.news || []).map((item) => ({
         title: item.title,
         summary: item.summary,
         url: item.link,
         publishTime: new Date(item.providerPublishTime * 1000).toISOString(),
         source: item.publisher,
       }));
+
+      if (yahooNews.length > 0) {
+        return yahooNews;
+      }
+
+      console.warn(`⚠️ Yahoo新闻为空，切换Google RSS兜底: ${symbol}`);
+      return await this.getStockNewsFromGoogle(symbol, count);
     } catch (error) {
       console.error("❌ 获取股票新闻失败:", error);
-      return [];
+      return await this.getStockNewsFromGoogle(symbol, count);
     }
   }
 

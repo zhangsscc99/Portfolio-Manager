@@ -396,6 +396,103 @@ const StockInsights = () => {
     }
   };
 
+  const renderInlineMarkdown = (text) => {
+    const normalized = String(text || "")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1 ($2)')
+      .replace(/(^|\s)_([^_]+)_(?=\s|$)/g, '$1$2');
+
+    const parts = normalized.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <Box component="strong" key={`md-bold-${index}`} sx={{ fontWeight: 700 }}>
+            {part.slice(2, -2)}
+          </Box>
+        );
+      }
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <Box
+            component="code"
+            key={`md-code-${index}`}
+            sx={{
+              px: 0.5,
+              py: 0.1,
+              borderRadius: 0.75,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              fontSize: '0.85em',
+            }}
+          >
+            {part.slice(1, -1)}
+          </Box>
+        );
+      }
+      return (
+        <React.Fragment key={`md-text-${index}`}>
+          {part.replace(/\*/g, '')}
+        </React.Fragment>
+      );
+    });
+  };
+
+  const renderFormattedAIResponse = (content) => {
+    const lines = String(content || '').split('\n');
+
+    return (
+      <Stack spacing={0.9}>
+        {lines.map((rawLine, index) => {
+          const line = rawLine.trim();
+
+          if (!line) {
+            return <Box key={`md-space-${index}`} sx={{ height: 4 }} />;
+          }
+
+          if (/^#{1,6}\s+/.test(line)) {
+            const headingText = line.replace(/^#{1,6}\s+/, '');
+            return (
+              <Typography key={`md-heading-${index}`} variant="subtitle2" sx={{ fontWeight: 700, mt: 0.6 }}>
+                {renderInlineMarkdown(headingText)}
+              </Typography>
+            );
+          }
+
+          if (/^[-*•]\s+/.test(line)) {
+            const bulletText = line.replace(/^[-*•]\s+/, '');
+            return (
+              <Box key={`md-bullet-${index}`} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <Typography variant="body2" sx={{ lineHeight: 1.7 }}>•</Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.7 }}>
+                  {renderInlineMarkdown(bulletText)}
+                </Typography>
+              </Box>
+            );
+          }
+
+          if (/^\d+\.\s+/.test(line)) {
+            const marker = line.match(/^(\d+\.)\s+/)?.[1] || '1.';
+            const orderedText = line.replace(/^\d+\.\s+/, '');
+            return (
+              <Box key={`md-ordered-${index}`} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <Typography variant="body2" sx={{ minWidth: 28, lineHeight: 1.7 }}>{marker}</Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.7 }}>
+                  {renderInlineMarkdown(orderedText)}
+                </Typography>
+              </Box>
+            );
+          }
+
+          return (
+            <Typography key={`md-line-${index}`} variant="body2" sx={{ lineHeight: 1.7 }}>
+              {renderInlineMarkdown(line)}
+            </Typography>
+          );
+        })}
+      </Stack>
+    );
+  };
+
   const renderOverview = () => (
     <Grid container spacing={3}>
       <Grid item xs={12} md={8}>
@@ -779,9 +876,7 @@ const StockInsights = () => {
           ) : aiState.error ? (
             <Alert severity="error">{aiState.error}</Alert>
           ) : aiState.response ? (
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.75 }}>
-              {aiState.response}
-            </Typography>
+            renderFormattedAIResponse(aiState.response)
           ) : (
             <Typography variant="body2" color="text.secondary">
               Click one of the AI quick actions to generate a focused brief for the selected stock.
