@@ -22,6 +22,7 @@ import {
   ViewList as ETFIcon,
   AttachMoney as StocksIcon,
   CurrencyBitcoin as CryptoIcon,
+  Insights as InsightsPageIcon,
 } from '@mui/icons-material';
 
 const navigationItems = [
@@ -42,6 +43,12 @@ const navigationItems = [
     label: 'Analytics',
     path: '/app/analytics',
     icon: AnalyticsIcon,
+  },
+  {
+    id: 'insights',
+    label: 'Stock Insights',
+    path: '/app/insights',
+    icon: InsightsPageIcon,
   },
   {
     id: 'markets',

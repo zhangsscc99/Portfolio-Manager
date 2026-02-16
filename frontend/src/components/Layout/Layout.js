@@ -69,17 +69,24 @@ const Layout = ({ children }) => {
   }, []);
 
   const getPageTitle = (pathname) => {
+    if (pathname === '/' || pathname === '/dashboard' || pathname === '/app/dashboard') {
+      return 'Dashboard';
+    }
+    if (pathname === '/portfolio' || pathname === '/app/portfolio') {
+      return 'Portfolio';
+    }
+    if (pathname === '/analytics' || pathname === '/app/analytics') {
+      return 'Analytics';
+    }
+    if (pathname === '/insights' || pathname === '/app/insights') {
+      return 'Stock Insights';
+    }
+    if (pathname === '/markets' || pathname.startsWith('/app/markets')) {
+      return 'Markets';
+    }
     switch (pathname) {
       case '/':
-      case '/dashboard':
         return 'Dashboard';
-      case '/portfolio':
-        return 'Portfolio';
-
-      case '/analytics':
-        return 'Analytics';
-      case '/markets':
-        return 'Markets';
       default:
         return 'Portfolio Manager';
     }

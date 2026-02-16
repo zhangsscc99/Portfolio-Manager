@@ -122,7 +122,10 @@ export const marketAPI = {
   getIndices: () => api.get("/market/indices"),
 
   // Get historical data
-  getHistory: (symbol) => api.get(`/market/history/${symbol}`),
+  getHistory: (symbol, period = '1mo') => api.get(`/market/history/${symbol}?period=${encodeURIComponent(period)}`),
+
+  // Get symbol news
+  getNews: (symbol) => api.get(`/market/news/${symbol}`),
 
   getCryptos: (page = 1, rowsPerPage = 10) => api.get(`/market/crypto?page=${page}&limit=${rowsPerPage}`),
 
@@ -238,4 +241,3 @@ export const portfolioHistoryAPI = {
 };
 
 export default api; 
-

@@ -52,6 +52,7 @@ export const API_ENDPOINTS = {
     search: (query) => `/market/search?q=${encodeURIComponent(query)}`,
     indices: '/market/indices',
     history: (symbol) => `/market/history/${symbol}`,
+    news: (symbol) => `/market/news/${symbol}`,
   },
 
   // Assets endpoints (保持原有格式，用于Portfolio.js)

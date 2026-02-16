@@ -15,6 +15,7 @@ import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Analytics from './pages/Analytics';
 import Markets from './pages/Markets'; // This will become a parent route
+import StockInsights from './pages/StockInsights';
 
 // New Market Sub-pages (assuming you'll create these files)
 import Stock from './pages/Markets/Stock';
@@ -389,6 +390,7 @@ function App() {
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="portfolio" element={<Portfolio />} />
                     <Route path="analytics" element={<Analytics />} />
+                    <Route path="insights" element={<StockInsights />} />
                     {/* Markets route with nested routes for sub-menus */}
                     <Route path="markets/*" element={<Markets />}>
                       <Route path="stock" element={<Stock />} />
@@ -411,6 +413,7 @@ function App() {
               <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
               <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
               <Route path="/markets" element={<Layout><Markets /></Layout>} />
+              <Route path="/insights" element={<Layout><StockInsights /></Layout>} />
               <Route path="/ai-report/:reportId" element={<Layout><AIReportDetail /></Layout>} />
 
             </Routes>
