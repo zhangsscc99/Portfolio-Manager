@@ -3,8 +3,9 @@ const crypto = require('crypto');
 
 class AIAnalysisService {
   constructor() {
-    this.apiKey = "";
-    this.baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/";
+    this.apiKey = process.env.DASHSCOPE_API_KEY || process.env.AI_ALIYUN_API_KEY || "";
+    this.baseUrl = process.env.AI_ALIYUN_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1/";
+    this.model = process.env.AI_ALIYUN_MODEL || "qwen-turbo-latest";
     this.endpoint = `${this.baseUrl}chat/completions`;
   }
 
@@ -84,7 +85,7 @@ IMPORTANT: Please respond entirely in English. All analysis content should be in
   async callAliyunAI(prompt) {
     try {
       const response = await axios.post(this.endpoint, {
-        model: "qwen-turbo-latest",
+        model: this.model,
         messages: [
           {
             role: "user",
