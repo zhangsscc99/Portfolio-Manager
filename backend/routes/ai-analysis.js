@@ -192,6 +192,18 @@ router.post('/portfolio', async (req, res) => {
 
   } catch (error) {
     console.error('AI Analysis API Error:', error);
+
+    const errorMessage = error?.message || '';
+    if (
+      errorMessage.includes('投资组合不存在') ||
+      errorMessage.toLowerCase().includes('portfolio not found')
+    ) {
+      return res.status(404).json({
+        success: false,
+        error: 'Portfolio not found'
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: 'Internal server error during AI analysis'

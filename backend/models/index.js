@@ -4,6 +4,7 @@ const Holding = require('./Holding');
 const Asset = require('./Asset');
 const Watchlist = require('./Watchlist');
 const AIAnalysisReport = require('./AIAnalysisReport');
+const PortfolioHistory = require('./PortfolioHistory');
 
 // 🔗 定义模型关联关系 - 支持多种资产类型
 // 一个投资组合可以有多个持仓 (1:N关系)
@@ -39,6 +40,17 @@ AIAnalysisReport.belongsTo(Portfolio, {
   as: 'portfolio'
 });
 
+// 一个投资组合可以有多条历史记录 (1:N关系)
+Portfolio.hasMany(PortfolioHistory, {
+  foreignKey: 'portfolio_id',
+  as: 'history',
+  onDelete: 'CASCADE'
+});
+PortfolioHistory.belongsTo(Portfolio, {
+  foreignKey: 'portfolio_id',
+  as: 'portfolio'
+});
+
 // 💾 数据库同步函数 - 自动创建表结构
 const syncDatabase = async (force = false) => {
   try {
@@ -49,6 +61,9 @@ const syncDatabase = async (force = false) => {
       await Holding.drop({ cascade: true });
       console.log('✅ Holdings表删除成功');
       
+      await PortfolioHistory.drop({ cascade: true });
+      console.log('✅ PortfolioHistory表删除成功');
+
       await AIAnalysisReport.drop({ cascade: true });
       console.log('✅ AI分析报告历史表删除成功');
       
@@ -72,6 +87,9 @@ const syncDatabase = async (force = false) => {
     await AIAnalysisReport.sync();
     console.log('✅ AI分析报告历史表创建成功');
     
+    await PortfolioHistory.sync();
+    console.log('✅ PortfolioHistory表创建成功');
+
     await Watchlist.sync();
     console.log('✅ Watchlist表创建成功');
     
@@ -95,5 +113,6 @@ module.exports = {
   Asset,
   Watchlist,
   AIAnalysisReport,
+  PortfolioHistory,
   syncDatabase
 }; 

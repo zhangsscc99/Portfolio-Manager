@@ -1,10 +1,105 @@
 const yahooFinance = require("yahoo-finance2").default;
+const axios = require("axios");
 
 // 🏢 Yahoo Finance API服务
 class YahooFinanceService {
   constructor() {
     this.cache = new Map(); // 简单缓存
     this.cacheExpiry = 60000; // 1分钟缓存
+  }
+
+  // Stooq备用行情：当Yahoo在服务器环境被403/限流时兜底
+  async getStockPriceFromStooq(symbol) {
+    const cleanSymbol = String(symbol || "").trim().toLowerCase();
+    if (!cleanSymbol) return null;
+
+    const candidates = new Set([cleanSymbol]);
+    if (!cleanSymbol.includes(".")) {
+      candidates.add(`${cleanSymbol}.us`);
+    }
+
+    const toYmd = (date) => date.toISOString().slice(0, 10).replace(/-/g, "");
+    const endDate = new Date();
+    const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+    for (const candidate of candidates) {
+      try {
+        const response = await axios.get("https://stooq.com/q/d/l/", {
+          params: {
+            s: candidate,
+            i: "d",
+            d1: toYmd(startDate),
+            d2: toYmd(endDate),
+          },
+          timeout: 6000,
+          responseType: "text",
+          transformResponse: [(data) => data],
+        });
+
+        const lines = String(response.data || "")
+          .trim()
+          .split(/\r?\n/)
+          .filter(Boolean);
+
+        if (lines.length <= 1) {
+          continue;
+        }
+
+        const rows = lines
+          .slice(1)
+          .map((line) => line.split(","))
+          .filter((cols) => cols.length >= 6)
+          .map((cols) => ({
+            date: cols[0],
+            open: parseFloat(cols[1]),
+            high: parseFloat(cols[2]),
+            low: parseFloat(cols[3]),
+            close: parseFloat(cols[4]),
+            volume: parseFloat(cols[5]) || 0,
+          }))
+          .filter((row) => Number.isFinite(row.close) && row.close > 0);
+
+        if (!rows.length) {
+          continue;
+        }
+
+        const latest = rows[rows.length - 1];
+        const previous = rows.length > 1 ? rows[rows.length - 2] : null;
+        const previousClose =
+          previous && Number.isFinite(previous.close) && previous.close > 0
+            ? previous.close
+            : Number.isFinite(latest.open) && latest.open > 0
+            ? latest.open
+            : latest.close;
+
+        const change = latest.close - previousClose;
+        const changePercent =
+          previousClose > 0 ? (change / previousClose) * 100 : 0;
+
+        return {
+          symbol: symbol.toUpperCase(),
+          name: symbol.toUpperCase(),
+          price: latest.close,
+          change,
+          changePercent,
+          dayHigh: Number.isFinite(latest.high) ? latest.high : latest.close,
+          dayLow: Number.isFinite(latest.low) ? latest.low : latest.close,
+          open: Number.isFinite(latest.open) ? latest.open : latest.close,
+          previousClose,
+          volume: latest.volume,
+          marketCap: 0,
+          lastUpdated: new Date().toISOString(),
+          provider: "stooq",
+        };
+      } catch (error) {
+        console.warn(
+          `⚠️ Stooq兜底获取失败 ${candidate}:`,
+          error.message
+        );
+      }
+    }
+
+    return null;
   }
 
   async getDailyGainers(region = "US", options = {}) {
@@ -87,12 +182,20 @@ class YahooFinanceService {
     } catch (error) {
       console.error(`❌ 获取股票数据失败 ${symbol}:`, error.message);
 
+      // Yahoo失败时尝试Stooq兜底，避免前端价格全部为0
+      const fallbackStockData = await this.getStockPriceFromStooq(symbol);
+      if (fallbackStockData) {
+        this.cache.set(symbol.toUpperCase(), {
+          data: fallbackStockData,
+          timestamp: Date.now(),
+        });
+        return fallbackStockData;
+      }
+
       return {
-        error: error.message,
         symbol: symbol,
         price: 0,
         change: 0,
-
         changePercent: 0,
         dayHigh: 0,
         dayLow: 0,
@@ -152,7 +255,7 @@ class YahooFinanceService {
         newsCount: 0,
       });
 
-      return searchResults.quotes.map((quote) => ({
+      return (searchResults.quotes || []).map((quote) => ({
         symbol: quote.symbol,
         name: quote.shortname || quote.longname,
         exchange: quote.exchange,
@@ -160,6 +263,36 @@ class YahooFinanceService {
       }));
     } catch (error) {
       console.error("❌ 搜索股票失败:", error);
+      return this.searchStockFallback(query);
+    }
+  }
+
+  // 🛟 搜索降级方案：Yahoo不可用时使用公开符号搜索
+  async searchStockFallback(query) {
+    try {
+      const response = await axios.get(
+        "https://api.twelvedata.com/symbol_search",
+        {
+          params: {
+            symbol: query,
+            outputsize: 10,
+          },
+          timeout: 5000,
+        }
+      );
+
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      return rows.map((item) => ({
+        symbol: item.symbol,
+        name: item.instrument_name || item.symbol,
+        exchange: item.exchange || item.mic_code || "",
+        type: item.instrument_type || "Unknown",
+        typeDisp: item.instrument_type || "Unknown",
+        quoteType: item.instrument_type || "Unknown",
+      }));
+    } catch (fallbackError) {
+      console.error("❌ 搜索股票降级方案失败:", fallbackError.message);
       return [];
     }
   }

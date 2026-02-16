@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const yahooFinanceService = require("../services/yahooFinance");
+const alphaVantageService = require("../services/alphaVantageService");
 const cryptoService = require("../services/cryptoService"); // 添加crypto服务
 const scheduledUpdatesService = require("../services/scheduledUpdates");
 const { Holding } = require("../models/index");
@@ -15,6 +16,14 @@ router.get("/quote/:symbol", async (req, res) => {
   try {
     const { symbol } = req.params;
     const quote = await yahooFinanceService.getStockPrice(symbol);
+
+    if (quote.error) {
+      return res.status(502).json({
+        success: false,
+        error: quote.error,
+        data: quote,
+      });
+    }
 
     res.json({
       success: true,
@@ -70,12 +79,14 @@ router.get("/search", async (req, res) => {
 
     // 为搜索结果获取价格数据
     if (results && results.length > 0) {
-      const symbols = results.slice(0, 5).map((r) => r.symbol);
+      const normalizedQuery = String(query || "").trim().toUpperCase();
+      const candidates = results.slice(0, 10);
+      const symbols = candidates.map((r) => r.symbol);
       const pricesData = await yahooFinanceService.getMultipleStockPrices(
         symbols
       );
 
-      const enrichedResults = results.slice(0, 5).map((result) => {
+      const enrichedResults = candidates.map((result) => {
         const priceData = pricesData.find((p) => p.symbol === result.symbol);
         return {
           ...result,
@@ -86,9 +97,37 @@ router.get("/search", async (req, res) => {
         };
       });
 
+      const scoreResult = (item) => {
+        const symbol = String(item.symbol || "").toUpperCase();
+        const exchange = String(item.exchange || "").toUpperCase();
+        let score = 0;
+
+        if (symbol === normalizedQuery) score += 100;
+        else if (symbol.startsWith(normalizedQuery)) score += 70;
+        else if (symbol.includes(normalizedQuery)) score += 40;
+
+        if (item.price > 0) score += 120;
+        if (exchange.includes("NASDAQ") || exchange.includes("NYSE")) score += 10;
+
+        return score;
+      };
+
+      const rankedResults = enrichedResults.sort(
+        (a, b) => scoreResult(b) - scoreResult(a)
+      );
+
+      const dedupedResults = [];
+      const seenSymbols = new Set();
+      for (const item of rankedResults) {
+        const key = String(item.symbol || "").toUpperCase();
+        if (!key || seenSymbols.has(key)) continue;
+        seenSymbols.add(key);
+        dedupedResults.push(item);
+      }
+
       res.json({
         success: true,
-        data: enrichedResults,
+        data: dedupedResults.slice(0, 5),
       });
     } else {
       res.json({
@@ -271,53 +310,88 @@ router.delete("/clear-cache", async (req, res) => {
   }
 });
 
-router.get("/most-active", async (req, res) => {
+const parsePagination = (req, res) => {
   const page = parseInt(req.query.page || "1", 10);
   const limit = parseInt(req.query.limit || "10", 10);
 
   if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: "分页参数 page 和 limit 必须是大于0的有效数字。",
     });
+    return null;
   }
 
+  return { page, limit };
+};
+
+const toNumber = (value) => {
+  if (value === null || value === undefined) return NaN;
+  const cleaned = String(value).replace(/[,%$]/g, "").trim();
+  const num = Number.parseFloat(cleaned);
+  return Number.isFinite(num) ? num : NaN;
+};
+
+const formatMoverRow = (item) => {
+  const symbol = String(item?.ticker || item?.symbol || "").toUpperCase();
+  const priceNum = toNumber(item?.price);
+  const changeNum = toNumber(item?.change_amount || item?.change);
+  const changePctNum = toNumber(item?.change_percentage || item?.changePercent);
+  const volumeNum = toNumber(item?.volume);
+
+  return {
+    symbol,
+    name: symbol,
+    price: Number.isFinite(priceNum)
+      ? (priceNum >= 1 ? priceNum.toFixed(2) : priceNum.toFixed(4))
+      : "0.00",
+    change: Number.isFinite(changeNum) ? changeNum.toFixed(2) : "0.00",
+    changePercent: Number.isFinite(changePctNum)
+      ? `${changePctNum.toFixed(2)}%`
+      : "0.00%",
+    volume: Number.isFinite(volumeNum)
+      ? Math.round(volumeNum).toLocaleString("en-US")
+      : "0",
+    avgVolume: "N/A",
+    marketCap: "N/A",
+    peRatio: "N/A",
+    fiftyTwoWeekChangePercent: "N/A",
+    fiftyTwoWeekRange: "N/A",
+    open: "N/A",
+    _changePctNum: Number.isFinite(changePctNum) ? changePctNum : 0,
+    _volumeNum: Number.isFinite(volumeNum) ? volumeNum : 0,
+  };
+};
+
+const paginateRows = (rows, page, limit) => {
+  const totalRecords = rows.length;
+  const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / limit) : 0;
+  const offset = (page - 1) * limit;
+  const paged = rows.slice(offset, offset + limit);
+  return { paged, totalRecords, totalPages };
+};
+
+const stripInternalFields = (row) => {
+  const { _changePctNum, _volumeNum, _score, ...publicFields } = row;
+  return publicFields;
+};
+
+router.get("/most-active", async (req, res) => {
+  const paging = parsePagination(req, res);
+  if (!paging) {
+    return;
+  }
+  const { page, limit } = paging;
+
   try {
-    const offset = (page - 1) * limit;
-    const apiURL = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=MOST_ACTIVES&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US`;
-
-    const response = await axios.get(apiURL, {
-      // httpsAgent: agent,
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-      },
-    });
-
-    const result = response.data.finance?.result?.[0];
-    const quotes = result?.quotes || [];
-    const totalRecords = result?.total || 0;
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    // 使用 fmt 字段构造简化后的数据结构
-    const formattedStocks = quotes.map((item) => ({
-      symbol: item.symbol,
-      name: item.shortName || item.longName || item.symbol,
-      price: item.regularMarketPrice?.fmt || "N/A",
-      change: item.regularMarketChange?.fmt || "N/A",
-      changePercent: item.regularMarketChangePercent?.fmt || "N/A",
-      volume: item.regularMarketVolume?.fmt || "N/A",
-      avgVolume: item.averageDailyVolume3Month?.fmt || "N/A",
-      marketCap: item.marketCap?.fmt || "N/A",
-      peRatio: item.trailingPE?.fmt || "N/A",
-      fiftyTwoWeekChangePercent: item.fiftyTwoWeekChangePercent?.fmt || "N/A",
-      fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
-      open: item.regularMarketOpen?.fmt || "N/A",
-    }));
+    const movers = await alphaVantageService.getTopGainersLosers();
+    const rows = movers.mostActive.map(formatMoverRow).map(stripInternalFields);
+    const { paged, totalRecords, totalPages } = paginateRows(rows, page, limit);
 
     return res.status(200).json({
       success: true,
-      message: "成功获取最活跃股票数据。",
-      data: formattedStocks,
+      message: "成功获取最活跃股票数据（Alpha Vantage）。",
+      data: paged,
       totalRecords,
       totalPages,
       currentPage: page,
@@ -325,11 +399,9 @@ router.get("/most-active", async (req, res) => {
     });
   } catch (error) {
     console.error("获取最活跃股票数据时发生错误:", error);
-    const statusCode = error.response?.status || 500;
-
-    return res.status(statusCode).json({
+    return res.status(502).json({
       success: false,
-      message: "获取最活跃股票数据时失败。",
+      message: "获取最活跃股票数据失败。",
       error: error.message,
     });
   }
@@ -337,53 +409,40 @@ router.get("/most-active", async (req, res) => {
 
 // 🔥 GET /api/market/trending - 获取热门股票 (带分页和总记录数)
 router.get("/trending", async (req, res) => {
-  const page = parseInt(req.query.page || "1", 10);
-  const limit = parseInt(req.query.limit || "10", 10);
-
-  if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: "分页参数 page 和 limit 必须是大于0的有效数字。",
-    });
+  const paging = parsePagination(req, res);
+  if (!paging) {
+    return;
   }
+  const { page, limit } = paging;
 
   try {
-    const url = `https://query1.finance.yahoo.com/v1/finance/trending/US?count=25&fields=logoUrl%2ClongName%2CshortName%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketPrice%2Cticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&format=true&useQuotes=true&quoteType=equity&lang=en-US&region=US`;
+    const movers = await alphaVantageService.getTopGainersLosers();
+    const sourceRows = [
+      ...movers.topGainers,
+      ...movers.mostActive,
+      ...movers.topLosers,
+    ].map(formatMoverRow);
 
-    const response = await axios.get(url, {
-      // httpsAgent: agent,
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-      },
-    });
+    const bySymbol = new Map();
+    for (const row of sourceRows) {
+      if (!row.symbol) continue;
+      const score =
+        Math.abs(row._changePctNum) + (row._volumeNum > 0 ? Math.log10(row._volumeNum) : 0);
+      const existing = bySymbol.get(row.symbol);
+      if (!existing || score > existing._score) {
+        bySymbol.set(row.symbol, { ...row, _score: score });
+      }
+    }
 
-    const quotes = response.data.finance?.result?.[0]?.quotes || [];
-    const totalRecords = quotes.length;
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paged = quotes.slice(startIndex, endIndex);
-
-    const trendingStocks = paged.map((item) => ({
-      symbol: item.symbol,
-      name: item.shortName || item.longName || item.symbol,
-      price: item.regularMarketPrice?.fmt || "N/A",
-      change: item.regularMarketChange?.fmt || "N/A",
-      changePercent: item.regularMarketChangePercent?.fmt || "N/A",
-      volume: item.regularMarketVolume?.fmt || "N/A",
-      avgVolume: item.averageDailyVolume3Month?.fmt || "N/A",
-      marketCap: item.marketCap?.fmt || "N/A",
-      peRatio: item.trailingPE?.fmt || "N/A",
-      fiftyTwoWeekChangePercent: item.fiftyTwoWeekChangePercent?.fmt || "N/A",
-      fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
-      open: item.regularMarketOpen?.fmt || "N/A",
-    }));
+    const rows = Array.from(bySymbol.values())
+      .sort((a, b) => b._score - a._score)
+      .map(stripInternalFields);
+    const { paged, totalRecords, totalPages } = paginateRows(rows, page, limit);
 
     return res.status(200).json({
       success: true,
-      message: "成功获取热门趋势股票数据。",
-      data: trendingStocks,
+      message: "成功获取热门趋势股票数据（Alpha Vantage）。",
+      data: paged,
       totalRecords,
       totalPages,
       currentPage: page,
@@ -391,7 +450,7 @@ router.get("/trending", async (req, res) => {
     });
   } catch (error) {
     console.error("获取热门趋势股票数据失败:", error);
-    return res.status(error.response?.status || 500).json({
+    return res.status(502).json({
       success: false,
       message: "获取热门趋势股票失败。",
       error: error.message,
@@ -401,51 +460,21 @@ router.get("/trending", async (req, res) => {
 
 // 📈 GET /api/market/gainers - 获取涨幅榜 (带分页和总记录数)
 router.get("/gainers", async (req, res) => {
-  const page = parseInt(req.query.page || "1", 10);
-  const limit = parseInt(req.query.limit || "10", 10);
-
-  if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: "分页参数 page 和 limit 必须是大于0的有效数字。",
-    });
+  const paging = parsePagination(req, res);
+  if (!paging) {
+    return;
   }
+  const { page, limit } = paging;
 
   try {
-    const offset = (page - 1) * limit;
-    const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_GAINERS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US`;
-
-    const response = await axios.get(url, {
-      // httpsAgent: agent,
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-      },
-    });
-
-    const result = response.data.finance?.result?.[0];
-    const quotes = result?.quotes || [];
-    const totalRecords = result?.total || 0;
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    const gainers = quotes.map((item) => ({
-      symbol: item.symbol,
-      name: item.shortName || item.longName || item.symbol,
-      price: item.regularMarketPrice?.fmt || "N/A",
-      change: item.regularMarketChange?.fmt || "N/A",
-      changePercent: item.regularMarketChangePercent?.fmt || "N/A",
-      volume: item.regularMarketVolume?.fmt || "N/A",
-      avgVolume: item.averageDailyVolume3Month?.fmt || "N/A",
-      marketCap: item.marketCap?.fmt || "N/A",
-      peRatio: item.trailingPE?.fmt || "N/A",
-      fiftyTwoWeekChangePercent: item.fiftyTwoWeekChangePercent?.fmt || "N/A",
-      fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
-      open: item.regularMarketOpen?.fmt || "N/A",
-    }));
+    const movers = await alphaVantageService.getTopGainersLosers();
+    const rows = movers.topGainers.map(formatMoverRow).map(stripInternalFields);
+    const { paged, totalRecords, totalPages } = paginateRows(rows, page, limit);
 
     return res.status(200).json({
       success: true,
-      message: "成功获取日涨幅股票数据。",
-      data: gainers,
+      message: "成功获取日涨幅股票数据（Alpha Vantage）。",
+      data: paged,
       totalRecords,
       totalPages,
       currentPage: page,
@@ -453,7 +482,7 @@ router.get("/gainers", async (req, res) => {
     });
   } catch (error) {
     console.error("获取涨幅股票失败:", error);
-    return res.status(error.response?.status || 500).json({
+    return res.status(502).json({
       success: false,
       message: "获取涨幅股票失败。",
       error: error.message,
@@ -463,51 +492,21 @@ router.get("/gainers", async (req, res) => {
 
 // 📉 GET /api/market/losers - 获取跌幅榜 (带分页和总记录数)
 router.get("/losers", async (req, res) => {
-  const page = parseInt(req.query.page || "1", 10);
-  const limit = parseInt(req.query.limit || "10", 10);
-
-  if (isNaN(page) || page <= 0 || isNaN(limit) || limit <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: "分页参数 page 和 limit 必须是大于0的有效数字。",
-    });
+  const paging = parsePagination(req, res);
+  if (!paging) {
+    return;
   }
+  const { page, limit } = paging;
 
   try {
-    const offset = (page - 1) * limit;
-    const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_LOSERS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CaverageDailyVolume3Month%2CmarketCap%2CtrailingPE%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange%2CregularMarketOpen&lang=en-US&region=US`;
-
-    const response = await axios.get(url, {
-      // httpsAgent: agent,
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-      },
-    });
-
-    const result = response.data.finance?.result?.[0];
-    const quotes = result?.quotes || [];
-    const totalRecords = result?.total || 0;
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    const losers = quotes.map((item) => ({
-      symbol: item.symbol,
-      name: item.shortName || item.longName || item.symbol,
-      price: item.regularMarketPrice?.fmt || "N/A",
-      change: item.regularMarketChange?.fmt || "N/A",
-      changePercent: item.regularMarketChangePercent?.fmt || "N/A",
-      volume: item.regularMarketVolume?.fmt || "N/A",
-      avgVolume: item.averageDailyVolume3Month?.fmt || "N/A",
-      marketCap: item.marketCap?.fmt || "N/A",
-      peRatio: item.trailingPE?.fmt || "N/A",
-      fiftyTwoWeekChangePercent: item.fiftyTwoWeekChangePercent?.fmt || "N/A",
-      fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
-      open: item.regularMarketOpen?.fmt || "N/A",
-    }));
+    const movers = await alphaVantageService.getTopGainersLosers();
+    const rows = movers.topLosers.map(formatMoverRow).map(stripInternalFields);
+    const { paged, totalRecords, totalPages } = paginateRows(rows, page, limit);
 
     return res.status(200).json({
       success: true,
-      message: "成功获取日跌幅股票数据。",
-      data: losers,
+      message: "成功获取日跌幅股票数据（Alpha Vantage）。",
+      data: paged,
       totalRecords,
       totalPages,
       currentPage: page,
@@ -515,7 +514,7 @@ router.get("/losers", async (req, res) => {
     });
   } catch (error) {
     console.error("获取跌幅股票失败:", error);
-    return res.status(error.response?.status || 500).json({
+    return res.status(502).json({
       success: false,
       message: "获取跌幅股票失败。",
       error: error.message,
@@ -1052,43 +1051,6 @@ router.get("/bonds", async (req, res) => {
       success: false,
       message: "获取国债趋势失败。",
       error: error.message,
-    });
-  }
-});
-
-// 🔥 GET /api/market/crypto/:symbol - 获取单个加密货币详细数据
-router.get('/crypto/:symbol', async (req, res) => {
-  try {
-    const { symbol } = req.params;
-    console.log(`🧪 测试获取 ${symbol} 价格...`);
-    
-    const cryptoData = await cryptoService.getCryptoPrice(symbol);
-    
-    if (cryptoData) {
-      res.json({
-        success: true,
-        symbol: symbol.toUpperCase(),
-        price: parseFloat(cryptoData.price),
-        currency: cryptoData.currency || 'USD',
-        marketTime: cryptoData.marketTime || new Date().toISOString(),
-        data: cryptoData, // 保留完整数据以备调试
-        message: `成功获取 ${symbol} 的价格信息`
-      });
-    } else {
-      res.json({
-        success: false,
-        symbol: symbol.toUpperCase(),
-        error: `无法获取 ${symbol} 的有效价格`,
-        data: cryptoData
-      });
-    }
-    
-  } catch (error) {
-    console.error(`❌ 测试获取 ${symbol} 价格失败:`, error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      symbol: req.params.symbol
     });
   }
 });

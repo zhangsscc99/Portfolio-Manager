@@ -1,31 +1,56 @@
 const express = require('express');
 const router = express.Router();
-const Holding = require('../models/Holding');
+const { Holding, Portfolio } = require('../models/index');
 
-// Import portfolio data (shared with portfolio routes)
-const portfolioModule = require('./portfolio');
+const parsePositiveNumber = (value) => {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
 
-// GET /api/holdings - Get all holdings from current portfolio
-router.get('/', (req, res) => {
-  try {
-    // This would typically get current portfolio from database
-    // For now, we'll use a simple approach
-    const portfolios = require('./portfolio').portfolios || [];
-    const currentPortfolio = portfolios[0];
-    
-    if (!currentPortfolio) {
-      return res.json({
-        success: true,
-        data: []
-      });
+const getCurrentPortfolio = async () => {
+  return Portfolio.findOne({
+    order: [['created_at', 'DESC']]
+  });
+};
+
+const resolvePortfolioId = async (portfolioId) => {
+  if (portfolioId !== undefined && portfolioId !== null) {
+    const parsed = parseInt(portfolioId, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new Error('Invalid portfolioId');
     }
+
+    const portfolio = await Portfolio.findByPk(parsed);
+    if (!portfolio) {
+      throw new Error('Portfolio not found');
+    }
+    return parsed;
+  }
+
+  const currentPortfolio = await getCurrentPortfolio();
+  if (!currentPortfolio) {
+    throw new Error('No portfolio found');
+  }
+
+  return currentPortfolio.id;
+};
+
+// GET /api/holdings - Get holdings from current portfolio (or ?portfolioId=)
+router.get('/', async (req, res) => {
+  try {
+    const portfolioId = await resolvePortfolioId(req.query.portfolioId);
+    const holdings = await Holding.findAll({
+      where: { portfolio_id: portfolioId },
+      order: [['created_at', 'DESC']]
+    });
 
     res.json({
       success: true,
-      data: currentPortfolio.holdings
+      data: holdings
     });
   } catch (error) {
-    res.status(500).json({
+    const statusCode = error.message === 'No portfolio found' ? 404 : 400;
+    res.status(statusCode).json({
       success: false,
       error: error.message
     });
@@ -33,19 +58,17 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/holdings/:id - Get specific holding
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const portfolios = require('./portfolio').portfolios || [];
-    const currentPortfolio = portfolios[0];
-    
-    if (!currentPortfolio) {
-      return res.status(404).json({
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
         success: false,
-        error: 'No portfolio found'
+        error: 'Invalid holding id'
       });
     }
 
-    const holding = currentPortfolio.holdings.find(h => h.id === req.params.id);
+    const holding = await Holding.findByPk(id);
     if (!holding) {
       return res.status(404).json({
         success: false,
@@ -65,40 +88,43 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// POST /api/holdings - Add new holding to portfolio
-router.post('/', (req, res) => {
+// POST /api/holdings - Add new holding
+router.post('/', async (req, res) => {
   try {
-    const { symbol, name, type, quantity, avgPrice, currentPrice } = req.body;
+    const { symbol, name, type, quantity, avgPrice, currentPrice, portfolioId } = req.body;
 
-    // Validation
-    if (!symbol || !name || !quantity || !avgPrice) {
+    const parsedQuantity = parsePositiveNumber(quantity);
+    const parsedAvgPrice = parsePositiveNumber(avgPrice);
+    const parsedCurrentPrice = currentPrice !== undefined && currentPrice !== null
+      ? parsePositiveNumber(currentPrice)
+      : parsedAvgPrice;
+
+    if (!symbol || !name || !parsedQuantity || !parsedAvgPrice || !parsedCurrentPrice) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: symbol, name, quantity, avgPrice'
       });
     }
 
-    const holding = new Holding({
-      symbol,
+    const targetPortfolioId = await resolvePortfolioId(portfolioId);
+
+    const holding = await Holding.create({
+      symbol: symbol.toUpperCase(),
       name,
       type: type || 'stock',
-      quantity: parseFloat(quantity),
-      avgPrice: parseFloat(avgPrice),
-      currentPrice: currentPrice ? parseFloat(currentPrice) : parseFloat(avgPrice)
+      quantity: parsedQuantity,
+      avg_price: parsedAvgPrice,
+      current_price: parsedCurrentPrice,
+      portfolio_id: targetPortfolioId
     });
-
-    // Add to current portfolio (this would be done through database in production)
-    const portfolios = require('./portfolio').portfolios || [];
-    if (portfolios.length > 0) {
-      portfolios[0].addHolding(holding.toJSON());
-    }
 
     res.status(201).json({
       success: true,
-      data: holding.toJSON()
+      data: holding
     });
   } catch (error) {
-    res.status(500).json({
+    const statusCode = error.message === 'No portfolio found' || error.message === 'Portfolio not found' ? 404 : 400;
+    res.status(statusCode).json({
       success: false,
       error: error.message
     });
@@ -106,38 +132,50 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/holdings/:id - Update holding
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
-    const portfolios = require('./portfolio').portfolios || [];
-    const currentPortfolio = portfolios[0];
-    
-    if (!currentPortfolio) {
-      return res.status(404).json({
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
         success: false,
-        error: 'No portfolio found'
+        error: 'Invalid holding id'
       });
     }
 
-    const holdingIndex = currentPortfolio.holdings.findIndex(h => h.id === req.params.id);
-    if (holdingIndex === -1) {
+    const holding = await Holding.findByPk(id);
+    if (!holding) {
       return res.status(404).json({
         success: false,
         error: 'Holding not found'
       });
     }
 
-    const { name, quantity, avgPrice, currentPrice, type } = req.body;
-    const holding = currentPortfolio.holdings[holdingIndex];
+    const updates = {};
+    if (req.body.name !== undefined) updates.name = req.body.name;
+    if (req.body.type !== undefined) updates.type = req.body.type;
+    if (req.body.quantity !== undefined) {
+      const parsed = parsePositiveNumber(req.body.quantity);
+      if (!parsed) {
+        return res.status(400).json({ success: false, error: 'quantity must be > 0' });
+      }
+      updates.quantity = parsed;
+    }
+    if (req.body.avgPrice !== undefined) {
+      const parsed = parsePositiveNumber(req.body.avgPrice);
+      if (!parsed) {
+        return res.status(400).json({ success: false, error: 'avgPrice must be > 0' });
+      }
+      updates.avg_price = parsed;
+    }
+    if (req.body.currentPrice !== undefined) {
+      const parsed = parsePositiveNumber(req.body.currentPrice);
+      if (!parsed) {
+        return res.status(400).json({ success: false, error: 'currentPrice must be > 0' });
+      }
+      updates.current_price = parsed;
+    }
 
-    // Update fields
-    if (name) holding.name = name;
-    if (type) holding.type = type;
-    if (quantity !== undefined) holding.quantity = parseFloat(quantity);
-    if (avgPrice !== undefined) holding.avgPrice = parseFloat(avgPrice);
-    if (currentPrice !== undefined) holding.currentPrice = parseFloat(currentPrice);
-    
-    holding.updatedAt = new Date().toISOString();
-    currentPortfolio.updateTotalValue();
+    await holding.update(updates);
 
     res.json({
       success: true,
@@ -151,29 +189,26 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// DELETE /api/holdings/:id - Remove holding from portfolio
-router.delete('/:id', (req, res) => {
+// DELETE /api/holdings/:id - Remove holding
+router.delete('/:id', async (req, res) => {
   try {
-    const portfolios = require('./portfolio').portfolios || [];
-    const currentPortfolio = portfolios[0];
-    
-    if (!currentPortfolio) {
-      return res.status(404).json({
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
         success: false,
-        error: 'No portfolio found'
+        error: 'Invalid holding id'
       });
     }
 
-    const holdingIndex = currentPortfolio.holdings.findIndex(h => h.id === req.params.id);
-    if (holdingIndex === -1) {
+    const holding = await Holding.findByPk(id);
+    if (!holding) {
       return res.status(404).json({
         success: false,
         error: 'Holding not found'
       });
     }
 
-    currentPortfolio.holdings.splice(holdingIndex, 1);
-    currentPortfolio.updateTotalValue();
+    await holding.destroy();
 
     res.json({
       success: true,
@@ -188,28 +223,24 @@ router.delete('/:id', (req, res) => {
 });
 
 // POST /api/holdings/:id/buy - Buy more shares of existing holding
-router.post('/:id/buy', (req, res) => {
+router.post('/:id/buy', async (req, res) => {
   try {
-    const { quantity, price } = req.body;
+    const id = parseInt(req.params.id, 10);
+    const buyQuantity = parsePositiveNumber(req.body.quantity);
+    const buyPrice = parsePositiveNumber(req.body.price);
 
-    if (!quantity || !price) {
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid holding id' });
+    }
+
+    if (!buyQuantity || !buyPrice) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: quantity, price'
       });
     }
 
-    const portfolios = require('./portfolio').portfolios || [];
-    const currentPortfolio = portfolios[0];
-    
-    if (!currentPortfolio) {
-      return res.status(404).json({
-        success: false,
-        error: 'No portfolio found'
-      });
-    }
-
-    const holding = currentPortfolio.holdings.find(h => h.id === req.params.id);
+    const holding = await Holding.findByPk(id);
     if (!holding) {
       return res.status(404).json({
         success: false,
@@ -217,15 +248,17 @@ router.post('/:id/buy', (req, res) => {
       });
     }
 
-    // Update holding with new purchase
-    const currentValue = holding.avgPrice * holding.quantity;
-    const newValue = parseFloat(quantity) * parseFloat(price);
-    holding.quantity += parseFloat(quantity);
-    holding.avgPrice = (currentValue + newValue) / holding.quantity;
-    holding.currentPrice = parseFloat(price);
-    holding.updatedAt = new Date().toISOString();
+    const currentQuantity = parseFloat(holding.quantity);
+    const currentAvgPrice = parseFloat(holding.avg_price);
+    const currentValue = currentQuantity * currentAvgPrice;
+    const newValue = buyQuantity * buyPrice;
+    const totalQuantity = currentQuantity + buyQuantity;
 
-    currentPortfolio.updateTotalValue();
+    await holding.update({
+      quantity: totalQuantity,
+      avg_price: (currentValue + newValue) / totalQuantity,
+      current_price: buyPrice
+    });
 
     res.json({
       success: true,
@@ -240,28 +273,24 @@ router.post('/:id/buy', (req, res) => {
 });
 
 // POST /api/holdings/:id/sell - Sell shares of existing holding
-router.post('/:id/sell', (req, res) => {
+router.post('/:id/sell', async (req, res) => {
   try {
-    const { quantity, price } = req.body;
+    const id = parseInt(req.params.id, 10);
+    const sellQuantity = parsePositiveNumber(req.body.quantity);
+    const sellPrice = parsePositiveNumber(req.body.price);
 
-    if (!quantity || !price) {
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid holding id' });
+    }
+
+    if (!sellQuantity || !sellPrice) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: quantity, price'
       });
     }
 
-    const portfolios = require('./portfolio').portfolios || [];
-    const currentPortfolio = portfolios[0];
-    
-    if (!currentPortfolio) {
-      return res.status(404).json({
-        success: false,
-        error: 'No portfolio found'
-      });
-    }
-
-    const holding = currentPortfolio.holdings.find(h => h.id === req.params.id);
+    const holding = await Holding.findByPk(id);
     if (!holding) {
       return res.status(404).json({
         success: false,
@@ -269,35 +298,34 @@ router.post('/:id/sell', (req, res) => {
       });
     }
 
-    const sellQuantity = parseFloat(quantity);
-    if (sellQuantity > holding.quantity) {
+    const currentQuantity = parseFloat(holding.quantity);
+    if (sellQuantity > currentQuantity) {
       return res.status(400).json({
         success: false,
         error: 'Cannot sell more shares than owned'
       });
     }
 
-    // Update holding after sale
-    holding.quantity -= sellQuantity;
-    holding.currentPrice = parseFloat(price);
-    holding.updatedAt = new Date().toISOString();
+    const remainingQuantity = currentQuantity - sellQuantity;
 
-    // Add cash from sale to portfolio
-    const saleProceeds = sellQuantity * parseFloat(price);
-    currentPortfolio.cash += saleProceeds;
-
-    // Remove holding if all shares sold
-    if (holding.quantity === 0) {
-      const holdingIndex = currentPortfolio.holdings.findIndex(h => h.id === req.params.id);
-      currentPortfolio.holdings.splice(holdingIndex, 1);
+    if (remainingQuantity <= 0) {
+      await holding.destroy();
+      return res.json({
+        success: true,
+        data: null,
+        message: 'All shares sold, holding removed'
+      });
     }
 
-    currentPortfolio.updateTotalValue();
+    await holding.update({
+      quantity: remainingQuantity,
+      current_price: sellPrice
+    });
 
     res.json({
       success: true,
-      data: holding.quantity > 0 ? holding : null,
-      message: holding.quantity > 0 ? 'Shares sold successfully' : 'All shares sold, holding removed'
+      data: holding,
+      message: 'Shares sold successfully'
     });
   } catch (error) {
     res.status(500).json({
@@ -307,4 +335,4 @@ router.post('/:id/sell', (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

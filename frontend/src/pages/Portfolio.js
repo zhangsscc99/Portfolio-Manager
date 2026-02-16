@@ -51,6 +51,12 @@ const ASSET_TYPES = {
   commodity: { name: 'Commodities', icon: '🥇', color: '#9A6B15' } // 最深金色
 };
 
+const DEFAULT_PORTFOLIO_PAYLOAD = {
+  name: 'Main Portfolio',
+  description: 'Auto-created default portfolio',
+  cash: 0,
+};
+
 const Portfolio = () => {
   const navigate = useNavigate();
   
@@ -74,12 +80,69 @@ const Portfolio = () => {
     maxQuantity: 0
   });
   const [removeMessage, setRemoveMessage] = useState({ type: '', text: '' });
+  const [currentPortfolioId, setCurrentPortfolioId] = useState(null);
+  const [portfolioIdLoading, setPortfolioIdLoading] = useState(true);
+  const [portfolioIdError, setPortfolioIdError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolvePortfolioId = async () => {
+      setPortfolioIdLoading(true);
+      setPortfolioIdError('');
+
+      try {
+        const currentRes = await fetch(buildApiUrl('/portfolio/current'));
+        const currentJson = await currentRes.json();
+
+        if (currentRes.ok && currentJson?.success && currentJson?.data?.id) {
+          if (!cancelled) {
+            setCurrentPortfolioId(currentJson.data.id);
+          }
+          return;
+        }
+
+        if (currentRes.status === 404) {
+          const createRes = await fetch(buildApiUrl('/portfolio'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(DEFAULT_PORTFOLIO_PAYLOAD),
+          });
+          const createJson = await createRes.json();
+
+          if (createRes.ok && createJson?.success && createJson?.data?.id) {
+            if (!cancelled) {
+              setCurrentPortfolioId(createJson.data.id);
+            }
+            return;
+          }
+        }
+
+        throw new Error(currentJson?.error || 'Failed to resolve current portfolio');
+      } catch (error) {
+        if (!cancelled) {
+          setPortfolioIdError(error.message || 'Failed to resolve current portfolio');
+        }
+      } finally {
+        if (!cancelled) {
+          setPortfolioIdLoading(false);
+        }
+      }
+    };
+
+    resolvePortfolioId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 🎯 使用React Query获取portfolio数据，与Dashboard保持一致
   const { data: portfolio, isLoading: portfolioLoading, refetch: refetchPortfolio } = useQuery(
-    'portfolioAssets',
-    () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
+    ['portfolioAssets', currentPortfolioId],
+    () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(currentPortfolioId))).then(res => res.json()),
     {
+      enabled: !!currentPortfolioId,
       staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
       cacheTime: 10 * 60 * 1000, // 10分钟后清除缓存
     }
@@ -291,7 +354,7 @@ const Portfolio = () => {
       
       // 如果卖出全部，使用DELETE请求
       if (sellQuantity >= asset.quantity) {
-        const response = await fetch(`/api/assets/${asset.id}`, {
+        const response = await fetch(buildApiUrl(`/assets/${asset.id}`), {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -317,7 +380,7 @@ const Portfolio = () => {
         }
       } else {
         // 部分卖出，使用PUT请求更新数量
-        const response = await fetch(`/api/assets/${asset.id}/sell`, {
+        const response = await fetch(buildApiUrl(`/assets/${asset.id}/sell`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -385,7 +448,7 @@ const Portfolio = () => {
         ...prev,
         symbol: stockData.symbol,
         name: stockData.name,
-        asset_type: stockData.type || prev.asset_type,
+        asset_type: prev.asset_type,
         avg_cost: realTimePrice || stockData.price || '' // 🔥 自动填充实时价格
       }));
       
@@ -396,7 +459,7 @@ const Portfolio = () => {
         ...prev,
         symbol: stockData.symbol,
         name: stockData.name,
-        asset_type: stockData.type || prev.asset_type,
+        asset_type: prev.asset_type,
         avg_cost: stockData.price || '' // 兜底使用搜索结果中的价格
       }));
     }
@@ -474,13 +537,18 @@ const Portfolio = () => {
         alert('❌ Asset symbol is required');
         return;
       }
+
+      if (!currentPortfolioId) {
+        alert('❌ Portfolio is not ready yet, please try again in a few seconds');
+        return;
+      }
       
       const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.create), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newAsset,
-          portfolio_id: 1,
+          portfolio_id: currentPortfolioId,
           quantity: quantity,
           avg_cost: avgCost,
           // 使用获取到的实时价格，而不是搜索结果中的价格
@@ -593,6 +661,12 @@ const Portfolio = () => {
 
   return (
     <Box sx={{ py: 2 }}>
+      {portfolioIdError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {portfolioIdError}
+        </Alert>
+      )}
+
       {/* 📊 Header statistics */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
@@ -631,6 +705,7 @@ const Portfolio = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setOpenAddDialog(true)}
+            disabled={portfolioIdLoading || !currentPortfolioId}
           >
             Add Asset
           </Button>
@@ -1128,7 +1203,9 @@ const Portfolio = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setOpenAddDialog(false); resetAddAssetForm(); }}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddAsset}>Add</Button>
+          <Button variant="contained" onClick={handleAddAsset} disabled={portfolioIdLoading || !currentPortfolioId}>
+            Add
+          </Button>
         </DialogActions>
       </Dialog>
 

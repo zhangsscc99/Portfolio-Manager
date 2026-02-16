@@ -64,6 +64,11 @@ Holding.prototype.getCostBasis = function() {
   return parseFloat(this.avg_price) * parseFloat(this.quantity);
 };
 
+// Keep backward compatibility with service layer naming.
+Holding.prototype.getTotalCost = function() {
+  return this.getCostBasis();
+};
+
 Holding.prototype.getGainLoss = function() {
   return this.getCurrentValue() - this.getCostBasis();
 };
@@ -71,6 +76,10 @@ Holding.prototype.getGainLoss = function() {
 Holding.prototype.getGainLossPercent = function() {
   const costBasis = this.getCostBasis();
   return costBasis > 0 ? (this.getGainLoss() / costBasis) * 100 : 0;
+};
+
+Holding.prototype.getPriceChange = function() {
+  return parseFloat(this.current_price) - parseFloat(this.avg_price);
 };
 
 Holding.prototype.updatePrice = async function(newPrice) {

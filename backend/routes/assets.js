@@ -4,6 +4,7 @@ const assetController = require('../controllers/assetController');
 const { Asset, Watchlist } = require('../models/index');
 const { ASSET_TYPES } = require('../services/assetService');
 const yahooFinanceService = require('../services/yahooFinance');
+const cryptoService = require('../services/cryptoService');
 const scheduledUpdatesService = require('../services/scheduledUpdates');
 
 // 📊 GET /api/assets/portfolio/:portfolioId - 获取投资组合的分类资产
@@ -231,10 +232,11 @@ router.post('/update-prices', async (req, res) => {
     
     for (const asset of assetsToUpdate) {
       try {
-        let newPrice = asset.current_price;
+        const oldPrice = parseFloat(asset.current_price);
+        let newPrice = oldPrice;
         let updateInfo = {
           symbol: asset.symbol,
-          oldPrice: asset.current_price,
+          oldPrice: oldPrice,
           status: 'no_change'
         };
         
@@ -244,28 +246,35 @@ router.post('/update-prices', async (req, res) => {
           
           const priceData = await yahooFinanceService.getStockPrice(symbol);
           if (!priceData.error && priceData.price > 0) {
-            newPrice = priceData.price;
+            newPrice = parseFloat(priceData.price);
             updateInfo.newPrice = newPrice;
             updateInfo.change = priceData.change || 0;
             updateInfo.changePercent = priceData.changePercent || 0;
             
             console.log(`📊 ${symbol}: 价格=${newPrice}, 变化=${priceData.change}, 变化%=${priceData.changePercent}%`);
+          } else {
+            throw new Error(priceData.error || `Failed to fetch valid price for ${symbol}`);
           }
         } else if (asset.price_source === 'coingecko') {
-          // Assuming cryptoService is available globally or imported elsewhere
-          // const priceData = await cryptoService.getCryptoPrice(asset.source_symbol);
-          // if (!priceData.error && priceData.price > 0) {
-          //   newPrice = priceData.price;
-          // }
+          const symbol = asset.source_symbol || asset.symbol;
+          const priceData = await cryptoService.getCryptoPrice(symbol);
+          if (!priceData.error && priceData.price > 0) {
+            newPrice = parseFloat(priceData.price);
+            updateInfo.newPrice = newPrice;
+            updateInfo.change = priceData.change || 0;
+            updateInfo.changePercent = priceData.changePercent || 0;
+          } else {
+            throw new Error(priceData.error || `Failed to fetch valid crypto price for ${symbol}`);
+          }
         }
         
         // 总是更新资产记录，即使价格没变化（为了刷新updated_at时间戳）
         await asset.update({ current_price: newPrice });
-        updateResults.success++;
-        
-        if (newPrice !== asset.current_price) {
+        if (newPrice !== oldPrice) {
           updateInfo.status = 'updated';
         }
+        
+        updateResults.success++;
         
         updateResults.details.push(updateInfo);
       } catch (error) {

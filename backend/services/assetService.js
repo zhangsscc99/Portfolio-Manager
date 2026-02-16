@@ -435,10 +435,11 @@ class AssetService {
         });
         
         console.log(`💰 资产 ${asset.symbol} 部分卖出: ${sellQty} 股，剩余: ${remainingQuantity} 股`);
+        const updatedAsset = await asset.reload();
         
         return {
           message: `已卖出 ${sellQty} 股 ${asset.symbol}，剩余 ${remainingQuantity.toFixed(2)} 股`,
-          asset: asset.reload(),
+          asset: updatedAsset,
           soldQuantity: sellQty,
           remainingQuantity: remainingQuantity,
           isCompletelyRemoved: false

@@ -65,11 +65,63 @@ const Analytics = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
+  const [currentPortfolioId, setCurrentPortfolioId] = useState(null);
+  const [portfolioResolveError, setPortfolioResolveError] = useState('');
 
   // 📊 AI分析相关状态
   const [analysisReports, setAnalysisReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolvePortfolioId = async () => {
+      try {
+        const currentRes = await fetch(buildApiUrl('/portfolio/current'));
+        const currentJson = await currentRes.json();
+
+        if (currentRes.ok && currentJson?.success && currentJson?.data?.id) {
+          if (!cancelled) {
+            setCurrentPortfolioId(currentJson.data.id);
+          }
+          return;
+        }
+
+        if (currentRes.status === 404) {
+          const createRes = await fetch(buildApiUrl('/portfolio'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'Main Portfolio',
+              description: 'Auto-created default portfolio',
+              cash: 0,
+            }),
+          });
+          const createJson = await createRes.json();
+
+          if (createRes.ok && createJson?.success && createJson?.data?.id) {
+            if (!cancelled) {
+              setCurrentPortfolioId(createJson.data.id);
+            }
+            return;
+          }
+        }
+
+        throw new Error(currentJson?.error || 'Unable to load current portfolio');
+      } catch (error) {
+        if (!cancelled) {
+          setPortfolioResolveError(error.message || 'Unable to load current portfolio');
+        }
+      }
+    };
+
+    resolvePortfolioId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fetch AI Analysis Reports
   const fetchAnalysisReports = async () => {
@@ -105,6 +157,11 @@ const Analytics = () => {
   const generateNewReport = async () => {
     try {
       setGeneratingReport(true);
+
+      if (!currentPortfolioId) {
+        console.error('❌ No active portfolio found');
+        return;
+      }
       
       console.log('🤖 Generating new AI analysis report...');
       
@@ -115,7 +172,7 @@ const Analytics = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          portfolioId: 1
+          portfolioId: currentPortfolioId
         }),
       });
       
@@ -235,6 +292,14 @@ const Analytics = () => {
         Portfolio Analytics
       </Typography>
 
+      {portfolioResolveError && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="error.main">
+            {portfolioResolveError}
+          </Typography>
+        </Box>
+      )}
+
       {/* AI分析部分 */}
       <Grid container spacing={3}>
         <Grid item xs={12}>
@@ -257,7 +322,7 @@ const Analytics = () => {
                     variant="contained"
                     startIcon={<GenerateIcon />}
                     onClick={generateNewReport}
-                    disabled={generatingReport}
+                    disabled={generatingReport || !currentPortfolioId}
                     sx={{ ml: 1 }}
                   >
                     {generatingReport ? 'Generating...' : 'Generate Report'}

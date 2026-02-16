@@ -4,7 +4,7 @@ echo "🚀 部署 Portfolio Manager 后端..."
 
 # 设置变量
 APP_NAME="portfolio-backend"
-PORT=5000
+PORT=5010
 
 # 进入后端目录
 cd backend
