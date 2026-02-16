@@ -102,6 +102,95 @@ class YahooFinanceService {
     return null;
   }
 
+  // Stooq历史数据兜底：Yahoo chart 在部分服务器环境会长期返回空/403
+  async getStockHistoryFromStooq(symbol, period = "1mo") {
+    const cleanSymbol = String(symbol || "").trim().toLowerCase();
+    if (!cleanSymbol) return [];
+
+    const candidates = new Set([cleanSymbol]);
+    if (!cleanSymbol.includes(".") && !cleanSymbol.startsWith("^")) {
+      candidates.add(`${cleanSymbol}.us`);
+    }
+
+    const periodDaysMap = {
+      "1mo": 35,
+      "3mo": 100,
+      "6mo": 190,
+      "1y": 380,
+      "5y": 1900,
+    };
+    const periodDays = periodDaysMap[period] || 35;
+
+    const endDate = new Date();
+    const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+
+    const toYmd = (date) => date.toISOString().slice(0, 10).replace(/-/g, "");
+    const toTimestamp = (dateString) => {
+      const ts = Date.parse(`${dateString}T00:00:00Z`);
+      return Number.isFinite(ts) ? ts : Date.now();
+    };
+
+    for (const candidate of candidates) {
+      try {
+        const response = await axios.get("https://stooq.com/q/d/l/", {
+          params: {
+            s: candidate,
+            i: "d",
+            d1: toYmd(startDate),
+            d2: toYmd(endDate),
+          },
+          timeout: 7000,
+          responseType: "text",
+          transformResponse: [(data) => data],
+        });
+
+        const lines = String(response.data || "")
+          .trim()
+          .split(/\r?\n/)
+          .filter(Boolean);
+
+        if (lines.length <= 1) {
+          continue;
+        }
+
+        const rows = lines
+          .slice(1)
+          .map((line) => line.split(","))
+          .filter((cols) => cols.length >= 6)
+          .map((cols) => {
+            const close = parseFloat(cols[4]);
+            if (!Number.isFinite(close) || close <= 0) return null;
+            const open = parseFloat(cols[1]);
+            const high = parseFloat(cols[2]);
+            const low = parseFloat(cols[3]);
+            const volume = parseFloat(cols[5]) || 0;
+
+            return {
+              date: cols[0],
+              timestamp: toTimestamp(cols[0]),
+              open: Number.isFinite(open) ? open : close,
+              high: Number.isFinite(high) ? high : close,
+              low: Number.isFinite(low) ? low : close,
+              close,
+              volume,
+              price: close,
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.timestamp - b.timestamp);
+
+        if (rows.length > 0) {
+          console.log(`✅ Stooq历史数据兜底成功: ${symbol} (${period}) ${rows.length} 个点`);
+          return rows;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Stooq历史数据兜底失败 ${candidate}:`, error.message);
+      }
+    }
+
+    return [];
+  }
+
   async getDailyGainers(region = "US", options = {}) {
     try {
       return yahooFinance.dailyGainers(region, options);
@@ -374,8 +463,8 @@ class YahooFinanceService {
       const historicalResult = chartResult?.quotes || [];
       
       if (!historicalResult || historicalResult.length === 0) {
-        console.log(`⚠️ ${symbol} 没有历史数据`);
-        return [];
+        console.log(`⚠️ ${symbol} 在Yahoo没有历史数据，尝试Stooq兜底`);
+        return await this.getStockHistoryFromStooq(symbol, period);
       }
       
       // 添加调试信息
@@ -408,7 +497,7 @@ class YahooFinanceService {
       
     } catch (error) {
       console.error(`❌ 获取 ${symbol} 历史数据失败:`, error.message);
-      return [];
+      return await this.getStockHistoryFromStooq(symbol, period);
     }
   }
 

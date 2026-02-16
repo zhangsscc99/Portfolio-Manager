@@ -7,15 +7,8 @@ import {
   CardContent,
   Typography,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  useTheme,
-  useMediaQuery,
-  CircularProgress
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   TrendingUp,
@@ -35,11 +28,7 @@ import {
 } from 'chart.js';
 
 import {
-  portfolioAPI,
-  marketAPI,
   formatCurrency,
-  formatPercentage,
-  getChangeColor,
 } from '../services/api';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 import '../styles/localGlow.css'; // 导入渐变和动画样式
@@ -55,28 +44,94 @@ ChartJS.register(
   ArcElement
 );
 
+const DEFAULT_PORTFOLIO_PAYLOAD = {
+  name: 'Main Portfolio',
+  description: 'Auto-created default portfolio',
+  cash: 0,
+};
+
 const Dashboard = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
   // 📊 简化状态声明
   const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
   const [currentHistoryData, setCurrentHistoryData] = useState(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyStatusMessage, setHistoryStatusMessage] = useState('');
+  const [currentPortfolioId, setCurrentPortfolioId] = useState(null);
+  const [portfolioIdLoading, setPortfolioIdLoading] = useState(true);
+  const [portfolioIdError, setPortfolioIdError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolvePortfolioId = async () => {
+      setPortfolioIdLoading(true);
+      setPortfolioIdError('');
+
+      try {
+        const currentRes = await fetch(buildApiUrl(API_ENDPOINTS.portfolio.getCurrent));
+        const currentJson = await currentRes.json();
+
+        if (currentRes.ok && currentJson?.success && currentJson?.data?.id) {
+          if (!cancelled) {
+            setCurrentPortfolioId(currentJson.data.id);
+          }
+          return;
+        }
+
+        if (currentRes.status === 404) {
+          const createRes = await fetch(buildApiUrl(API_ENDPOINTS.portfolio.create), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(DEFAULT_PORTFOLIO_PAYLOAD),
+          });
+          const createJson = await createRes.json();
+
+          if (createRes.ok && createJson?.success && createJson?.data?.id) {
+            if (!cancelled) {
+              setCurrentPortfolioId(createJson.data.id);
+            }
+            return;
+          }
+        }
+
+        throw new Error(currentJson?.error || 'Unable to load current portfolio');
+      } catch (error) {
+        if (!cancelled) {
+          setPortfolioIdError(error.message || 'Unable to load current portfolio');
+        }
+      } finally {
+        if (!cancelled) {
+          setPortfolioIdLoading(false);
+        }
+      }
+    };
+
+    resolvePortfolioId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 🎯 使用assets API获取真实的portfolio数据
-  const { data: portfolio, isLoading: portfolioLoading } = useQuery(
-    'portfolioAssets',
-    () => fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(1))).then(res => res.json()),
+  const { data: portfolio, isLoading: portfolioLoading, error: portfolioError } = useQuery(
+    ['dashboardPortfolioAssets', currentPortfolioId],
+    async () => {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.assets.portfolio(currentPortfolioId)));
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to load portfolio assets');
+      }
+
+      return result;
+    },
     {
+      enabled: !!currentPortfolioId,
       staleTime: 5 * 60 * 1000, // 5分钟内认为数据是新鲜的
       cacheTime: 10 * 60 * 1000, // 10分钟后清除缓存
     }
   );
-
-  const { data: gainers } = useQuery('marketGainers', () => marketAPI.getGainers(5));
-  const { data: losers } = useQuery('marketLosers', () => marketAPI.getLosers(5));
-  const { data: indices } = useQuery('marketIndices', marketAPI.getIndices);
 
   // 🎯 处理assets API返回的真实portfolio数据
   const portfolioData = useMemo(() => {
@@ -172,13 +227,15 @@ const Dashboard = () => {
   // 📊 获取历史数据（无缓存，每次都重新获取）
   const fetchHistoryData = async (timeRange) => {
     if (!portfolioData?.assetsByType) {
-      console.log(`❌ portfolioData?.assetsByType 不存在`);
+      setHistoryStatusMessage('Add assets to see portfolio performance history.');
       return null;
     }
     
+    setIsLoadingHistory(true);
+    setHistoryStatusMessage('');
+
     try {
       console.log(`📈 获取 ${timeRange} 历史数据...`);
-      setIsLoadingHistory(true);
       
       // 获取所有资产
       const allAssets = [];
@@ -188,10 +245,20 @@ const Dashboard = () => {
         }
       });
       
-      if (allAssets.length === 0) return null;
+      const tradableAssets = allAssets.filter(asset => (
+        asset.symbol &&
+        asset.asset_type !== 'cash' &&
+        Number(asset.quantity) > 0 &&
+        Number(asset.current_price) > 0
+      ));
+
+      if (tradableAssets.length === 0) {
+        setHistoryStatusMessage('Add a stock, ETF, crypto, or bond position to view the performance chart.');
+        return null;
+      }
       
       // 获取主要资产的历史数据（按价值排序，取前3个）
-      const majorAssets = allAssets
+      const majorAssets = tradableAssets
         .sort((a, b) => (b.quantity * b.current_price) - (a.quantity * a.current_price))
         .slice(0, 3);
       
@@ -239,6 +306,7 @@ const Dashboard = () => {
       
       if (validResults.length === 0) {
         console.warn(`Dashboard: 没有获取到 ${timeRange} 的有效历史数据`);
+        setHistoryStatusMessage('Unable to load historical prices for the current holdings right now.');
         return null;
       }
       
@@ -331,13 +399,15 @@ const Dashboard = () => {
       console.log(`✅ ${timeRange} (${periodParam}) 历史数据获取完成: ${portfolioValues.length}个数据点`);
       console.log(`📅 时间范围: ${startDate} → ${endDate}`);
       console.log(`📋 显示标签 (${nonEmptyLabels.length}个):`, nonEmptyLabels);
-      setIsLoadingHistory(false);
+      setHistoryStatusMessage('');
       return historyData;
       
     } catch (error) {
       console.error(`❌ 获取 ${timeRange} 历史数据失败:`, error);
-      setIsLoadingHistory(false);
+      setHistoryStatusMessage('Failed to load market history. Please try again later.');
       return null;
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
   
@@ -346,10 +416,12 @@ const Dashboard = () => {
     const loadHistoryData = async () => {
       if (portfolioData) {
         console.log(`🔄 获取 ${selectedTimeRange} 历史数据`);
-        
+        setCurrentHistoryData(null);
         const historyData = await fetchHistoryData(selectedTimeRange);
         console.log(`📊 ${selectedTimeRange} 数据获取结果:`, historyData ? `${historyData.values.length}个数据点` : 'null');
         setCurrentHistoryData(historyData);
+      } else {
+        setCurrentHistoryData(null);
       }
     };
 
@@ -733,8 +805,17 @@ const Dashboard = () => {
     }
   };
 
+  const isPortfolioBusy = portfolioIdLoading || portfolioLoading;
+  const portfolioErrorMessage = portfolioIdError || portfolioError?.message || '';
+
   return (
     <Box sx={{ py: 2 }}>
+      {portfolioErrorMessage && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {portfolioErrorMessage}
+        </Alert>
+      )}
+
       {/* 统计卡片区域 */}
       <Grid container spacing={3} sx={{ mb: 3 }} className="dashboard-stats-grid">
         <Grid item xs={12} sm={6} md={3}>
@@ -748,7 +829,7 @@ const Dashboard = () => {
                 Net Worth
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: 'primary.main' }}>
-                {portfolioLoading ? 'Loading...' : formatCurrency(portfolioData?.totalValue || 0)}
+                {isPortfolioBusy ? 'Loading...' : formatCurrency(portfolioData?.totalValue || 0)}
               </Typography>
               {portfolioData?.todayChange !== undefined && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -782,7 +863,7 @@ const Dashboard = () => {
                 Cash
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: 'primary.main' }}>
-                {portfolioLoading ? 'Loading...' : formatCurrency(portfolioData?.cash || 0)}
+                {isPortfolioBusy ? 'Loading...' : formatCurrency(portfolioData?.cash || 0)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Available for investing
@@ -801,7 +882,7 @@ const Dashboard = () => {
               >
                 Today's Change
               </Typography>
-              {portfolioLoading ? (
+              {isPortfolioBusy ? (
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
                   Loading...
                 </Typography>
@@ -854,7 +935,7 @@ const Dashboard = () => {
                 Holdings
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: 'primary.main' }}>
-                {portfolioLoading ? 'Loading...' : (portfolioData?.holdingsCount || 0)}
+                {isPortfolioBusy ? 'Loading...' : (portfolioData?.holdingsCount || 0)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {portfolioData?.activeHoldings ? `${portfolioData.activeHoldings} active positions` : 'Active positions'}
@@ -902,7 +983,7 @@ const Dashboard = () => {
               <Box sx={{ height: 300 }}>
                 {historicalData ? (
                   <Line data={netWorthChartData} options={netWorthChartOptions} />
-                ) : (
+                ) : isLoadingHistory ? (
                   <Box sx={{ 
                     height: '100%', 
                     display: 'flex', 
@@ -916,7 +997,20 @@ const Dashboard = () => {
                       Fetching real market data for {selectedTimeRange}...
                     </Typography>
                     <Typography variant="caption" color="text.disabled">
-                      Loading actual prices from Yahoo Finance
+                      Loading actual prices from market data APIs
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: 2 
+                  }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {historyStatusMessage || 'No historical data available yet.'}
                     </Typography>
                   </Box>
                 )}
