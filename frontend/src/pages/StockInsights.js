@@ -21,7 +21,6 @@ import {
 import {
   AutoAwesome as AutoAwesomeIcon,
   Feed as FeedIcon,
-  Insights as InsightsIcon,
   Psychology as PsychologyIcon,
   ShowChart as ShowChartIcon,
 } from '@mui/icons-material';
@@ -48,7 +47,6 @@ const DEFAULT_PORTFOLIO_PAYLOAD = {
 };
 
 const VIEW_TABS = [
-  { value: 'overview', label: 'Holdings Overview' },
   { value: 'fundamental', label: 'Fundamental' },
   { value: 'technical', label: 'Technical (K-Line)' },
   { value: 'news', label: 'News' },
@@ -68,13 +66,6 @@ const classifyMarketCap = (marketCap) => {
   if (marketCap >= 10_000_000_000) return 'Mid / Large Cap';
   if (marketCap >= 2_000_000_000) return 'Mid Cap';
   return 'Small Cap';
-};
-
-const getVolatilityLabel = (annualizedVolatility) => {
-  if (!annualizedVolatility || Number.isNaN(annualizedVolatility)) return 'N/A';
-  if (annualizedVolatility < 20) return 'Low';
-  if (annualizedVolatility < 35) return 'Moderate';
-  return 'High';
 };
 
 const formatLargeUSD = (value) => {
@@ -133,7 +124,7 @@ const buildNewsContextPrompt = (items) => {
 };
 
 const StockInsights = () => {
-  const [activeView, setActiveView] = useState('overview');
+  const [activeView, setActiveView] = useState('fundamental');
   const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
   const [currentPortfolioId, setCurrentPortfolioId] = useState(null);
   const [portfolioIdLoading, setPortfolioIdLoading] = useState(true);
@@ -584,52 +575,6 @@ Output requirements:
     );
   };
 
-  const renderOverview = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              {selectedSymbol ? `${selectedSymbol} Quick Snapshot` : 'Select a stock'}
-            </Typography>
-            {!selectedSymbol ? (
-              <Typography variant="body2" color="text.secondary">
-                Pick a stock from your holdings or search to begin.
-              </Typography>
-            ) : (
-              <Grid container spacing={2}>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="caption" color="text.secondary">Price</Typography>
-                  <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                    {formatCurrency(fundamentals.currentPrice)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="caption" color="text.secondary">Daily Move</Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{ color: fundamentals.dayChangePct >= 0 ? 'success.main' : 'error.main' }}
-                  >
-                    {fundamentals.dayChangePct >= 0 ? '+' : ''}
-                    {fundamentals.dayChangePct.toFixed(2)}%
-                  </Typography>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="caption" color="text.secondary">Range Position</Typography>
-                  <Typography variant="h6">{technicalStats.rangePosition.toFixed(1)}%</Typography>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="caption" color="text.secondary">Volatility</Typography>
-                  <Typography variant="h6">{getVolatilityLabel(technicalStats.annualizedVolatility)}</Typography>
-                </Grid>
-              </Grid>
-            )}
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
-  );
-
   const renderFundamental = () => (
     <Card>
       <CardContent>
@@ -873,8 +818,7 @@ Output requirements:
   const renderActiveSection = () => {
     if (activeView === 'fundamental') return renderFundamental();
     if (activeView === 'technical') return renderTechnical();
-    if (activeView === 'news') return renderNews();
-    return renderOverview();
+    return renderNews();
   };
 
   const pageError = portfolioIdError || holdingsError?.message || '';
@@ -987,7 +931,6 @@ Output requirements:
                 value={tab.value}
                 label={tab.label}
                 icon={
-                  tab.value === 'overview' ? <InsightsIcon fontSize="small" /> :
                   tab.value === 'fundamental' ? <PsychologyIcon fontSize="small" /> :
                   tab.value === 'technical' ? <ShowChartIcon fontSize="small" /> :
                   <FeedIcon fontSize="small" />

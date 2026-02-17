@@ -10,8 +10,12 @@ class YahooFinanceService {
     this.secTickerMap = new Map();
     this.secTickerCacheAt = 0;
     this.secTickerCacheTtl = 24 * 60 * 60 * 1000; // 24小时
+    this.secFactsCache = new Map();
+    this.secFactsCacheTtl = 6 * 60 * 60 * 1000; // 6小时
     this.secSharesCache = new Map();
     this.secSharesCacheTtl = 6 * 60 * 60 * 1000; // 6小时
+    this.secPublicFloatCache = new Map();
+    this.secPublicFloatCacheTtl = 6 * 60 * 60 * 1000; // 6小时
     this.secUserAgent =
       process.env.SEC_USER_AGENT ||
       "PortfolioManager/1.0 (support@portfolio-manager.local)";
@@ -69,13 +73,28 @@ class YahooFinanceService {
     }
   }
 
-  async getSharesOutstandingFromSEC(symbol) {
+  getLatestNumericFactValue(points) {
+    if (!Array.isArray(points) || points.length === 0) return null;
+
+    const latest = points
+      .filter((item) => Number.isFinite(Number(item?.val)))
+      .sort((a, b) => {
+        const aDate = Date.parse(a?.filed || a?.end || 0) || 0;
+        const bDate = Date.parse(b?.filed || b?.end || 0) || 0;
+        return bDate - aDate;
+      })[0];
+
+    const value = Number(latest?.val || 0);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  async getSecCompanyFacts(symbol) {
     const ticker = this.getSecNormalizedTicker(symbol);
     if (!ticker) return null;
 
     const now = Date.now();
-    const cached = this.secSharesCache.get(ticker);
-    if (cached && now - cached.timestamp < this.secSharesCacheTtl) {
+    const cached = this.secFactsCache.get(ticker);
+    if (cached && now - cached.timestamp < this.secFactsCacheTtl) {
       return cached.value;
     }
 
@@ -98,23 +117,46 @@ class YahooFinanceService {
         }
       );
 
-      const points =
-        response.data?.facts?.dei?.EntityCommonStockSharesOutstanding?.units
-          ?.shares;
-      if (!Array.isArray(points) || points.length === 0) {
-        return null;
-      }
+      const value = response.data || null;
+      this.secFactsCache.set(ticker, {
+        value,
+        timestamp: now,
+      });
+      return value;
+    } catch (error) {
+      console.warn(`⚠️ SEC companyfacts获取失败 ${ticker}:`, error.message);
+      return null;
+    }
+  }
 
-      const latest = points
-        .filter((item) => Number.isFinite(Number(item?.val)))
-        .sort((a, b) => {
-          const aDate = Date.parse(a?.filed || a?.end || 0) || 0;
-          const bDate = Date.parse(b?.filed || b?.end || 0) || 0;
-          return bDate - aDate;
-        })[0];
+  async getSharesOutstandingFromSEC(symbol) {
+    const ticker = this.getSecNormalizedTicker(symbol);
+    if (!ticker) return null;
 
-      const sharesOutstanding = Number(latest?.val || 0);
-      if (!Number.isFinite(sharesOutstanding) || sharesOutstanding <= 0) {
+    const now = Date.now();
+    const cached = this.secSharesCache.get(ticker);
+    if (cached && now - cached.timestamp < this.secSharesCacheTtl) {
+      return cached.value;
+    }
+
+    const facts = await this.getSecCompanyFacts(ticker);
+    if (!facts) return null;
+
+    try {
+      const shareCandidates = [
+        facts?.facts?.dei?.EntityCommonStockSharesOutstanding?.units?.shares,
+        facts?.facts?.["us-gaap"]?.CommonStockSharesOutstanding?.units?.shares,
+        facts?.facts?.["us-gaap"]?.WeightedAverageNumberOfSharesOutstandingBasic
+          ?.units?.shares,
+        facts?.facts?.["us-gaap"]?.WeightedAverageNumberOfDilutedSharesOutstanding
+          ?.units?.shares,
+      ];
+
+      const sharesOutstanding = shareCandidates
+        .map((points) => this.getLatestNumericFactValue(points))
+        .find((value) => Number.isFinite(value) && value > 0);
+
+      if (!sharesOutstanding) {
         return null;
       }
 
@@ -129,27 +171,68 @@ class YahooFinanceService {
     }
   }
 
+  async getPublicFloatFromSEC(symbol) {
+    const ticker = this.getSecNormalizedTicker(symbol);
+    if (!ticker) return null;
+
+    const now = Date.now();
+    const cached = this.secPublicFloatCache.get(ticker);
+    if (cached && now - cached.timestamp < this.secPublicFloatCacheTtl) {
+      return cached.value;
+    }
+
+    const facts = await this.getSecCompanyFacts(ticker);
+    if (!facts) return null;
+
+    try {
+      const publicFloat = this.getLatestNumericFactValue(
+        facts?.facts?.dei?.EntityPublicFloat?.units?.USD
+      );
+      if (!publicFloat) return null;
+
+      this.secPublicFloatCache.set(ticker, {
+        value: publicFloat,
+        timestamp: now,
+      });
+      return publicFloat;
+    } catch (error) {
+      console.warn(`⚠️ SEC public float获取失败 ${ticker}:`, error.message);
+      return null;
+    }
+  }
+
   async enrichMarketCapFromSEC(stockData) {
     if (!stockData || stockData.marketCap > 0 || stockData.price <= 0) {
       return stockData;
     }
 
-    const sharesOutstanding = await this.getSharesOutstandingFromSEC(
-      stockData.symbol
-    );
-    if (!sharesOutstanding) {
+    const [sharesOutstanding, publicFloat] = await Promise.all([
+      this.getSharesOutstandingFromSEC(stockData.symbol),
+      this.getPublicFloatFromSEC(stockData.symbol),
+    ]);
+
+    const marketCapFromShares =
+      sharesOutstanding && Number(stockData.price) > 0
+        ? Math.round(sharesOutstanding * Number(stockData.price))
+        : 0;
+
+    let marketCap = 0;
+    if (marketCapFromShares > 0 && publicFloat > 0) {
+      const ratio = marketCapFromShares / publicFloat;
+      // 双股权结构可能让股本推导偏差很大，此时优先public float兜底
+      marketCap = ratio < 0.2 || ratio > 5 ? publicFloat : marketCapFromShares;
+    } else {
+      marketCap = marketCapFromShares || publicFloat || 0;
+    }
+
+    if (!Number.isFinite(marketCap) || marketCap <= 0) {
       return stockData;
     }
 
-    const marketCap = Math.round(sharesOutstanding * Number(stockData.price));
-    if (Number.isFinite(marketCap) && marketCap > 0) {
-      return {
-        ...stockData,
-        marketCap,
-      };
-    }
-
-    return stockData;
+    return {
+      ...stockData,
+      marketCap: Math.round(marketCap),
+    };
   }
 
   // Stooq备用行情：当Yahoo在服务器环境被403/限流时兜底
