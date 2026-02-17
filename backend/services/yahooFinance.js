@@ -26,7 +26,12 @@ class YahooFinanceService {
   getSecNormalizedTicker(symbol) {
     const raw = String(symbol || "").trim().toUpperCase();
     if (!raw) return "";
-    // SEC ticker映射通常不包含交易所后缀（如 .US）
+    // 兼容BRK.B这类类别股代码：SEC通常使用连字符形式 BRK-B
+    if (/^[A-Z]+\.[A-Z]$/.test(raw)) {
+      return raw.replace(".", "-");
+    }
+
+    // SEC ticker映射通常不包含交易所后缀（如 .US/.L 等）
     return raw.split(".")[0];
   }
 
@@ -241,8 +246,16 @@ class YahooFinanceService {
     if (!cleanSymbol) return null;
 
     const candidates = new Set([cleanSymbol]);
-    if (!cleanSymbol.includes(".")) {
-      candidates.add(`${cleanSymbol}.us`);
+
+    // 兼容BRK.B -> BRK-B 的行情代码
+    if (cleanSymbol.includes(".")) {
+      candidates.add(cleanSymbol.replace(/\./g, "-"));
+    }
+
+    for (const baseSymbol of [...candidates]) {
+      if (!baseSymbol.includes(".")) {
+        candidates.add(`${baseSymbol}.us`);
+      }
     }
 
     const toYmd = (date) => date.toISOString().slice(0, 10).replace(/-/g, "");
