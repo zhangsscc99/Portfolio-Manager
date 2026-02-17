@@ -586,7 +586,7 @@ Output requirements:
 
   const renderOverview = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12} md={8}>
+      <Grid item xs={12}>
         <Card>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
@@ -624,38 +624,6 @@ Output requirements:
                 </Grid>
               </Grid>
             )}
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid item xs={12} md={4}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              AI Quick Actions
-            </Typography>
-            <Stack spacing={1.5}>
-              <Button
-                variant="outlined"
-                onClick={() => runAIBrief('fundamental')}
-                disabled={!selectedSymbol || aiState.loading}
-              >
-                Ask Fundamental Brief
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => runAIBrief('technical')}
-                disabled={!selectedSymbol || aiState.loading}
-              >
-                Ask Technical Brief
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => runAIBrief('news')}
-                disabled={!selectedSymbol || aiState.loading}
-              >
-                Ask News Brief
-              </Button>
-            </Stack>
           </CardContent>
         </Card>
       </Grid>
@@ -738,7 +706,7 @@ Output requirements:
                 onClick={() => runAIBrief('fundamental')}
                 disabled={!selectedSymbol || aiState.loading}
               >
-                Fundamental Function
+                Ask Fundamental Brief
               </Button>
               <Button
                 variant="outlined"
@@ -771,7 +739,7 @@ Output requirements:
   const renderTechnical = () => (
     <Card>
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             K-Line Trend
           </Typography>
@@ -829,6 +797,17 @@ Output requirements:
             />
           </Stack>
         )}
+
+        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => runAIBrief('technical')}
+            disabled={!selectedSymbol || aiState.loading}
+          >
+            Ask Technical Brief
+          </Button>
+        </Stack>
       </CardContent>
     </Card>
   );
@@ -836,9 +815,11 @@ Output requirements:
   const renderNews = () => (
     <Card>
       <CardContent>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          News Pulse
-        </Typography>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            News Pulse
+          </Typography>
+        </Box>
         {!selectedSymbol ? (
           <Typography variant="body2" color="text.secondary">
             Select a stock first.
@@ -874,6 +855,17 @@ Output requirements:
             No recent news found for this symbol.
           </Typography>
         )}
+
+        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={() => runAIBrief('news')}
+            disabled={!selectedSymbol || aiState.loading}
+          >
+            Ask News Brief
+          </Button>
+        </Stack>
       </CardContent>
     </Card>
   );
