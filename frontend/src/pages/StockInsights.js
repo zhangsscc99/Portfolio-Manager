@@ -77,6 +77,46 @@ const getVolatilityLabel = (annualizedVolatility) => {
   return 'High';
 };
 
+const formatLargeUSD = (value) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
+  if (value >= 1_000_000_000_000) return `$${(value / 1_000_000_000_000).toFixed(2)}T`;
+  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  return `$${value.toLocaleString('en-US')}`;
+};
+
+const getValuationSignal = (rangePosition) => {
+  if (rangePosition === null || rangePosition === undefined || Number.isNaN(rangePosition)) {
+    return { label: 'Insufficient Data', color: 'default' };
+  }
+  if (rangePosition < 35) return { label: 'Potentially Undervalued', color: 'success' };
+  if (rangePosition < 75) return { label: 'Fairly Priced', color: 'primary' };
+  return { label: 'Potentially Overextended', color: 'warning' };
+};
+
+const getLiquiditySignal = (dollarVolume) => {
+  if (dollarVolume === null || dollarVolume === undefined || Number.isNaN(dollarVolume)) {
+    return { label: 'Insufficient Data', color: 'default' };
+  }
+  if (dollarVolume <= 0) return { label: 'Low Liquidity', color: 'warning' };
+  if (dollarVolume >= 1_000_000_000) return { label: 'High Liquidity', color: 'success' };
+  if (dollarVolume >= 100_000_000) return { label: 'Moderate Liquidity', color: 'primary' };
+  return { label: 'Low Liquidity', color: 'warning' };
+};
+
+const getProfitabilityOutlook = (returnPct, annualizedVolatility) => {
+  if (Number.isNaN(returnPct) || Number.isNaN(annualizedVolatility)) {
+    return { label: 'Insufficient Data', color: 'default' };
+  }
+  if (returnPct > 6 && annualizedVolatility < 30) {
+    return { label: 'Positive Momentum', color: 'success' };
+  }
+  if (returnPct > 0) {
+    return { label: 'Constructive Trend', color: 'primary' };
+  }
+  return { label: 'Pressure / Watchlist', color: 'warning' };
+};
+
 const StockInsights = () => {
   const [activeView, setActiveView] = useState('overview');
   const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
@@ -308,15 +348,26 @@ const StockInsights = () => {
     const previousClose = Number(quoteData.previousClose || 0);
     const currentPrice = Number(quoteData.price || 0);
     const dayChangePct = previousClose > 0 ? ((currentPrice - previousClose) / previousClose) * 100 : 0;
+    const dollarVolume = currentPrice > 0 && volume > 0 ? currentPrice * volume : 0;
 
     return {
       currentPrice,
       dayChangePct,
       marketCap,
       volume,
+      dollarVolume,
       marketCapClass: classifyMarketCap(marketCap),
     };
   }, [quoteData]);
+
+  const fundamentalSignals = useMemo(() => ({
+    valuation: getValuationSignal(technicalStats.rangePosition),
+    liquidity: getLiquiditySignal(fundamentals.dollarVolume),
+    profitability: getProfitabilityOutlook(
+      technicalStats.returnPct,
+      technicalStats.annualizedVolatility
+    ),
+  }), [technicalStats, fundamentals.dollarVolume]);
 
   const selectHoldingStock = (holding) => {
     setSelectedSymbol(holding.symbol);
@@ -349,6 +400,9 @@ const StockInsights = () => {
       fundamental: `Analyze ${selectedSymbol} from a fundamental perspective in concise bullets. Cover valuation approach, cash-flow quality, and future profitability drivers/risks.`,
       technical: `Analyze ${selectedSymbol} from a technical perspective. Focus on K-line trend, momentum, support/resistance, and a short-term risk scenario.`,
       news: `Summarize the latest important news and sentiment for ${selectedSymbol}. Highlight catalysts and key risks that investors should monitor.`,
+      valuation: `Give a valuation-focused analysis for ${selectedSymbol}. Include valuation perspective, what could justify rerating, and key downside valuation risks.`,
+      cashflow: `Assess cash-flow quality for ${selectedSymbol}. Explain operating cash generation quality, efficiency, and risks to cash-flow durability.`,
+      profitability: `Assess future profitability outlook for ${selectedSymbol}. Discuss margin direction, earnings power, and what can improve or hurt profitability.`,
     };
 
     setAiState({ loading: true, mode, response: '', error: '' });
@@ -582,34 +636,96 @@ const StockInsights = () => {
             Select a stock first.
           </Typography>
         ) : (
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <List dense>
-                <ListItem disableGutters>
-                  <ListItemText primary="Market Cap Class" secondary={fundamentals.marketCapClass} />
-                </ListItem>
-                <ListItem disableGutters>
-                  <ListItemText primary="Market Capitalization" secondary={fundamentals.marketCap ? formatCurrency(fundamentals.marketCap) : 'N/A'} />
-                </ListItem>
-                <ListItem disableGutters>
-                  <ListItemText primary="Liquidity (Volume)" secondary={fundamentals.volume ? fundamentals.volume.toLocaleString('en-US') : 'N/A'} />
-                </ListItem>
-              </List>
+          <>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <List dense>
+                  <ListItem disableGutters>
+                    <ListItemText primary="Market Cap Class" secondary={fundamentals.marketCapClass} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemText primary="Market Capitalization" secondary={formatLargeUSD(fundamentals.marketCap)} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemText primary="Liquidity (Shares Volume)" secondary={fundamentals.volume ? fundamentals.volume.toLocaleString('en-US') : 'N/A'} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemText primary="Liquidity (Dollar Volume)" secondary={formatLargeUSD(fundamentals.dollarVolume)} />
+                  </ListItem>
+                </List>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <List dense>
+                  <ListItem disableGutters>
+                    <ListItemText primary="Current Price" secondary={formatCurrency(fundamentals.currentPrice)} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemText primary="30D Return" secondary={`${technicalStats.returnPct >= 0 ? '+' : ''}${technicalStats.returnPct.toFixed(2)}%`} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemText primary="Range Position" secondary={`${technicalStats.rangePosition.toFixed(1)}%`} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemText primary="Annualized Volatility" secondary={`${technicalStats.annualizedVolatility.toFixed(1)}%`} />
+                  </ListItem>
+                </List>
+              </Grid>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <List dense>
-                <ListItem disableGutters>
-                  <ListItemText primary="Current Price" secondary={formatCurrency(fundamentals.currentPrice)} />
-                </ListItem>
-                <ListItem disableGutters>
-                  <ListItemText primary="30D Return" secondary={`${technicalStats.returnPct >= 0 ? '+' : ''}${technicalStats.returnPct.toFixed(2)}%`} />
-                </ListItem>
-                <ListItem disableGutters>
-                  <ListItemText primary="Cash Flow & Profitability View" secondary="Use AI brief for qualitative analysis." />
-                </ListItem>
-              </List>
-            </Grid>
-          </Grid>
+
+            <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap', rowGap: 1 }}>
+              <Chip
+                label={fundamentalSignals.valuation.label}
+                color={fundamentalSignals.valuation.color}
+                variant="outlined"
+              />
+              <Chip
+                label={fundamentalSignals.liquidity.label}
+                color={fundamentalSignals.liquidity.color}
+                variant="outlined"
+              />
+              <Chip
+                label={fundamentalSignals.profitability.label}
+                color={fundamentalSignals.profitability.color}
+                variant="outlined"
+              />
+            </Stack>
+
+            <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
+
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.2 }}>
+              Fundamental functions:
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={() => runAIBrief('fundamental')}
+                disabled={!selectedSymbol || aiState.loading}
+              >
+                Fundamental Function
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => runAIBrief('valuation')}
+                disabled={!selectedSymbol || aiState.loading}
+              >
+                Valuation Function
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => runAIBrief('cashflow')}
+                disabled={!selectedSymbol || aiState.loading}
+              >
+                Cash Flow Function
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => runAIBrief('profitability')}
+                disabled={!selectedSymbol || aiState.loading}
+              >
+                Profitability Function
+              </Button>
+            </Stack>
+          </>
         )}
       </CardContent>
     </Card>
