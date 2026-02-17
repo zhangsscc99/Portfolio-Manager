@@ -1,11 +1,155 @@
 const yahooFinance = require("yahoo-finance2").default;
 const axios = require("axios");
+const https = require("https");
 
 // 🏢 Yahoo Finance API服务
 class YahooFinanceService {
   constructor() {
     this.cache = new Map(); // 简单缓存
     this.cacheExpiry = 60000; // 1分钟缓存
+    this.secTickerMap = new Map();
+    this.secTickerCacheAt = 0;
+    this.secTickerCacheTtl = 24 * 60 * 60 * 1000; // 24小时
+    this.secSharesCache = new Map();
+    this.secSharesCacheTtl = 6 * 60 * 60 * 1000; // 6小时
+    this.secUserAgent =
+      process.env.SEC_USER_AGENT ||
+      "PortfolioManager/1.0 (support@portfolio-manager.local)";
+    // 某些服务器Node出站到SEC会走IPv6超时，强制IPv4更稳定
+    this.secHttpsAgent = new https.Agent({ family: 4 });
+  }
+
+  getSecNormalizedTicker(symbol) {
+    const raw = String(symbol || "").trim().toUpperCase();
+    if (!raw) return "";
+    // SEC ticker映射通常不包含交易所后缀（如 .US）
+    return raw.split(".")[0];
+  }
+
+  async ensureSecTickerMap() {
+    const now = Date.now();
+    if (
+      this.secTickerMap.size > 0 &&
+      now - this.secTickerCacheAt < this.secTickerCacheTtl
+    ) {
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        "https://www.sec.gov/files/company_tickers_exchange.json",
+        {
+          timeout: 10000,
+          httpsAgent: this.secHttpsAgent,
+          headers: {
+            "User-Agent": this.secUserAgent,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      const nextMap = new Map();
+
+      for (const row of rows) {
+        const cik = Number(row?.[0]);
+        const ticker = String(row?.[2] || "")
+          .trim()
+          .toUpperCase();
+        if (!ticker || !Number.isFinite(cik)) continue;
+        nextMap.set(ticker, cik);
+      }
+
+      if (nextMap.size > 0) {
+        this.secTickerMap = nextMap;
+        this.secTickerCacheAt = now;
+      }
+    } catch (error) {
+      console.warn("⚠️ SEC ticker映射加载失败:", error.message);
+    }
+  }
+
+  async getSharesOutstandingFromSEC(symbol) {
+    const ticker = this.getSecNormalizedTicker(symbol);
+    if (!ticker) return null;
+
+    const now = Date.now();
+    const cached = this.secSharesCache.get(ticker);
+    if (cached && now - cached.timestamp < this.secSharesCacheTtl) {
+      return cached.value;
+    }
+
+    await this.ensureSecTickerMap();
+    const cik = this.secTickerMap.get(ticker);
+    if (!cik) return null;
+
+    const cikPadded = String(cik).padStart(10, "0");
+
+    try {
+      const response = await axios.get(
+        `https://data.sec.gov/api/xbrl/companyfacts/CIK${cikPadded}.json`,
+        {
+          timeout: 12000,
+          httpsAgent: this.secHttpsAgent,
+          headers: {
+            "User-Agent": this.secUserAgent,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const points =
+        response.data?.facts?.dei?.EntityCommonStockSharesOutstanding?.units
+          ?.shares;
+      if (!Array.isArray(points) || points.length === 0) {
+        return null;
+      }
+
+      const latest = points
+        .filter((item) => Number.isFinite(Number(item?.val)))
+        .sort((a, b) => {
+          const aDate = Date.parse(a?.filed || a?.end || 0) || 0;
+          const bDate = Date.parse(b?.filed || b?.end || 0) || 0;
+          return bDate - aDate;
+        })[0];
+
+      const sharesOutstanding = Number(latest?.val || 0);
+      if (!Number.isFinite(sharesOutstanding) || sharesOutstanding <= 0) {
+        return null;
+      }
+
+      this.secSharesCache.set(ticker, {
+        value: sharesOutstanding,
+        timestamp: now,
+      });
+      return sharesOutstanding;
+    } catch (error) {
+      console.warn(`⚠️ SEC股本获取失败 ${ticker}:`, error.message);
+      return null;
+    }
+  }
+
+  async enrichMarketCapFromSEC(stockData) {
+    if (!stockData || stockData.marketCap > 0 || stockData.price <= 0) {
+      return stockData;
+    }
+
+    const sharesOutstanding = await this.getSharesOutstandingFromSEC(
+      stockData.symbol
+    );
+    if (!sharesOutstanding) {
+      return stockData;
+    }
+
+    const marketCap = Math.round(sharesOutstanding * Number(stockData.price));
+    if (Number.isFinite(marketCap) && marketCap > 0) {
+      return {
+        ...stockData,
+        marketCap,
+      };
+    }
+
+    return stockData;
   }
 
   // Stooq备用行情：当Yahoo在服务器环境被403/限流时兜底
@@ -246,7 +390,7 @@ class YahooFinanceService {
         ],
       });
 
-      const stockData = {
+      let stockData = {
         symbol: quote.symbol,
         name: quote.longName,
         price: quote.regularMarketPrice || 0,
@@ -261,6 +405,8 @@ class YahooFinanceService {
         lastUpdated: new Date().toISOString(),
       };
 
+      stockData = await this.enrichMarketCapFromSEC(stockData);
+
       // 缓存数据
       this.cache.set(cacheKey, {
         data: stockData,
@@ -272,8 +418,9 @@ class YahooFinanceService {
       console.error(`❌ 获取股票数据失败 ${symbol}:`, error.message);
 
       // Yahoo失败时尝试Stooq兜底，避免前端价格全部为0
-      const fallbackStockData = await this.getStockPriceFromStooq(symbol);
+      let fallbackStockData = await this.getStockPriceFromStooq(symbol);
       if (fallbackStockData) {
+        fallbackStockData = await this.enrichMarketCapFromSEC(fallbackStockData);
         this.cache.set(symbol.toUpperCase(), {
           data: fallbackStockData,
           timestamp: Date.now(),
