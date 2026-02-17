@@ -13,8 +13,6 @@ import {
   TableHead,
   TableRow,
   CircularProgress,
-  TextField,
-  InputAdornment,
   TablePagination,
   TableSortLabel,
   Alert,
@@ -34,10 +32,7 @@ import toast from 'react-hot-toast'; // Import toast for notifications
 // Ensure these paths are correct for your project
 import {
   formatCurrency,
-  formatPercentage, // Still useful for formatting percentages if API sends numbers
-  getChangeColor,
   marketAPI,
-  getPercentageColorFromString
 } from '../../services/api';
 import StockSearchField from '../../components/StockSearchField';
 
@@ -118,7 +113,6 @@ const ETF = () => {
     isFetching, // Loading state for subsequent fetches (pagination, tab change)
     isError,
     error,
-    refetch // Function to manually refetch data
   } = useQuery(
     // Query key: changes when currentTab, page, rowsPerPage, orderBy, or order changes,
     // triggering a refetch.
@@ -163,20 +157,36 @@ const ETF = () => {
   const etfData = baseData?.data || [];
   const totalRecords = baseData?.totalRecords || 0;
 
-  /**
-   * Formats a large number into a more readable string (e.g., 1.23T, 4.56B, 7.89M, 1.23K).
-   * @param {number|string} num - The number to format.
-   * @returns {string} The formatted number string.
-   */
-  const formatLargeNumber = (num) => {
-    const numericValue = Number(num);
-    if (isNaN(numericValue) || numericValue === null || numericValue === undefined) return 'N/A';
+  const toNumeric = (value) => {
+    if (value === null || value === undefined) return null;
+    const normalized = String(value).replace(/[$,%\s,]/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
-    if (numericValue >= 1_000_000_000_000) return (numericValue / 1_000_000_000_000).toFixed(2) + 'T';
-    if (numericValue >= 1_000_000_000) return (numericValue / 1_000_000_000).toFixed(2) + 'B';
-    if (numericValue >= 1_000_000) return (numericValue / 1_000_000).toFixed(2) + 'M';
-    if (numericValue >= 1_000) return (numericValue / 1_000).toFixed(2) + 'K';
-    return numericValue.toFixed(2).toString();
+  const formatSignedValue = (value, suffix = '') => {
+    if (value === null || value === undefined) return 'N/A';
+    const raw = String(value).trim();
+    if (!raw || raw.toUpperCase() === 'N/A') return 'N/A';
+
+    const hasSuffix = suffix && raw.endsWith(suffix);
+    const withSuffix = hasSuffix || !suffix ? raw : `${raw}${suffix}`;
+    if (withSuffix.startsWith('-') || withSuffix.startsWith('+')) {
+      return withSuffix;
+    }
+    return `+${withSuffix}`;
+  };
+
+  const getSignedColor = (value) => {
+    const parsed = toNumeric(value);
+    if (parsed === null) return 'text.secondary';
+    return parsed >= 0 ? 'success.main' : 'error.main';
+  };
+
+  const formatMaybeCurrency = (value) => {
+    const parsed = toNumeric(value);
+    if (parsed === null) return 'N/A';
+    return formatCurrency(parsed, 'USD');
   };
 
   useEffect(() => {
@@ -331,29 +341,28 @@ const ETF = () => {
                   <TableRow key={etf.symbol} hover sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{etf.symbol || 'N/A'}</TableCell>
                     <TableCell>{etf.name || 'N/A'}</TableCell>
-                    <TableCell align="right">{formatCurrency(etf.price, 'USD')}</TableCell>
+                    <TableCell align="right">{formatMaybeCurrency(etf.price)}</TableCell>
                     <TableCell
                       align="right"
-                      sx={{ color: getChangeColor(etf.change), fontWeight: 500 }}
+                      sx={{ color: getSignedColor(etf.change), fontWeight: 500 }}
                     >
-                      {etf.change.startsWith('-') ? etf.change : '+' + etf.change}
+                      {formatSignedValue(etf.change)}
                     </TableCell>
                     <TableCell
                       align="right"
-                      sx={{ color: getPercentageColorFromString(etf.changePercent), fontWeight: 500 }}
+                      sx={{ color: getSignedColor(etf.changePercent), fontWeight: 500 }}
                     >
-                      {/* Assuming changePercent from API is already a number or string that formatPercentage can handle */}
-                      {etf.changePercent.startsWith('-') ? etf.changePercent : '+' + etf.changePercent}
+                      {formatSignedValue(etf.changePercent, '%')}
                     </TableCell>
                     <TableCell align="right">{etf.marketVolume}</TableCell>
                     <TableCell
                         align="right"
-                        sx={{ color: getPercentageColorFromString(etf.fiftyTwoWeekChangePercent) }}
+                        sx={{ color: getSignedColor(etf.fiftyTwoWeekChangePercent) }}
                         >
-                        {etf.fiftyTwoWeekChangePercent}
+                        {formatSignedValue(etf.fiftyTwoWeekChangePercent, '%')}
                     </TableCell>
-                    <TableCell align="right">{formatCurrency(etf.fiftyDayAvg, 'USD')}</TableCell>
-                    <TableCell align="right">{formatCurrency(etf.twoHundredDayAvg, 'USD')}</TableCell>
+                    <TableCell align="right">{formatMaybeCurrency(etf.fiftyDayAvg)}</TableCell>
+                    <TableCell align="right">{formatMaybeCurrency(etf.twoHundredDayAvg)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -446,21 +455,21 @@ const ETF = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      <TableRow hover sx={{ cursor: 'pointer' }}>
-                        <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{selectedETF.symbol}</TableCell>
-                        <TableCell>{selectedETF.name || selectedETF.longname}</TableCell>
-                        <TableCell align="right">{selectedETF.price ? `$${parseFloat(selectedETF.price).toFixed(2)}` : '-'}</TableCell>
+                        <TableRow hover sx={{ cursor: 'pointer' }}>
+                          <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{selectedETF.symbol}</TableCell>
+                          <TableCell>{selectedETF.name || selectedETF.longname}</TableCell>
+                        <TableCell align="right">{formatMaybeCurrency(selectedETF.price)}</TableCell>
                         <TableCell
                           align="right"
-                          sx={{ color: selectedETF.change && parseFloat(selectedETF.change) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                          sx={{ color: getSignedColor(selectedETF.change), fontWeight: 500 }}
                         >
-                          {selectedETF.change ? (selectedETF.change.toString().startsWith('-') ? selectedETF.change : '+' + selectedETF.change) : '-'}
+                          {formatSignedValue(selectedETF.change)}
                         </TableCell>
                         <TableCell
                           align="right"
-                          sx={{ color: selectedETF.changePercent && parseFloat(selectedETF.changePercent) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                          sx={{ color: getSignedColor(selectedETF.changePercent), fontWeight: 500 }}
                         >
-                          {selectedETF.changePercent ? (selectedETF.changePercent.toString().startsWith('-') ? selectedETF.changePercent + '%' : '+' + selectedETF.changePercent + '%') : '-'}
+                          {formatSignedValue(selectedETF.changePercent, '%')}
                         </TableCell>
                         <TableCell align="right">{selectedETF.volume || '-'}</TableCell>
                         <TableCell align="right">{selectedETF.marketCap || '-'}</TableCell>

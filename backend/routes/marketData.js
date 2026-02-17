@@ -11,6 +11,266 @@ const { HttpsProxyAgent } = require("https-proxy-agent");
 // const agent = new HttpsProxyAgent(proxy);
 const axios = require("axios");
 
+const COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3";
+const ETF_FALLBACK_CACHE_TTL = 5 * 60 * 1000;
+const ETF_FALLBACK_CACHE = {
+  updatedAt: 0,
+  rows: [],
+};
+
+const ETF_FALLBACK_UNIVERSE = [
+  { symbol: "SPY", name: "SPDR S&P 500 ETF Trust" },
+  { symbol: "VOO", name: "Vanguard S&P 500 ETF" },
+  { symbol: "IVV", name: "iShares Core S&P 500 ETF" },
+  { symbol: "QQQ", name: "Invesco QQQ Trust" },
+  { symbol: "VTI", name: "Vanguard Total Stock Market ETF" },
+  { symbol: "IWM", name: "iShares Russell 2000 ETF" },
+  { symbol: "DIA", name: "SPDR Dow Jones Industrial Average ETF" },
+  { symbol: "XLK", name: "Technology Select Sector SPDR Fund" },
+  { symbol: "XLF", name: "Financial Select Sector SPDR Fund" },
+  { symbol: "XLE", name: "Energy Select Sector SPDR Fund" },
+  { symbol: "XLY", name: "Consumer Discretionary Select Sector SPDR Fund" },
+  { symbol: "XLV", name: "Health Care Select Sector SPDR Fund" },
+  { symbol: "XLI", name: "Industrial Select Sector SPDR Fund" },
+  { symbol: "XLP", name: "Consumer Staples Select Sector SPDR Fund" },
+  { symbol: "XLU", name: "Utilities Select Sector SPDR Fund" },
+  { symbol: "XLB", name: "Materials Select Sector SPDR Fund" },
+  { symbol: "XLRE", name: "Real Estate Select Sector SPDR Fund" },
+  { symbol: "ARKK", name: "ARK Innovation ETF" },
+  { symbol: "SMH", name: "VanEck Semiconductor ETF" },
+  { symbol: "SOXX", name: "iShares Semiconductor ETF" },
+  { symbol: "VGT", name: "Vanguard Information Technology ETF" },
+  { symbol: "IEMG", name: "iShares Core MSCI Emerging Markets ETF" },
+  { symbol: "EEM", name: "iShares MSCI Emerging Markets ETF" },
+  { symbol: "VEA", name: "Vanguard FTSE Developed Markets ETF" },
+  { symbol: "VWO", name: "Vanguard FTSE Emerging Markets ETF" },
+  { symbol: "TLT", name: "iShares 20+ Year Treasury Bond ETF" },
+  { symbol: "IEF", name: "iShares 7-10 Year Treasury Bond ETF" },
+  { symbol: "HYG", name: "iShares iBoxx High Yield Corporate Bond ETF" },
+  { symbol: "LQD", name: "iShares iBoxx Investment Grade Corporate Bond ETF" },
+  { symbol: "BND", name: "Vanguard Total Bond Market ETF" },
+  { symbol: "AGG", name: "iShares Core U.S. Aggregate Bond ETF" },
+  { symbol: "GLD", name: "SPDR Gold Shares" },
+  { symbol: "SLV", name: "iShares Silver Trust" },
+  { symbol: "USO", name: "United States Oil Fund" },
+  { symbol: "XBI", name: "SPDR S&P Biotech ETF" },
+  { symbol: "KRE", name: "SPDR S&P Regional Banking ETF" },
+];
+
+const toNumeric = (value) => {
+  if (value === null || value === undefined) return null;
+  const normalized = String(value).replace(/[$,%\s,]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatFixed = (value, digits = 2) => {
+  const parsed = toNumeric(value);
+  return parsed === null ? "N/A" : parsed.toFixed(digits);
+};
+
+const formatPercent = (value, digits = 2) => {
+  const parsed = toNumeric(value);
+  return parsed === null ? "N/A" : `${parsed.toFixed(digits)}%`;
+};
+
+const formatCompact = (value) => {
+  const parsed = toNumeric(value);
+  if (parsed === null) return "N/A";
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(parsed);
+};
+
+const formatCryptoPrice = (value) => {
+  const parsed = toNumeric(value);
+  if (parsed === null) return "N/A";
+  if (parsed === 0) return "0.00";
+  if (parsed < 1) return parsed.toFixed(6);
+  return parsed.toFixed(2);
+};
+
+const toYmd = (date) => date.toISOString().slice(0, 10).replace(/-/g, "");
+
+async function getStooqSnapshot(symbol) {
+  const raw = String(symbol || "").trim().toLowerCase();
+  if (!raw) return null;
+
+  const candidates = raw.includes(".") ? [raw] : [raw, `${raw}.us`];
+  const endDate = new Date();
+  const startDate = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000);
+
+  for (const candidate of candidates) {
+    try {
+      const response = await axios.get("https://stooq.com/q/d/l/", {
+        params: {
+          s: candidate,
+          i: "d",
+          d1: toYmd(startDate),
+          d2: toYmd(endDate),
+        },
+        timeout: 8000,
+        responseType: "text",
+        transformResponse: [(data) => data],
+      });
+
+      const lines = String(response.data || "")
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean);
+      if (lines.length <= 1) continue;
+
+      const rows = lines
+        .slice(1)
+        .map((line) => line.split(","))
+        .filter((cols) => cols.length >= 6)
+        .map((cols) => {
+          const close = Number(cols[4]);
+          const volume = Number(cols[5]);
+          return {
+            close,
+            volume: Number.isFinite(volume) ? volume : 0,
+          };
+        })
+        .filter((row) => Number.isFinite(row.close) && row.close > 0);
+
+      if (rows.length === 0) continue;
+
+      const latest = rows[rows.length - 1];
+      const previous = rows.length > 1 ? rows[rows.length - 2] : null;
+      const previousClose =
+        previous && Number.isFinite(previous.close) && previous.close > 0
+          ? previous.close
+          : latest.close;
+
+      const change = latest.close - previousClose;
+      const changePercent =
+        previousClose > 0 ? (change / previousClose) * 100 : 0;
+
+      return {
+        price: latest.close,
+        change,
+        changePercent,
+        volume: latest.volume,
+      };
+    } catch (error) {
+      // 尝试下一个候选symbol
+    }
+  }
+
+  return null;
+}
+
+async function getEtfFallbackUniverse() {
+  const now = Date.now();
+  if (
+    ETF_FALLBACK_CACHE.rows.length > 0 &&
+    now - ETF_FALLBACK_CACHE.updatedAt < ETF_FALLBACK_CACHE_TTL
+  ) {
+    return ETF_FALLBACK_CACHE.rows;
+  }
+
+  const rows = await Promise.all(
+    ETF_FALLBACK_UNIVERSE.map(async (etf) => {
+      const snapshot = await getStooqSnapshot(etf.symbol);
+      if (!snapshot) return null;
+
+      return {
+        symbol: etf.symbol,
+        name: etf.name,
+        price: formatFixed(snapshot.price, 2),
+        change: formatFixed(snapshot.change, 2),
+        changePercent: formatPercent(snapshot.changePercent, 2),
+        marketVolume: formatCompact(snapshot.volume),
+        fiftyDayAvg: "N/A",
+        twoHundredDayAvg: "N/A",
+        trailing3MonthReturn: "N/A",
+        ytdReturn: "N/A",
+        fiftyTwoWeekChangePercent: "N/A",
+        fiftyTwoWeekRange: "N/A",
+        _volumeNumeric: snapshot.volume || 0,
+        _changePercentNumeric: snapshot.changePercent || 0,
+      };
+    })
+  );
+
+  const validRows = rows.filter(Boolean);
+  ETF_FALLBACK_CACHE.rows = validRows;
+  ETF_FALLBACK_CACHE.updatedAt = now;
+  return validRows;
+}
+
+async function getEtfFallbackPage(page, limit, category) {
+  const allRows = await getEtfFallbackUniverse();
+  if (!allRows.length) return null;
+
+  const sorted = [...allRows];
+  if (category === "gainers") {
+    sorted.sort((a, b) => b._changePercentNumeric - a._changePercentNumeric);
+  } else if (category === "losers") {
+    sorted.sort((a, b) => a._changePercentNumeric - b._changePercentNumeric);
+  } else {
+    sorted.sort((a, b) => b._volumeNumeric - a._volumeNumeric);
+  }
+
+  const totalRecords = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / limit));
+  const start = (page - 1) * limit;
+  const pagedRows = sorted.slice(start, start + limit).map((row) => {
+    const { _volumeNumeric, _changePercentNumeric, ...publicRow } = row;
+    return publicRow;
+  });
+
+  return {
+    data: pagedRows,
+    totalRecords,
+    totalPages,
+    source: "stooq",
+  };
+}
+
+async function getCryptoFallbackPage(page, limit) {
+  const response = await axios.get(`${COINGECKO_BASE_URL}/coins/markets`, {
+    params: {
+      vs_currency: "usd",
+      order: "market_cap_desc",
+      per_page: limit,
+      page,
+      sparkline: false,
+      price_change_percentage: "24h",
+    },
+    timeout: 10000,
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      Accept: "application/json",
+    },
+  });
+
+  const rawRows = Array.isArray(response.data) ? response.data : [];
+  const totalRecords = Number(response.headers?.total) || rawRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / limit));
+
+  return {
+    data: rawRows.map((item) => ({
+      symbol: String(item.symbol || "").toUpperCase(),
+      name: item.name || String(item.symbol || "").toUpperCase(),
+      price: formatCryptoPrice(item.current_price),
+      change: formatFixed(item.price_change_24h, 2),
+      changePercent: formatPercent(item.price_change_percentage_24h, 2),
+      marketCap: formatCompact(item.market_cap),
+      volume24Hr: formatCompact(item.total_volume),
+      totalVolume: formatCompact(item.total_volume),
+      circulatingSupply: formatCompact(item.circulating_supply),
+      fiftyTwoWeekRange: "N/A",
+      logoUrl: item.image || null,
+    })),
+    totalRecords,
+    totalPages,
+    source: "coingecko",
+  };
+}
+
 // 📊 GET /api/market/quote/:symbol - 获取单个股票报价
 router.get("/quote/:symbol", async (req, res) => {
   try {
@@ -671,6 +931,10 @@ router.get("/crypto", async (req, res) => {
       logoUrl: item.logoUrl || item.coinImageUrl || null,
     }));
 
+    if (cryptoData.length === 0) {
+      throw new Error("Yahoo crypto screener returned empty rows");
+    }
+
     return res.status(200).json({
       success: true,
       message: "成功获取加密货币数据。",
@@ -682,11 +946,25 @@ router.get("/crypto", async (req, res) => {
     });
   } catch (error) {
     console.error("获取加密货币数据失败:", error);
-    return res.status(error.response?.status || 500).json({
-      success: false,
-      message: "获取加密货币数据失败。",
-      error: error.message,
-    });
+    try {
+      const fallback = await getCryptoFallbackPage(page, limit);
+      return res.status(200).json({
+        success: true,
+        message: "Yahoo不可用，已切换到CoinGecko数据源。",
+        data: fallback.data,
+        totalRecords: fallback.totalRecords,
+        totalPages: fallback.totalPages,
+        currentPage: page,
+        perPage: limit,
+        source: fallback.source,
+      });
+    } catch (fallbackError) {
+      return res.status(error.response?.status || 500).json({
+        success: false,
+        message: "获取加密货币数据失败。",
+        error: fallbackError.message || error.message,
+      });
+    }
   }
 });
 
@@ -775,6 +1053,10 @@ router.get("/etfs/most-active", async (req, res) => {
       fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
     }));
 
+    if (etfData.length === 0) {
+      throw new Error("Yahoo ETF most-active returned empty rows");
+    }
+
     return res.status(200).json({
       success: true,
       message: "成功获取ETF活跃榜单。",
@@ -786,6 +1068,28 @@ router.get("/etfs/most-active", async (req, res) => {
     });
   } catch (error) {
     console.error("获取ETF数据失败:", error);
+    try {
+      const fallback = await getEtfFallbackPage(page, limit, "most-active");
+      if (fallback) {
+        return res.status(200).json({
+          success: true,
+          message: "Yahoo不可用，已切换到ETF备用数据源。",
+          data: fallback.data,
+          totalRecords: fallback.totalRecords,
+          totalPages: fallback.totalPages,
+          currentPage: page,
+          perPage: limit,
+          source: fallback.source,
+        });
+      }
+    } catch (fallbackError) {
+      return res.status(error.response?.status || 500).json({
+        success: false,
+        message: "获取ETF数据失败。",
+        error: fallbackError.message || error.message,
+      });
+    }
+
     return res.status(error.response?.status || 500).json({
       success: false,
       message: "获取ETF数据失败。",
@@ -837,6 +1141,10 @@ router.get("/etfs/gainers", async (req, res) => {
       fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
     }));
 
+    if (etfGainers.length === 0) {
+      throw new Error("Yahoo ETF gainers returned empty rows");
+    }
+
     return res.status(200).json({
       success: true,
       message: "成功获取 ETF 日涨幅数据。",
@@ -848,6 +1156,28 @@ router.get("/etfs/gainers", async (req, res) => {
     });
   } catch (error) {
     console.error("获取 ETF Gainers 失败:", error);
+    try {
+      const fallback = await getEtfFallbackPage(page, limit, "gainers");
+      if (fallback) {
+        return res.status(200).json({
+          success: true,
+          message: "Yahoo不可用，已切换到ETF涨幅备用数据源。",
+          data: fallback.data,
+          totalRecords: fallback.totalRecords,
+          totalPages: fallback.totalPages,
+          currentPage: page,
+          perPage: limit,
+          source: fallback.source,
+        });
+      }
+    } catch (fallbackError) {
+      return res.status(error.response?.status || 500).json({
+        success: false,
+        message: "获取 ETF Gainers 失败",
+        error: fallbackError.message || error.message,
+      });
+    }
+
     return res.status(error.response?.status || 500).json({
       success: false,
       message: "获取 ETF Gainers 失败",
@@ -898,6 +1228,10 @@ router.get("/etfs/losers", async (req, res) => {
       fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
     }));
 
+    if (etfLosers.length === 0) {
+      throw new Error("Yahoo ETF losers returned empty rows");
+    }
+
     return res.status(200).json({
       success: true,
       message: "成功获取 ETF 日跌幅数据。",
@@ -909,6 +1243,28 @@ router.get("/etfs/losers", async (req, res) => {
     });
   } catch (error) {
     console.error("获取 ETF Losers 失败:", error);
+    try {
+      const fallback = await getEtfFallbackPage(page, limit, "losers");
+      if (fallback) {
+        return res.status(200).json({
+          success: true,
+          message: "Yahoo不可用，已切换到ETF跌幅备用数据源。",
+          data: fallback.data,
+          totalRecords: fallback.totalRecords,
+          totalPages: fallback.totalPages,
+          currentPage: page,
+          perPage: limit,
+          source: fallback.source,
+        });
+      }
+    } catch (fallbackError) {
+      return res.status(error.response?.status || 500).json({
+        success: false,
+        message: "获取 ETF Losers 失败",
+        error: fallbackError.message || error.message,
+      });
+    }
+
     return res.status(error.response?.status || 500).json({
       success: false,
       message: "获取 ETF Losers 失败",
@@ -960,6 +1316,10 @@ router.get("/etfs/trending", async (req, res) => {
       fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
     }));
 
+    if (etfTrending.length === 0) {
+      throw new Error("Yahoo ETF trending returned empty rows");
+    }
+
     return res.status(200).json({
       success: true,
       message: "成功获取 ETF 热门榜数据。",
@@ -971,6 +1331,28 @@ router.get("/etfs/trending", async (req, res) => {
     });
   } catch (error) {
     console.error("获取 ETF Trending 失败:", error);
+    try {
+      const fallback = await getEtfFallbackPage(page, limit, "trending");
+      if (fallback) {
+        return res.status(200).json({
+          success: true,
+          message: "Yahoo不可用，已切换到ETF热门备用数据源。",
+          data: fallback.data,
+          totalRecords: fallback.totalRecords,
+          totalPages: fallback.totalPages,
+          currentPage: page,
+          perPage: limit,
+          source: fallback.source,
+        });
+      }
+    } catch (fallbackError) {
+      return res.status(error.response?.status || 500).json({
+        success: false,
+        message: "获取 ETF Trending 失败",
+        error: fallbackError.message || error.message,
+      });
+    }
+
     return res.status(error.response?.status || 500).json({
       success: false,
       message: "获取 ETF Trending 失败",

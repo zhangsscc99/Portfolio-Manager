@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -21,12 +21,11 @@ import {
 import { useQuery } from 'react-query'; // Keep useQuery for API fetching
 
 // Ensure these paths are correct
-import { formatCurrency, getPercentageColorFromString, getChangeColor, marketAPI } from '../../services/api'; // Assuming marketAPI contains getCryptos
+import { formatCurrency, marketAPI } from '../../services/api';
 import StockSearchField from '../../components/StockSearchField';
 import toast from 'react-hot-toast'; // For error notifications
 
 const Crypto = () => {
-  const debounceTimerRef = useRef(null);
   const [selectedCrypto, setSelectedCrypto] = useState(null);
   const [searchValue, setSearchValue] = useState(null);
 
@@ -60,23 +59,37 @@ const Crypto = () => {
   const totalRecords = baseData?.totalRecords || 0;
 
 
-  // Helper function to format large numbers (e.g., Volume, Market Cap)
-  const formatLargeNumber = useCallback((num) => {
-    if (num === null || num === undefined) return 'N/A';
-    const number = Number(num);
-    if (isNaN(number)) return 'N/A';
+  const toNumeric = (value) => {
+    if (value === null || value === undefined) return null;
+    const normalized = String(value).replace(/[$,%\s,]/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
-    // Handle very small numbers for crypto prices, if necessary (though usually price is formatted by formatCurrency)
-    // This part might be redundant if formatCurrency handles it well.
-    if (number > 0 && number < 0.000001) { // For numbers like 0.000000123
-        return number.toPrecision(3); // Show 3 significant figures
+  const formatSignedValue = (value, suffix = '') => {
+    if (value === null || value === undefined) return 'N/A';
+    const raw = String(value).trim();
+    if (!raw || raw.toUpperCase() === 'N/A') return 'N/A';
+
+    const hasSuffix = suffix && raw.endsWith(suffix);
+    const withSuffix = hasSuffix || !suffix ? raw : `${raw}${suffix}`;
+    if (withSuffix.startsWith('-') || withSuffix.startsWith('+')) {
+      return withSuffix;
     }
-    if (number >= 1_000_000_000_000) return (number / 1_000_000_000_000).toFixed(2) + 'T'; // Trillions
-    if (number >= 1_000_000_000) return (number / 1_000_000_000).toFixed(2) + 'B'; // Billions
-    if (number >= 1_000_000) return (number / 1_000_000).toFixed(2) + 'M'; // Millions
-    if (number >= 1_000) return (number / 1_000).toFixed(2) + 'K'; // Thousands
-    return number.toFixed(2).toString(); // Default to 2 decimal places
-  }, []);
+    return `+${withSuffix}`;
+  };
+
+  const getSignedColor = (value) => {
+    const parsed = toNumeric(value);
+    if (parsed === null) return 'text.secondary';
+    return parsed >= 0 ? 'success.main' : 'error.main';
+  };
+
+  const formatPrice = (value) => {
+    const parsed = toNumeric(value);
+    if (parsed === null) return 'N/A';
+    return formatCurrency(parsed, 'USD');
+  };
 
   // --- Pagination Handlers ---
   const handleChangePage = (event, newPage) => {
@@ -127,12 +140,12 @@ const Crypto = () => {
                 <TableRow>
                   <TableCell>Symbol</TableCell>
                   <TableCell>Name</TableCell>
+                  <TableCell align="right">Price</TableCell>
                   <TableCell align="right">Change</TableCell>
                   <TableCell align="right">Change %</TableCell>
                   <TableCell align="right">Market Cap</TableCell>
                   <TableCell align="right">Volume</TableCell>
                   <TableCell align="right">Volume (24h)</TableCell>
-                  <TableCell align="right">Market Cap</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -140,18 +153,18 @@ const Crypto = () => {
                   <TableRow key={crypto.symbol} hover sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{crypto.symbol}</TableCell>
                     <TableCell>{crypto.name}</TableCell>
-                    <TableCell align="right">{crypto.price}</TableCell>
+                    <TableCell align="right">{formatPrice(crypto.price)}</TableCell>
                     <TableCell
                       align="right"
-                      sx={{ color: getChangeColor(crypto.change), fontWeight: 500 }}
+                      sx={{ color: getSignedColor(crypto.change), fontWeight: 500 }}
                     >
-                      {crypto.change.startsWith('-') ? crypto.change : '+' + crypto.change}
+                      {formatSignedValue(crypto.change)}
                     </TableCell>
                     <TableCell
                       align="right"
-                      sx={{ color: getPercentageColorFromString(crypto.changePercent), fontWeight: 500 }} // Assuming getChangeColor also works for percentage
+                      sx={{ color: getSignedColor(crypto.changePercent), fontWeight: 500 }}
                     >
-                      {crypto.changePercent.startsWith('-') ? crypto.changePercent : '+' + crypto.changePercent}
+                      {formatSignedValue(crypto.changePercent, '%')}
                     </TableCell>
                     <TableCell align="right">{crypto.marketCap}</TableCell>
                     <TableCell align="right">{crypto.totalVolume}</TableCell>
@@ -239,18 +252,18 @@ const Crypto = () => {
                       <TableRow hover sx={{ cursor: 'pointer' }}>
                         <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{selectedCrypto.symbol}</TableCell>
                         <TableCell>{selectedCrypto.name || selectedCrypto.longname}</TableCell>
-                        <TableCell align="right">{selectedCrypto.price ? `$${parseFloat(selectedCrypto.price).toFixed(2)}` : '-'}</TableCell>
+                        <TableCell align="right">{formatPrice(selectedCrypto.price)}</TableCell>
                         <TableCell
                           align="right"
-                          sx={{ color: selectedCrypto.change && parseFloat(selectedCrypto.change) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                          sx={{ color: getSignedColor(selectedCrypto.change), fontWeight: 500 }}
                         >
-                          {selectedCrypto.change ? (selectedCrypto.change.toString().startsWith('-') ? selectedCrypto.change : '+' + selectedCrypto.change) : '-'}
+                          {formatSignedValue(selectedCrypto.change)}
                         </TableCell>
                         <TableCell
                           align="right"
-                          sx={{ color: selectedCrypto.changePercent && parseFloat(selectedCrypto.changePercent) >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                          sx={{ color: getSignedColor(selectedCrypto.changePercent), fontWeight: 500 }}
                         >
-                          {selectedCrypto.changePercent ? (selectedCrypto.changePercent.toString().startsWith('-') ? selectedCrypto.changePercent + '%' : '+' + selectedCrypto.changePercent + '%') : '-'}
+                          {formatSignedValue(selectedCrypto.changePercent, '%')}
                         </TableCell>
                         <TableCell align="right">{selectedCrypto.volume || '-'}</TableCell>
                         <TableCell align="right">{selectedCrypto.marketCap || '-'}</TableCell>
