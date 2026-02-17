@@ -117,6 +117,21 @@ const getProfitabilityOutlook = (returnPct, annualizedVolatility) => {
   return { label: 'Pressure / Watchlist', color: 'warning' };
 };
 
+const buildNewsContextPrompt = (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return 'No recent headlines were returned by the news API.';
+  }
+
+  return items.slice(0, 8).map((item, index) => {
+    const source = item?.source || 'Unknown source';
+    const dateText = item?.publishTime
+      ? new Date(item.publishTime).toISOString().slice(0, 10)
+      : 'Unknown date';
+    const title = String(item?.title || '').trim() || 'Untitled headline';
+    return `${index + 1}. ${title} | Source: ${source} | Date: ${dateText}`;
+  }).join('\n');
+};
+
 const StockInsights = () => {
   const [activeView, setActiveView] = useState('overview');
   const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
@@ -231,6 +246,7 @@ const StockInsights = () => {
   const {
     data: newsResult,
     isLoading: newsLoading,
+    refetch: refetchNews,
   } = useQuery(
     ['insightsNews', selectedSymbol],
     () => marketAPI.getNews(selectedSymbol),
@@ -396,10 +412,31 @@ const StockInsights = () => {
   const runAIBrief = async (mode) => {
     if (!selectedSymbol) return;
 
+    let latestNewsItems = newsItems;
+    if (mode === 'news') {
+      try {
+        const refreshedNews = await refetchNews();
+        const refreshedItems = refreshedNews?.data?.data;
+        if (Array.isArray(refreshedItems)) {
+          latestNewsItems = refreshedItems;
+        }
+      } catch (error) {
+        // Keep existing cached news if refetch fails.
+      }
+    }
+
     const prompts = {
       fundamental: `Analyze ${selectedSymbol} from a fundamental perspective in concise bullets. Cover valuation approach, cash-flow quality, and future profitability drivers/risks.`,
       technical: `Analyze ${selectedSymbol} from a technical perspective. Focus on K-line trend, momentum, support/resistance, and a short-term risk scenario.`,
-      news: `Summarize the latest important news and sentiment for ${selectedSymbol}. Highlight catalysts and key risks that investors should monitor.`,
+      news: `Analyze ${selectedSymbol} using ONLY the provided news API headlines and metadata. If data is limited, explicitly say so.
+
+News API payload:
+${buildNewsContextPrompt(latestNewsItems)}
+
+Output requirements:
+- 3-6 concise bullets.
+- Cover sentiment, near-term catalysts, and key risks.
+- Do not invent events that are not in the provided headlines.`,
       valuation: `Give a valuation-focused analysis for ${selectedSymbol}. Include valuation perspective, what could justify rerating, and key downside valuation risks.`,
       cashflow: `Assess cash-flow quality for ${selectedSymbol}. Explain operating cash generation quality, efficiency, and risks to cash-flow durability.`,
       profitability: `Assess future profitability outlook for ${selectedSymbol}. Discuss margin direction, earnings power, and what can improve or hurt profitability.`,
