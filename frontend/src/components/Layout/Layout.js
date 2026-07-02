@@ -88,7 +88,7 @@ const Layout = ({ children }) => {
       case '/':
         return 'Dashboard';
       default:
-        return 'Portfolio Manager';
+        return 'Openfolio - Your Portfolio Manager';
     }
   };
 

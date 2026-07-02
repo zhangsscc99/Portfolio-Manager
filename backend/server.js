@@ -54,7 +54,7 @@ app.get('/api-docs/swagger.json', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Portfolio Manager API is running',
+    message: 'Openfolio - Your Portfolio Manager API is running',
     timestamp: new Date().toISOString()
   });
 });
@@ -85,7 +85,7 @@ app.get('*', (req, res) => {
       res.status(404).json({ error: 'API endpoint not found' });
     } else {
       res.status(200).json({ 
-        message: 'Portfolio Manager API is running',
+        message: 'Openfolio - Your Portfolio Manager API is running',
         note: 'Frontend not built. Please run the frontend development server separately.',
         frontend_url: 'http://localhost:3000'
       });
@@ -105,7 +105,7 @@ app.use((err, req, res, next) => {
 // 🚀 启动服务器并自动初始化数据库
 const startServer = async () => {
   try {
-    console.log('🔄 正在启动Portfolio Manager后端服务...');
+    console.log('🔄 正在启动Openfolio - Your Portfolio Manager后端服务...');
     
     // 1. 测试数据库连接
     console.log('🔗 测试数据库连接...');
@@ -133,7 +133,7 @@ const startServer = async () => {
             // 5. 启动HTTP服务器
         app.listen(PORT, () => {
           console.log('');
-          console.log('🎉 ===== Portfolio Manager 启动成功! =====');
+          console.log('🎉 ===== Openfolio - Your Portfolio Manager 启动成功! =====');
           console.log(`🚀 API服务器: http://localhost:${PORT}`);
           console.log(`📊 管理面板: http://localhost:${PORT}`);
           console.log(`🏥 健康检查: http://localhost:${PORT}/api/health`);

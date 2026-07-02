@@ -134,7 +134,7 @@ const HomePage = () => {
             className="gradient-text"
             sx={{ fontWeight: 700 }}
           >
-            Portfolio Manager
+            Openfolio - Your Portfolio Manager
           </Typography>
         </Box>
         
@@ -211,7 +211,7 @@ const HomePage = () => {
                     opacity: 0.9,
                   }}
                 >
-                  The Ultimate Portfolio Manager
+                  Openfolio - Your Portfolio Manager
                 </Typography>
                 <Typography
                   variant="h6"
@@ -224,7 +224,7 @@ const HomePage = () => {
                     lineHeight: 1.6,
                   }}
                 >
-                  Portfolio Manager is your professional investment companion. Track real-time market data, analyze performance, optimize asset allocation, and make smarter investment decisions.
+                  Openfolio is your professional investment companion. Track real-time market data, analyze performance, optimize asset allocation, and make smarter investment decisions.
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <Button
@@ -273,7 +273,7 @@ const HomePage = () => {
             <VideoPlayer
               src="/pm.mp4"
               poster="/video-poster.jpg"
-              title="Portfolio Manager"
+              title="Openfolio - Your Portfolio Manager"
               description="Experience the power of professional investment management"
             />
           </Box>
@@ -288,7 +288,7 @@ const HomePage = () => {
                mx: 'auto',
              }}
            >
-             Watch how Portfolio Manager transforms your investment workflow with real-time tracking, 
+             Watch how Openfolio transforms your investment workflow with real-time tracking, 
              advanced analytics, and intuitive portfolio management.
            </Typography>
          </Box>
@@ -455,7 +455,7 @@ const HomePage = () => {
               lineHeight: 1.6
             }}
           >
-            Get instant access to Portfolio Manager from any device. Scan the QR code or visit our website directly.
+            Get instant access to Openfolio from any device. Scan the QR code or visit our website directly.
           </Typography>
 
           <Grid container spacing={4} alignItems="center" justifyContent="center">
@@ -476,7 +476,7 @@ const HomePage = () => {
                 }}>
                                      <img 
                      src="/qrcode_finance_app2.png" 
-                     alt="Portfolio Manager QR Code"
+                     alt="Openfolio QR Code"
                      style={{
                        width: '220px',
                        height: '220px',
@@ -581,7 +581,7 @@ const HomePage = () => {
       }}>
         <Container>
                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-           © 2025 Portfolio Manager. Professional Investment Management Platform v1.0.0
+           © 2025 Openfolio - Your Portfolio Manager. Professional Investment Management Platform v1.0.0
          </Typography>
         </Container>
       </Box>

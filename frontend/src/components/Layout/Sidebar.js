@@ -181,7 +181,7 @@ const Sidebar = ({ onNavigate }) => {
             }}
             onClick={() => navigate('/')}
           >
-            Portfolio Manager
+            Openfolio - Your Portfolio Manager
           </Typography>
         </Box>
       </Box>
@@ -351,7 +351,7 @@ const Sidebar = ({ onNavigate }) => {
             display: 'block',
           }}
         >
-          Portfolio Manager v1.0.0
+          Openfolio - Your Portfolio Manager v1.0.0
         </Typography>
       </Box>
     </Box>
