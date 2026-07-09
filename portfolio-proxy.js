@@ -31,7 +31,10 @@ const TLS_KEY_PATH =
   process.env.TLS_KEY_PATH || "/etc/letsencrypt/live/openfolio.uk/privkey.pem";
 
 const hasFileExtension = (pathname) => path.posix.extname(pathname) !== "";
-const acceptsHtml = (req) => String(req.headers.accept || "").includes("text/html");
+const acceptsHtml = (req) => {
+  const accept = String(req.headers.accept || "");
+  return accept === "" || accept.includes("text/html") || accept.includes("*/*");
+};
 
 const proxy = httpProxy.createProxyServer({
   xfwd: true,
@@ -49,7 +52,7 @@ proxy.on("error", (err, req, res) => {
 const handleRequest = (req, res) => {
   const pathname = url.parse(req.url).pathname || "";
   const isFrontendNavigation =
-    req.method === "GET" &&
+    (req.method === "GET" || req.method === "HEAD") &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/webssh") &&
     !pathname.startsWith("/httpterm") &&
