@@ -85,29 +85,7 @@ class AIIntegrationService {
   extractAnalysisSummary(analysisData) {
     if (!analysisData) return { riskLevel: 'Unknown', overallScore: 50 };
 
-    // 🔧 处理新的数据结构：analysis可能是对象或字符串
-    let analysisText = '';
-    
-    if (analysisData.analysis) {
-      if (typeof analysisData.analysis === 'string') {
-        // 旧格式：analysis是字符串
-        analysisText = analysisData.analysis;
-      } else if (typeof analysisData.analysis === 'object') {
-        // 新格式：analysis是对象，合并所有sections
-        analysisText = Object.values(analysisData.analysis).join(' ');
-      }
-    }
-    
-    // 如果analysis为空，尝试使用rawAnalysis
-    if (!analysisText && analysisData.rawAnalysis) {
-      analysisText = analysisData.rawAnalysis;
-    }
-    
-    // 确保analysisText是字符串
-    if (typeof analysisText !== 'string') {
-      console.warn('⚠️ analysisText不是字符串类型:', typeof analysisText, analysisText);
-      analysisText = '';
-    }
+    const analysisText = this.getAnalysisText(analysisData);
 
     // Extract risk level from analysis text
     let riskLevel = 'Medium';
@@ -146,7 +124,7 @@ class AIIntegrationService {
    */
   extractKeyInsights(analysisData) {
     const insights = [];
-    const analysisText = analysisData?.analysis || '';
+    const analysisText = this.getAnalysisText(analysisData);
     
     // Extract bullet points or key sentences
     const lines = analysisText.split('\n');
@@ -166,7 +144,7 @@ class AIIntegrationService {
    */
   extractRecommendations(analysisData) {
     const recommendations = [];
-    const analysisText = analysisData?.analysis || '';
+    const analysisText = this.getAnalysisText(analysisData);
     
     // Look for recommendation sections or action items
     const sections = analysisText.split(/(?:recommendations?|suggestions?|actions?)/i);
@@ -190,7 +168,7 @@ class AIIntegrationService {
    */
   extractRiskFactors(analysisData) {
     const riskFactors = [];
-    const analysisText = analysisData?.analysis || '';
+    const analysisText = this.getAnalysisText(analysisData);
     
     // Look for risk-related content
     const riskKeywords = ['risk', 'volatility', 'exposure', 'concentration', 'uncertainty'];
@@ -214,7 +192,7 @@ class AIIntegrationService {
    */
   extractStockAnalysis(analysisData) {
     const stockAnalysis = {};
-    const analysisText = analysisData?.analysis || '';
+    const analysisText = this.getAnalysisText(analysisData);
     
     // Common stock symbols to look for
     const stockSymbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NVDA', 'META', 'BTC', 'ETH'];
@@ -228,6 +206,26 @@ class AIIntegrationService {
     });
 
     return stockAnalysis;
+  }
+
+  getAnalysisText(analysisData) {
+    if (!analysisData) return '';
+
+    if (typeof analysisData.rawAnalysis === 'string' && analysisData.rawAnalysis.trim()) {
+      return analysisData.rawAnalysis;
+    }
+
+    if (typeof analysisData.analysis === 'string') {
+      return analysisData.analysis;
+    }
+
+    if (analysisData.analysis && typeof analysisData.analysis === 'object') {
+      return Object.values(analysisData.analysis)
+        .filter(value => typeof value === 'string')
+        .join('\n');
+    }
+
+    return '';
   }
 
   /**
@@ -320,4 +318,4 @@ class AIIntegrationService {
   }
 }
 
-module.exports = new AIIntegrationService(); 
+module.exports = new AIIntegrationService();

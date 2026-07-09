@@ -1,6 +1,6 @@
-const yahooFinance = require("yahoo-finance2").default;
 const axios = require("axios");
 const https = require("https");
+const nasdaqService = require("./nasdaqService");
 
 // 🏢 Yahoo Finance API服务
 class YahooFinanceService {
@@ -433,21 +433,24 @@ class YahooFinanceService {
 
   async getDailyGainers(region = "US", options = {}) {
     try {
-      return yahooFinance.dailyGainers(region, options);
+      const limit = options?.count || options?.limit || 25;
+      const rows = await nasdaqService.getMarketMovers("gainers", limit);
+      return { quotes: rows };
     } catch (error) {
-      console.error("❌ 获取日涨幅榜失败:", error);
+      console.error("❌ 获取日涨幅榜失败:", error.message);
+      return { quotes: [] };
     }
   }
 
   async getTrendingSymbols(region = "US", options = {}) {
     try {
-      return yahooFinance.trendingSymbols(region, options).then((data) => {
-        return data.quotes.map((quote) => ({
-          symbol: quote.symbol,
-        }));
-      });
+      const limit = options?.count || options?.limit || 25;
+      const rows = await nasdaqService.getMarketMovers("trending", limit);
+      return rows.map((quote) => ({
+        symbol: quote.symbol,
+      }));
     } catch (error) {
-      console.error("❌ 获取热门股票失败:", error);
+      console.error("❌ 获取热门股票失败:", error.message);
       return [];
     }
   }
@@ -469,60 +472,36 @@ class YahooFinanceService {
 
       console.log(`🔍 获取股票数据: ${symbol}`);
 
-      // 从Yahoo Finance获取数据
-      const quote = await yahooFinance.quote(symbol, {
-        fields: [
-          "regularMarketPrice",
-          "regularMarketChange",
-          "regularMarketChangePercent",
-          "regularMarketDayHigh",
-          "regularMarketDayLow",
-          "regularMarketOpen",
-          "regularMarketPreviousClose",
-          "regularMarketVolume",
-          "marketCap",
-          "shortName",
-          "longName",
-        ],
-      });
-
-      let stockData = {
-        symbol: quote.symbol,
-        name: quote.longName,
-        price: quote.regularMarketPrice || 0,
-        change: quote.regularMarketChange || 0,
-        changePercent: quote.regularMarketChangePercent || 0,
-        dayHigh: quote.regularMarketDayHigh || 0,
-        dayLow: quote.regularMarketDayLow || 0,
-        open: quote.regularMarketOpen || 0,
-        previousClose: quote.regularMarketPreviousClose || 0,
-        volume: quote.regularMarketVolume || 0,
-        marketCap: quote.marketCap || 0,
-        lastUpdated: new Date().toISOString(),
-      };
-
-      stockData = await this.enrichMarketCapFromSEC(stockData);
-
-      // 缓存数据
-      this.cache.set(cacheKey, {
-        data: stockData,
-        timestamp: now,
-      });
-
-      return stockData;
-    } catch (error) {
-      console.error(`❌ 获取股票数据失败 ${symbol}:`, error.message);
-
-      // Yahoo失败时尝试Stooq兜底，避免前端价格全部为0
-      let fallbackStockData = await this.getStockPriceFromStooq(symbol);
+      let fallbackStockData = await nasdaqService.getQuote(symbol).catch(() => null);
+      if (!fallbackStockData) {
+        fallbackStockData = await this.getStockPriceFromStooq(symbol);
+      }
       if (fallbackStockData) {
         fallbackStockData = await this.enrichMarketCapFromSEC(fallbackStockData);
-        this.cache.set(symbol.toUpperCase(), {
+        this.cache.set(cacheKey, {
           data: fallbackStockData,
-          timestamp: Date.now(),
+          timestamp: now,
         });
         return fallbackStockData;
       }
+
+      return {
+        symbol,
+        name: symbol,
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        dayHigh: 0,
+        dayLow: 0,
+        open: 0,
+        previousClose: 0,
+        volume: 0,
+        marketCap: 0,
+        lastUpdated: new Date().toISOString(),
+        provider: "fallback",
+      };
+    } catch (error) {
+      console.error(`❌ 获取股票数据失败 ${symbol}:`, error.message);
 
       return {
         symbol: symbol,
@@ -582,26 +561,26 @@ class YahooFinanceService {
   // 🔍 搜索股票
   async searchStock(query) {
     try {
-      const searchResults = await yahooFinance.search(query, {
-        quotesCount: 10,
-        newsCount: 0,
-      });
+      const fallbackResults = await this.searchStockFallback(query);
+      if (fallbackResults.length > 0) {
+        return fallbackResults;
+      }
 
-      return (searchResults.quotes || []).map((quote) => ({
-        symbol: quote.symbol,
-        name: quote.shortname || quote.longname,
-        exchange: quote.exchange,
-        type: quote.typeDisp,
-      }));
+      return [];
     } catch (error) {
       console.error("❌ 搜索股票失败:", error);
-      return this.searchStockFallback(query);
+      return [];
     }
   }
 
   // 🛟 搜索降级方案：Yahoo不可用时使用公开符号搜索
   async searchStockFallback(query) {
     try {
+      const nasdaqResults = await nasdaqService.search(query);
+      if (nasdaqResults.length > 0) {
+        return nasdaqResults;
+      }
+
       const response = await axios.get(
         "https://api.twelvedata.com/symbol_search",
         {
@@ -720,30 +699,7 @@ class YahooFinanceService {
 
   // 📰 获取股票新闻
   async getStockNews(symbol, count = 5) {
-    try {
-      const news = await yahooFinance.search(symbol, {
-        quotesCount: 0,
-        newsCount: count,
-      });
-
-      const yahooNews = (news.news || []).map((item) => ({
-        title: item.title,
-        summary: item.summary,
-        url: item.link,
-        publishTime: new Date(item.providerPublishTime * 1000).toISOString(),
-        source: item.publisher,
-      }));
-
-      if (yahooNews.length > 0) {
-        return yahooNews;
-      }
-
-      console.warn(`⚠️ Yahoo新闻为空，切换Google RSS兜底: ${symbol}`);
-      return await this.getStockNewsFromGoogle(symbol, count);
-    } catch (error) {
-      console.error("❌ 获取股票新闻失败:", error);
-      return await this.getStockNewsFromGoogle(symbol, count);
-    }
+    return await this.getStockNewsFromGoogle(symbol, count);
   }
 
   // 🗑️ 清除缓存
@@ -757,86 +713,23 @@ class YahooFinanceService {
   async getStockHistory(symbol, period = '1mo') {
     try {
       console.log(`📊 获取历史数据: ${symbol} (${period})`);
-      
-      // 计算日期范围
-      const endDate = new Date();
-      const startDate = new Date();
-      
-      // 根据period设置开始日期
-      switch (period) {
-        case '1mo':
-          startDate.setMonth(startDate.getMonth() - 1);
-          break;
-        case '3mo':
-          startDate.setMonth(startDate.getMonth() - 3);
-          break;
-        case '6mo':
-          startDate.setMonth(startDate.getMonth() - 6);
-          break;
-        case '1y':
-          startDate.setFullYear(startDate.getFullYear() - 1);  
-          break;
-        case '5y':
-          startDate.setFullYear(startDate.getFullYear() - 5);  
-          break;
-        default:
-          startDate.setMonth(startDate.getMonth() - 1);
+
+      const nasdaqHistory = await nasdaqService.getHistory(symbol, period).catch(() => []);
+      if (nasdaqHistory.length > 0) {
+        return nasdaqHistory;
+      }
+
+      const stooqHistory = await this.getStockHistoryFromStooq(symbol, period);
+      if (stooqHistory.length > 0) {
+        return stooqHistory;
       }
       
-      // 从Yahoo Finance获取历史数据 (使用chart方法替代已废弃的historical)
-      let interval = '1d'; // 默认日线数据
-      
-      // 对于5年数据，可能需要使用更长的间隔来避免API限制
-      if (period === '5y') {
-        interval = '1wk'; // 使用周线数据来获取更长的历史
-        console.log(`📊 5y数据使用周线间隔: ${interval}`);
-      }
-      
-      const chartResult = await yahooFinance.chart(symbol, {
-        period1: startDate,
-        period2: endDate,
-        interval: interval
-      });
-      
-      // chart方法返回的格式: { quotes: [...] }
-      const historicalResult = chartResult?.quotes || [];
-      
-      if (!historicalResult || historicalResult.length === 0) {
-        console.log(`⚠️ ${symbol} 在Yahoo没有历史数据，尝试Stooq兜底`);
-        return await this.getStockHistoryFromStooq(symbol, period);
-      }
-      
-      // 添加调试信息
-      if (period === '5y') {
-        console.log(`📊 ${symbol} 5y数据获取情况:`);
-        console.log(`   - 请求时间范围: ${startDate.toLocaleDateString()} 到 ${endDate.toLocaleDateString()}`);
-        console.log(`   - 使用间隔: ${interval}`);
-        console.log(`   - 获取到数据点: ${historicalResult.length}`);
-        if (historicalResult.length > 0) {
-          const firstDate = historicalResult[0].date;
-          const lastDate = historicalResult[historicalResult.length - 1].date;
-          console.log(`   - 实际数据范围: ${firstDate.toLocaleDateString()} 到 ${lastDate.toLocaleDateString()}`);
-        }
-      }
-      
-      // 格式化数据 - chart数据格式与historical略有不同
-      const formattedData = historicalResult.map(item => ({
-        date: item.date ? item.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        timestamp: item.date ? item.date.getTime() : Date.now(),
-        open: item.open || 0,
-        high: item.high || 0,
-        low: item.low || 0,
-        close: item.close || 0,
-        volume: item.volume || 0,
-        price: item.close || 0 // 用收盘价作为price
-      }));
-      
-      console.log(`✅ 获取到 ${symbol} 历史数据: ${formattedData.length} 个数据点`);
-      return formattedData;
+      console.log(`⚠️ ${symbol} 在替代源无历史数据`);
+      return [];
       
     } catch (error) {
       console.error(`❌ 获取 ${symbol} 历史数据失败:`, error.message);
-      return await this.getStockHistoryFromStooq(symbol, period);
+      return [];
     }
   }
 

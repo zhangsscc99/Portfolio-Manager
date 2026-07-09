@@ -1,4 +1,5 @@
 const assetService = require('../services/assetService');
+const portfolioService = require('../services/portfolioService');
 
 // 🎯 错误类型映射 - 这是Controller应该处理的
 const ERROR_MAPPINGS = {
@@ -59,6 +60,17 @@ class AssetController {
       
       sendSuccess(res, result);
     } catch (error) {
+      if (error.message && error.message.includes('投资组合不存在')) {
+        try {
+          const currentPortfolio = await portfolioService.getPortfolioDetails();
+          const fallbackResult = await assetService.getPortfolioAssets(currentPortfolio.id);
+          return sendSuccess(res, fallbackResult, `已自动切换到当前投资组合 ${currentPortfolio.id}`);
+        } catch (fallbackError) {
+          const fallbackStatusCode = getErrorStatusCode(fallbackError.message);
+          return sendError(res, fallbackError, fallbackStatusCode);
+        }
+      }
+
       const statusCode = getErrorStatusCode(error.message);
       sendError(res, error, statusCode);
     }
@@ -152,4 +164,4 @@ class AssetController {
   }
 }
 
-module.exports = new AssetController(); 
+module.exports = new AssetController();

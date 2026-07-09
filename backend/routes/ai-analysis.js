@@ -11,6 +11,59 @@ const aiAnalysisHistoryService = require('../services/aiAnalysisHistoryService')
 // RocketMQ 消息管理器
 const messageManager = require('../services/rocketmq/messageManager');
 
+async function buildRealtimePortfolioContext(requestedPortfolioId, clientContext = null) {
+  const tryLoadAssets = async (portfolioId) => {
+    if (!portfolioId) return null;
+    try {
+      const data = await assetService.getPortfolioAssets(portfolioId);
+      if (!data || !data.assetsByType || (data.totalAssets || 0) <= 0) {
+        return null;
+      }
+      return { portfolioId, data };
+    } catch (error) {
+      console.warn(`⚠️ Unable to load portfolio ${portfolioId} for AI chat: ${error.message}`);
+      return null;
+    }
+  };
+
+  let loaded = await tryLoadAssets(requestedPortfolioId);
+
+  if (!loaded) {
+    const currentPortfolio = await portfolioService.getPortfolioDetails();
+    loaded = await tryLoadAssets(currentPortfolio.id);
+  }
+
+  if (!loaded) {
+    return clientContext;
+  }
+
+  const portfolioData = loaded.data;
+  const assetDistribution = Object.entries(portfolioData.assetsByType || {}).reduce((acc, [type, data]) => {
+    const value = Number(data.totalValue || 0);
+    acc[type] = {
+      value,
+      percentage: portfolioData.totalValue > 0 ? ((value / portfolioData.totalValue) * 100).toFixed(2) : '0.00',
+      count: data.count || data.assets?.length || 0
+    };
+    return acc;
+  }, {});
+
+  console.log(`🧾 Loaded realtime portfolio ${loaded.portfolioId} for AI chat: ${portfolioData.totalAssets} assets, $${Number(portfolioData.totalValue || 0).toFixed(2)}`);
+
+  return {
+    ...(clientContext || {}),
+    portfolioData: {
+      ...(clientContext?.portfolioData || {}),
+      ...portfolioData,
+      assetDistribution
+    },
+    analysisData: clientContext?.analysisData || null,
+    realtimeDataLoaded: true,
+    resolvedPortfolioId: loaded.portfolioId,
+    timestamp: new Date().toISOString()
+  };
+}
+
 // 🗣️ POST /api/ai-analysis/chat - AI Assistant Chat
 router.post('/chat', async (req, res) => {
   try {
@@ -28,12 +81,18 @@ router.post('/chat', async (req, res) => {
       console.log(`📝 Also requesting follow-up questions generation`);
     }
 
+    const realtimePortfolioContext = await buildRealtimePortfolioContext(
+      portfolioId,
+      portfolioContext
+    );
+    const resolvedPortfolioId = realtimePortfolioContext?.resolvedPortfolioId || portfolioId;
+
     // Generate AI chat response
     const chatResult = await aiChatService.generateChatResponse(
       sessionId, 
       message, 
-      portfolioContext,
-      portfolioId,
+      realtimePortfolioContext,
+      resolvedPortfolioId,
       requestFollowUpQuestions,
       conversationHistory
     );

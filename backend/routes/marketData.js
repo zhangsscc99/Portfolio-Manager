@@ -3,6 +3,7 @@ const router = express.Router();
 const yahooFinanceService = require("../services/yahooFinance");
 const alphaVantageService = require("../services/alphaVantageService");
 const cryptoService = require("../services/cryptoService"); // 添加crypto服务
+const nasdaqService = require("../services/nasdaqService");
 const scheduledUpdatesService = require("../services/scheduledUpdates");
 const { Holding } = require("../models/index");
 const { HttpsProxyAgent } = require("https-proxy-agent");
@@ -901,70 +902,23 @@ router.get("/crypto", async (req, res) => {
   }
 
   try {
-    const start = (page - 1) * limit;
-    const cryptoApiUrl = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=ALL_CRYPTOCURRENCIES_US&sortField=&sortType=&start=${start}&useRecordsResponse=false&fields=ticker%2ClogoUrl%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CmarketCap%2CregularMarketVolume%2Cvolume24Hr%2CvolumeAllCurrencies%2CcirculatingSupply%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
-
-    const response = await axios.get(cryptoApiUrl, {
-      // httpsAgent: agent,
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-      },
-    });
-
-    const result = response.data.finance?.result?.[0];
-
-    const rawQuotes = result?.quotes || [];
-    const totalRecords = result?.total || rawQuotes.length;
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    const cryptoData = rawQuotes.map((item) => ({
-      symbol: item.symbol,
-      name: item.shortName || item.longName || item.symbol,
-      price: item.regularMarketPrice?.fmt || "N/A",
-      change: item.regularMarketChange?.fmt || "N/A",
-      changePercent: item.regularMarketChangePercent?.fmt || "N/A",
-      marketCap: item.marketCap?.fmt || "N/A",
-      volume24Hr: item.volume24Hr?.fmt || "N/A",
-      totalVolume: item.volumeAllCurrencies?.fmt || "N/A",
-      circulatingSupply: item.circulatingSupply?.fmt || "N/A",
-      fiftyTwoWeekRange: item.fiftyTwoWeekRange?.fmt || "N/A",
-      logoUrl: item.logoUrl || item.coinImageUrl || null,
-    }));
-
-    if (cryptoData.length === 0) {
-      throw new Error("Yahoo crypto screener returned empty rows");
-    }
-
+    const fallback = await getCryptoFallbackPage(page, limit);
     return res.status(200).json({
       success: true,
       message: "成功获取加密货币数据。",
-      data: cryptoData,
-      totalRecords,
-      totalPages,
+      data: fallback.data,
+      totalRecords: fallback.totalRecords,
+      totalPages: fallback.totalPages,
       currentPage: page,
       perPage: limit,
+      source: fallback.source,
     });
   } catch (error) {
-    console.error("获取加密货币数据失败:", error);
-    try {
-      const fallback = await getCryptoFallbackPage(page, limit);
-      return res.status(200).json({
-        success: true,
-        message: "Yahoo不可用，已切换到CoinGecko数据源。",
-        data: fallback.data,
-        totalRecords: fallback.totalRecords,
-        totalPages: fallback.totalPages,
-        currentPage: page,
-        perPage: limit,
-        source: fallback.source,
-      });
-    } catch (fallbackError) {
-      return res.status(error.response?.status || 500).json({
-        success: false,
-        message: "获取加密货币数据失败。",
-        error: fallbackError.message || error.message,
-      });
-    }
+    return res.status(error.response?.status || 500).json({
+      success: false,
+      message: "获取加密货币数据失败。",
+      error: error.message,
+    });
   }
 });
 
@@ -1023,6 +977,18 @@ router.get("/etfs/most-active", async (req, res) => {
   }
 
   try {
+    const fallback = await nasdaqService.getEtfPage(page, limit, "most-active");
+    return res.status(200).json({
+      success: true,
+      message: "成功获取ETF活跃榜单。",
+      data: fallback.data,
+      totalRecords: fallback.totalRecords,
+      totalPages: fallback.totalPages,
+      currentPage: page,
+      perPage: limit,
+      source: fallback.source,
+    });
+
     const start = (page - 1) * limit;
     const etfApiUrl = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=MOST_ACTIVES_ETFS&sortField=&sortType=&start=${start}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
 
@@ -1111,6 +1077,18 @@ router.get("/etfs/gainers", async (req, res) => {
   }
 
   try {
+    const fallback = await nasdaqService.getEtfPage(page, limit, "gainers");
+    return res.status(200).json({
+      success: true,
+      message: "成功获取 ETF 日涨幅数据。",
+      data: fallback.data,
+      totalRecords: fallback.totalRecords,
+      totalPages: fallback.totalPages,
+      currentPage: page,
+      perPage: limit,
+      source: fallback.source,
+    });
+
     const offset = (page - 1) * limit;
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_GAINERS_ETFS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
 
@@ -1198,6 +1176,18 @@ router.get("/etfs/losers", async (req, res) => {
   }
 
   try {
+    const fallback = await nasdaqService.getEtfPage(page, limit, "losers");
+    return res.status(200).json({
+      success: true,
+      message: "成功获取 ETF 日跌幅数据。",
+      data: fallback.data,
+      totalRecords: fallback.totalRecords,
+      totalPages: fallback.totalPages,
+      currentPage: page,
+      perPage: limit,
+      source: fallback.source,
+    });
+
     const offset = (page - 1) * limit;
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=${limit}&formatted=true&scrIds=DAY_LOSERS_ETFS&sortField=&sortType=&start=${offset}&useRecordsResponse=false&fields=ticker%2Csymbol%2ClongName%2Csparkline%2CshortName%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&lang=en-US&region=US`;
 
@@ -1286,6 +1276,18 @@ router.get("/etfs/trending", async (req, res) => {
   }
 
   try {
+    const fallback = await nasdaqService.getEtfPage(page, limit, "trending");
+    return res.status(200).json({
+      success: true,
+      message: "成功获取 ETF 热门榜数据。",
+      data: fallback.data,
+      totalRecords: fallback.totalRecords,
+      totalPages: fallback.totalPages,
+      currentPage: page,
+      perPage: limit,
+      source: fallback.source,
+    });
+
     const offset = (page - 1) * limit;
     const url = `https://query1.finance.yahoo.com/v1/finance/trending/US?count=100&fields=logoUrl%2ClongName%2CshortName%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketPrice%2Cticker%2Csymbol%2Csparkline%2CregularMarketVolume%2CfiftyDayAverage%2CtwoHundredDayAverage%2CtrailingThreeMonthReturns%2CytdReturn%2CfiftyTwoWeekChangePercent%2CfiftyTwoWeekRange&format=true&useQuotes=true&quoteType=etf&lang=en-US&region=US`;
 
@@ -1375,6 +1377,18 @@ router.get("/bonds", async (req, res) => {
   }
 
   try {
+    const fallback = await nasdaqService.getBondEtfPage(page, limit);
+    return res.status(200).json({
+      success: true,
+      message: "成功获取债券ETF趋势数据。",
+      data: fallback.data,
+      totalRecords: fallback.totalRecords,
+      totalPages: fallback.totalPages,
+      currentPage: page,
+      perPage: limit,
+      source: fallback.source,
+    });
+
     const symbols = [
       "%5EIRX",
       "%5EFVX",

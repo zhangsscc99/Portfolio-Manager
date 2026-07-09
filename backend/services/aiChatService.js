@@ -64,6 +64,13 @@ class AIChatService {
           isPersistent: true
         };
         console.log(`📝 Created new persistent session for portfolio ${portfolioId}`);
+
+        await chatDatabaseService.saveSession(
+          persistentSessionId,
+          portfolioId,
+          session.portfolioContext,
+          true
+        );
       }
       
       this.sessions.set(persistentSessionId, session);
@@ -144,6 +151,9 @@ class AIChatService {
     return `You are an expert AI investment advisor with access to the user's portfolio data. You should provide personalized investment advice based on their specific holdings and situation.
 
 ## Current Portfolio Context:
+- Portfolio ID: ${portfolioContext.resolvedPortfolioId || portfolioContext.portfolioId || 'N/A'}
+- Data Timestamp: ${portfolioContext.timestamp || new Date().toISOString()}
+- Realtime Database Data Loaded: ${portfolioContext.realtimeDataLoaded ? 'Yes' : 'No'}
 - Total Portfolio Value: $${portfolioData.totalValue?.toLocaleString() || 'N/A'}
 - Number of Assets: ${portfolioData.totalAssets || 'N/A'}
 - Asset Distribution: ${Object.entries(portfolioData.assetDistribution || {}).map(([type, data]) => 
@@ -180,6 +190,9 @@ Reference this analysis when discussing these specific stocks.
 ` : ''}
 
 ## Your Role:
+- Treat the portfolio data above as the source of truth for this conversation.
+- If the user asks about "my portfolio", "my holdings", allocation, risk, gains, losses, or rebalancing, answer using the holdings listed above.
+- Do not say you cannot see the portfolio unless the holdings section explicitly says no holdings data is available.
 - Provide specific, actionable investment advice based on their actual holdings
 - Reference their specific assets when giving recommendations
 - **Leverage recent AI analysis insights and recommendations when available**
@@ -231,7 +244,14 @@ Make questions specific to their holdings when possible, and ensure they encoura
       if (data.assets && data.assets.length > 0) {
         holdingsText += `\n${type.toUpperCase()} Holdings:\n`;
         data.assets.forEach(asset => {
-          holdingsText += `- ${asset.symbol} (${asset.name}): ${asset.quantity} shares, Current: $${asset.current_price}, Return: ${asset.gainLossPercent}%\n`;
+          const quantity = Number(asset.quantity ?? asset.shares ?? 0);
+          const currentPrice = Number(asset.current_price ?? asset.currentPrice ?? asset.price ?? 0);
+          const avgCost = Number(asset.avg_cost ?? asset.avgCost ?? 0);
+          const currentValue = Number(asset.currentValue ?? quantity * currentPrice);
+          const gainLoss = Number(asset.gainLoss ?? 0);
+          const gainLossPercent = Number(asset.gainLossPercent ?? 0);
+          const dailyChangePercent = Number(asset.changePercent ?? asset.dailyChangePercent ?? 0);
+          holdingsText += `- ${asset.symbol} (${asset.name || asset.symbol}): quantity ${quantity.toLocaleString()}, avg cost $${avgCost.toFixed(2)}, current price $${currentPrice.toFixed(2)}, market value $${currentValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}, total P/L $${gainLoss.toLocaleString(undefined, { maximumFractionDigits: 2 })} (${gainLossPercent.toFixed(2)}%), daily change ${dailyChangePercent.toFixed(2)}%\n`;
         });
       }
     });

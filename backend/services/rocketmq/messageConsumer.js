@@ -9,6 +9,7 @@ class MessageConsumer {
     this.mode = rocketMQConfig.mode || 'http';
     this.pollingIntervals = new Map(); // 用于HTTP模式的轮询间隔
     this.isPolling = false;
+    this.httpPollingEnabled = process.env.ROCKETMQ_CONSUMER_POLLING_ENABLED === 'true';
   }
 
   /**
@@ -85,6 +86,11 @@ class MessageConsumer {
   async initializeHttpConsumers() {
     if (!rocketMQConfig.connection.httpEndpoint) {
       console.warn('⚠️ HTTP endpoint not configured, consumer will be disabled');
+      return;
+    }
+
+    if (!this.httpPollingEnabled) {
+      console.log('ℹ️ HTTP RocketMQ consumer polling disabled; using local fallback processing');
       return;
     }
 
@@ -493,7 +499,7 @@ class MessageConsumer {
    */
   isHealthy() {
     if (this.mode === 'http') {
-      return this.isInitialized && this.isPolling;
+      return this.isInitialized && (!this.httpPollingEnabled || this.isPolling);
     } else {
       return this.isInitialized && this.consumers.size > 0;
     }
@@ -510,4 +516,4 @@ class MessageConsumer {
 // 创建单例实例
 const messageConsumerInstance = new MessageConsumer();
 
-module.exports = messageConsumerInstance; 
+module.exports = messageConsumerInstance;
