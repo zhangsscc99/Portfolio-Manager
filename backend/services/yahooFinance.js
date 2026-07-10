@@ -342,6 +342,64 @@ class YahooFinanceService {
     return null;
   }
 
+  // 港股数字代码兜底行情，例如 3690 / 3690.HK -> hk03690
+  async getHongKongStockPriceFromTencent(symbol) {
+    const rawSymbol = String(symbol || "").trim().toUpperCase();
+    const match = rawSymbol.match(/^(\d{1,5})(?:\.HK)?$/);
+    if (!match) return null;
+
+    const code = match[1].padStart(5, "0");
+
+    try {
+      const response = await axios.get("https://qt.gtimg.cn/q=hk" + code, {
+        timeout: 6000,
+        responseType: "text",
+        transformResponse: [(data) => data],
+      });
+
+      const body = String(response.data || "");
+      const quoted = body.match(/="([^"]*)"/)?.[1];
+      if (!quoted) return null;
+
+      const fields = quoted.split("~");
+      const price = parseFloat(fields[3]);
+      const previousClose = parseFloat(fields[4]);
+      const change = parseFloat(fields[31]);
+      const changePercent = parseFloat(fields[32]);
+      const name = fields[1] || rawSymbol;
+      const volume = parseFloat(fields[36]) || 0;
+
+      if (!Number.isFinite(price) || price <= 0) return null;
+
+      return {
+        symbol: `${code}.HK`,
+        name,
+        price,
+        change: Number.isFinite(change)
+          ? change
+          : Number.isFinite(previousClose) && previousClose > 0
+          ? price - previousClose
+          : 0,
+        changePercent: Number.isFinite(changePercent)
+          ? changePercent
+          : Number.isFinite(previousClose) && previousClose > 0
+          ? ((price - previousClose) / previousClose) * 100
+          : 0,
+        dayHigh: parseFloat(fields[33]) || price,
+        dayLow: parseFloat(fields[34]) || price,
+        open: parseFloat(fields[5]) || price,
+        previousClose: Number.isFinite(previousClose) ? previousClose : price,
+        volume,
+        marketCap: 0,
+        lastUpdated: new Date().toISOString(),
+        provider: "tencent_hk",
+      };
+    } catch (error) {
+      console.warn(`⚠️ 腾讯港股行情获取失败 ${rawSymbol}:`, error.message);
+      return null;
+    }
+  }
+
   // Stooq历史数据兜底：Yahoo chart 在部分服务器环境会长期返回空/403
   async getStockHistoryFromStooq(symbol, period = "1mo") {
     const cleanSymbol = String(symbol || "").trim().toLowerCase();
@@ -472,7 +530,10 @@ class YahooFinanceService {
 
       console.log(`🔍 获取股票数据: ${symbol}`);
 
-      let fallbackStockData = await nasdaqService.getQuote(symbol).catch(() => null);
+      let fallbackStockData = await this.getHongKongStockPriceFromTencent(symbol);
+      if (!fallbackStockData) {
+        fallbackStockData = await nasdaqService.getQuote(symbol).catch(() => null);
+      }
       if (!fallbackStockData) {
         fallbackStockData = await this.getStockPriceFromStooq(symbol);
       }

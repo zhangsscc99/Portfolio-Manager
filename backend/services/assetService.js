@@ -49,10 +49,11 @@ class AssetService {
         };
       });
       
-      assets.forEach(asset => {
-        const currentValue = asset.getCurrentValue();
-        const gainLoss = asset.getGainLoss();
-        
+      await Promise.all(assets.map(async (asset) => {
+        const quantity = parseFloat(asset.quantity) || 0;
+        const avgCost = parseFloat(asset.avg_cost) || 0;
+        let currentPrice = parseFloat(asset.current_price) || 0;
+
         // 🔄 获取日变化数据（如果可用）
         let dailyChange = 0;
         let dailyChangePercent = 0;
@@ -60,10 +61,18 @@ class AssetService {
         // 对于股票和ETF，尝试从缓存或最近的API调用中获取日变化
         if ((asset.asset_type === 'stock' || asset.asset_type === 'etf') && asset.price_source === 'yahoo_finance') {
           // 尝试从Yahoo Finance缓存中获取日变化数据
-          const cachedData = yahooFinanceService.getCachedData(asset.source_symbol || asset.symbol);
+          const symbol = asset.source_symbol || asset.symbol;
+          let cachedData = yahooFinanceService.getCachedData(symbol);
+          if (!cachedData || cachedData.change === undefined) {
+            cachedData = await yahooFinanceService.getStockPrice(symbol);
+          }
+
           if (cachedData && cachedData.change !== undefined) {
             dailyChange = parseFloat(cachedData.change) || 0;
             dailyChangePercent = parseFloat(cachedData.changePercent) || 0;
+            if (parseFloat(cachedData.price) > 0) {
+              currentPrice = parseFloat(cachedData.price);
+            }
             console.log(`📊 ${asset.symbol}: 使用缓存数据 change=${dailyChange}, changePercent=${dailyChangePercent}%`);
           } else {
             console.log(`⚠️ ${asset.symbol}: 没有缓存的日变化数据`);
@@ -71,18 +80,32 @@ class AssetService {
         }
         // 对于加密货币，尝试从CoinGecko获取日变化
         else if (asset.asset_type === 'crypto' && asset.price_source === 'coingecko') {
-          const cachedData = cryptoService.getCachedData(asset.source_symbol);
+          const symbol = asset.source_symbol || asset.symbol;
+          let cachedData = cryptoService.getCachedData(symbol);
+          if (!cachedData || cachedData.change === undefined) {
+            cachedData = await cryptoService.getCryptoPrice(symbol);
+          }
+
           if (cachedData && cachedData.change !== undefined) {
-            dailyChange = cachedData.change;
-            dailyChangePercent = cachedData.changePercent;
+            dailyChange = parseFloat(cachedData.change) || 0;
+            dailyChangePercent = parseFloat(cachedData.changePercent) || 0;
+            if (parseFloat(cachedData.price) > 0) {
+              currentPrice = parseFloat(cachedData.price);
+            }
           }
         }
+
+        const currentValue = currentPrice * quantity;
+        const totalCost = avgCost * quantity;
+        const gainLoss = currentValue - totalCost;
+        const gainLossPercent = totalCost > 0 ? (gainLoss / totalCost) * 100 : 0;
         
         assetsByType[asset.asset_type].assets.push({
           ...asset.toJSON(),
+          current_price: currentPrice,
           currentValue,
           gainLoss,
-          gainLossPercent: asset.getGainLossPercent(),
+          gainLossPercent,
           dailyChange: dailyChange,
           changePercent: dailyChangePercent
         });
@@ -92,7 +115,7 @@ class AssetService {
         assetsByType[asset.asset_type].count++;
         
         totalValue += currentValue;
-      });
+      }));
       
       return {
         assetsByType,
