@@ -20,6 +20,7 @@ const marketDataRoutes = require('./routes/marketData');
 const assetsRoutes = require('./routes/assets');
 const aiAnalysisRoutes = require('./routes/ai-analysis');
 const portfolioHistoryRoutes = require('./routes/portfolioHistory');
+const buybackRoutes = require('./routes/buybacks');
 
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/market', marketDataRoutes);
 app.use('/api/assets', assetsRoutes);
 app.use('/api/ai-analysis', aiAnalysisRoutes);
 app.use('/api/portfolio-history', portfolioHistoryRoutes);
+app.use('/api/buybacks', buybackRoutes);
 
 
 // Swagger API Documentation
