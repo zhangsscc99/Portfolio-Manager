@@ -38,6 +38,59 @@ const RANGE_OPTIONS = [
 
 const PAGE_SIZE = 20;
 
+const STORAGE_KEY = 'buybacks-cn:lastQuery';
+const STORAGE_VERSION = 1;
+
+function isValidDateStr(s) {
+  if (typeof s !== 'string' || s.length > 10) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  if (y < 1990 || y > 2100) return false;
+  const dt = new Date(y, m - 1, d);
+  return (
+    dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
+  );
+}
+
+function loadLastQuery() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || data.v !== STORAGE_VERSION) {
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {}
+      return null;
+    }
+    const customFrom = isValidDateStr(data.customFrom) ? data.customFrom : '';
+    const customTo = isValidDateStr(data.customTo) ? data.customTo : '';
+    let rangeKey = RANGE_OPTIONS.some((o) => o.key === data.rangeKey)
+      ? data.rangeKey
+      : '1y';
+    if (rangeKey === 'custom' && (!customFrom || !customTo)) rangeKey = '1y';
+    return {
+      company: typeof data.company === 'string' ? data.company : '',
+      rangeKey,
+      customFrom,
+      customTo,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveLastQuery(query) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ v: STORAGE_VERSION, ...query }),
+    );
+  } catch {}
+}
+
 const STAGE_META = {
   completion: { label: '完成', color: 'success' },
   progress: { label: '实施中', color: 'warning' },
@@ -109,11 +162,18 @@ async function fetchJson(url, timeoutMs = 60000) {
 }
 
 const BuybacksCN = () => {
-  const [companyInput, setCompanyInput] = useState('');
+  const [savedQuery] = useState(loadLastQuery);
+  const [companyInput, setCompanyInput] = useState(
+    () => savedQuery?.company || '',
+  );
   const [suggestions, setSuggestions] = useState([]);
-  const [rangeKey, setRangeKey] = useState('1y');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
+  const [rangeKey, setRangeKey] = useState(
+    () => savedQuery?.rangeKey || '1y',
+  );
+  const [customFrom, setCustomFrom] = useState(
+    () => savedQuery?.customFrom || '',
+  );
+  const [customTo, setCustomTo] = useState(() => savedQuery?.customTo || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -143,6 +203,15 @@ const BuybacksCN = () => {
     }, 300);
     return () => clearTimeout(suggestTimer.current);
   }, [companyInput]);
+
+  useEffect(() => {
+    const t = setTimeout(
+      () =>
+        saveLastQuery({ company: companyInput, rangeKey, customFrom, customTo }),
+      300,
+    );
+    return () => clearTimeout(t);
+  }, [companyInput, rangeKey, customFrom, customTo]);
 
   const runQuery = useCallback(
     async (query, targetPage = 1) => {

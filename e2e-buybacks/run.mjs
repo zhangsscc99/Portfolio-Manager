@@ -6,6 +6,7 @@ import emptyState from './empty-state.mjs';
 import invalid from './invalid.mjs';
 import mobile from './mobile.mjs';
 import detail from './detail.mjs';
+import memory from './memory.mjs';
 
 const tests = [
   ['page-load', pageLoad],
@@ -16,6 +17,7 @@ const tests = [
   ['invalid', invalid],
   ['mobile', mobile],
   ['detail', detail],
+  ['memory', memory],
 ];
 
 let failures = 0;
