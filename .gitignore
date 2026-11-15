@@ -7,3 +7,5 @@ backend/scripts/initDB.js
 backend/database_schema.sql
 /.env
 /backend/.env
+/backend/data/
+/e2e-buybacks/node_modules/

@@ -23,6 +23,7 @@ import ETF from './pages/Markets/ETF';
 import Crypto from './pages/Markets/Crypto';
 import AIAnalysis from './pages/AIAnalysis';
 import AIReportDetail from './pages/AIReportDetail'; // 新增AI报告详情页面
+import BuybacksCN from './pages/BuybacksCN';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -382,6 +383,9 @@ function App() {
             <Routes>
               {/* Homepage route - no layout */}
               <Route path="/" element={<HomePage />} />
+
+              {/* A股回购公告查询 - standalone page, no layout */}
+              <Route path="/cn" element={<BuybacksCN />} />
 
               {/* Main app routes - with layout */}
               <Route path="/app/*" element={
