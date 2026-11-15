@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import { Search, Replay, DateRange } from '@mui/icons-material';
 import { buildApiUrl } from '../config/api';
+import BuybackDetailDrawer from '../components/BuybackDetailDrawer';
 
 const RANGE_OPTIONS = [
   { key: '1m', label: '近1月', days: 30 },
@@ -62,14 +63,17 @@ function rangeDates(rangeKey, customFrom, customTo) {
 }
 
 function fmtWan(v, digits = 1) {
-  if (v == null) return '—';
-  const n = Number(v) / 1e4;
+  if (v == null || v === '') return '—';
+  const num = Number(v);
+  if (!Number.isFinite(num)) return '—';
+  const n = num / 1e4;
   return `${n.toLocaleString('zh-CN', { maximumFractionDigits: digits })}万`;
 }
 
 function fmtAmount(v) {
-  if (v == null) return '—';
+  if (v == null || v === '') return '—';
   const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
   if (Math.abs(n) >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
   return fmtWan(n);
 }
@@ -114,6 +118,7 @@ const BuybacksCN = () => {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [page, setPage] = useState(1);
+  const [selectedItem, setSelectedItem] = useState(null);
   const lastQuery = useRef(null);
   const suggestTimer = useRef(null);
 
@@ -455,8 +460,31 @@ const BuybacksCN = () => {
                     <TableBody>
                       {items.map((item) => {
                         const stage = STAGE_META[item.stage] || STAGE_META.other;
+                        const openDetail = () => setSelectedItem(item);
                         return (
-                          <TableRow key={item.id} hover>
+                          <TableRow
+                            key={item.id}
+                            hover
+                            tabIndex={0}
+                            role="row"
+                            aria-label={`${
+                              item.companyName || item.code || ''
+                            } ${item.publishTime || ''} 回购公告详情`.trim()}
+                            onClick={openDetail}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                openDetail();
+                              }
+                            }}
+                            sx={{
+                              cursor: 'pointer',
+                              '&&:hover': {
+                                backgroundColor:
+                                  'rgba(244, 190, 126, 0.08)',
+                              },
+                            }}
+                          >
                             <TableCell sx={{ whiteSpace: 'nowrap' }}>
                               {item.publishTime || '—'}
                             </TableCell>
@@ -542,6 +570,10 @@ const BuybacksCN = () => {
           </Paper>
         )}
       </Container>
+      <BuybackDetailDrawer
+        item={selectedItem}
+        onClose={() => setSelectedItem(null)}
+      />
     </Box>
   );
 };
