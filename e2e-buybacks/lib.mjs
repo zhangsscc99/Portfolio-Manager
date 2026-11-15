@@ -9,7 +9,11 @@ const LOG_DIR = '/root/logs';
 export async function launch() {
   return chromium.launch({
     executablePath: CHROME,
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--explicitly-allowed-ports=5061',
+    ],
   });
 }
 
