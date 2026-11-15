@@ -68,3 +68,26 @@
 - [ ] B042 多公司命中（409）候选列表交互可用
   verify: node e2e-buybacks/candidates.mjs
   risk: med
+
+## M5 产品审视待办（来自 docs/buybacks-cn/PRODUCT-REVIEW.md）
+- [ ] B050 汇总口径修正：回购进展公告的 amount 是**累计值**，直接累加导致 KPI 严重虚高（实测 000333 近1年显示 1192.21 亿元）。按回购计划分组取每组最新累计值再求和；无法可靠分组时改为「公告金额累加（含进度重复）」并在 KPI 上加口径说明
+  verify: node e2e-buybacks/summary-dedup.mjs
+  risk: med
+- [ ] B051 切换时间跨度后自动重查（保持公司），或在按钮旁提示「条件已变更，点查询生效」，消除「点了没反应」的死路感
+  verify: node e2e-buybacks/auto-requery.mjs
+  risk: low
+- [ ] B052 移动端整页横向溢出：390 视口下 document.scrollWidth=632 > 390（标题与卡片撑破）。最外层容器限制横向溢出，KPI 卡片 xs 下单列/自适应字号
+  verify: node e2e-buybacks/mobile-overflow.mjs
+  risk: low
+- [ ] B053 空值与单边价格呈现：单边缺失显示「≤11.75」而非「— ~ 11.75」；无数值显示「未披露」并弱化字色（不得渲染成 0）
+  verify: node e2e-buybacks/null-display.mjs
+  risk: low
+- [ ] B054 空态时隐藏 KPI 卡片（现在显示「回购金额合计 0万元」）
+  verify: node e2e-buybacks/empty-kpi.mjs
+  risk: low
+- [ ] B055 抽屉信息架构打磨：按「概览/金额与价格/时间节点」分组 + 数字 tabular-nums 对齐 + 表格选中行高亮 + 去掉重复的公司字段
+  verify: node e2e-buybacks/detail-polish.mjs
+  risk: low
+- [ ] B056 「一条回购计划一行」聚合视图（首末公告日、累计金额、完成度%），点击展开历次进展公告 —— 比现在的公告流水更贴近用户心智
+  verify: node e2e-buybacks/plan-group.mjs
+  risk: med
