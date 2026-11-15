@@ -9,3 +9,5 @@ backend/database_schema.sql
 /backend/.env
 /backend/data/
 /e2e-buybacks/node_modules/
+/frontend/releases/
+/frontend/current
