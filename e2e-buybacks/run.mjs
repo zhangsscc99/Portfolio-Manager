@@ -5,6 +5,7 @@ import rangeCustom from './range-custom.mjs';
 import emptyState from './empty-state.mjs';
 import invalid from './invalid.mjs';
 import mobile from './mobile.mjs';
+import memory from './memory.mjs';
 
 const tests = [
   ['page-load', pageLoad],
@@ -14,6 +15,7 @@ const tests = [
   ['empty-state', emptyState],
   ['invalid', invalid],
   ['mobile', mobile],
+  ['memory', memory],
 ];
 
 let failures = 0;
