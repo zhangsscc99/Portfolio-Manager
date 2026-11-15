@@ -25,6 +25,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://127.0.0.1:5000";
 const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:5010";
 const WEBSSH_URL = process.env.WEBSSH_URL || "http://127.0.0.1:9090";
 const HTTPTERM_URL = process.env.HTTPTERM_URL || "http://127.0.0.1:9091";
+const GRAFANA_URL = process.env.GRAFANA_URL || "http://127.0.0.1:3300";
+const GAME_URL = process.env.GAME_URL || "http://127.0.0.1:3020";
+const ZHIHU_URL = process.env.ZHIHU_URL || "http://127.0.0.1:3030";
 const TLS_CERT_PATH =
   process.env.TLS_CERT_PATH || "/etc/letsencrypt/live/openfolio.uk/fullchain.pem";
 const TLS_KEY_PATH =
@@ -51,11 +54,29 @@ proxy.on("error", (err, req, res) => {
 
 const handleRequest = (req, res) => {
   const pathname = url.parse(req.url).pathname || "";
+  if ((req.method === "GET" || req.method === "HEAD") && pathname === "/router") {
+    try {
+      const html = fs.readFileSync(path.join(__dirname, "router.html"));
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(html);
+      return;
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("router.html missing");
+      return;
+    }
+  }
+  const isGrafana = pathname === "/health" || pathname.startsWith("/health/");
+  const isGame = pathname === "/game" || pathname.startsWith("/game/");
+  const isZhihu = pathname === "/zhihucopy" || pathname.startsWith("/zhihucopy/");
   const isFrontendNavigation =
     (req.method === "GET" || req.method === "HEAD") &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/webssh") &&
     !pathname.startsWith("/httpterm") &&
+    !isGrafana &&
+    !isGame &&
+    !isZhihu &&
     !hasFileExtension(pathname) &&
     acceptsHtml(req);
 
@@ -63,7 +84,13 @@ const handleRequest = (req, res) => {
     req.url = "/";
   }
 
-  const target = pathname.startsWith("/webssh")
+  const target = isGrafana
+    ? GRAFANA_URL
+    : isGame
+      ? GAME_URL
+    : isZhihu
+      ? ZHIHU_URL
+    : pathname.startsWith("/webssh")
     ? WEBSSH_URL
     : pathname.startsWith("/httpterm")
       ? HTTPTERM_URL
@@ -75,7 +102,14 @@ const handleRequest = (req, res) => {
 
 const handleUpgrade = (req, socket, head) => {
   const pathname = url.parse(req.url).pathname || "";
-  const target = pathname.startsWith("/webssh")
+  const target =
+    pathname === "/health" || pathname.startsWith("/health/")
+      ? GRAFANA_URL
+      : pathname === "/game" || pathname.startsWith("/game/")
+        ? GAME_URL
+      : pathname === "/zhihucopy" || pathname.startsWith("/zhihucopy/")
+        ? ZHIHU_URL
+      : pathname.startsWith("/webssh")
     ? WEBSSH_URL
     : pathname.startsWith("/httpterm")
       ? HTTPTERM_URL
