@@ -160,12 +160,32 @@ const BuybackDetailDrawer = ({ item, onClose }) => {
             )}
           </Field>
           <Field label="回购数量">
-            <Typography variant="body1">
+            <Typography variant="body1" component="span">
               {fmtQuantityWan(item?.quantity)}
             </Typography>
+            {item?.quantity_source === 'carried_forward' && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ ml: 1 }}
+              >
+                沿用最近一次披露
+              </Typography>
+            )}
           </Field>
           <Field label="回购金额">
-            <Typography variant="body1">{fmtAmount(item?.amount)}</Typography>
+            <Typography variant="body1" component="span">
+              {fmtAmount(item?.amount)}
+            </Typography>
+            {item?.amount_source === 'carried_forward' && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ ml: 1 }}
+              >
+                沿用最近一次披露
+              </Typography>
+            )}
           </Field>
           <Field label="价格区间">
             <Typography variant="body1">

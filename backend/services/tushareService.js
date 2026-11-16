@@ -8,7 +8,8 @@ dns.setDefaultResultOrder("ipv4first");
 const TUSHARE_BASE_URL = "https://quantdata888.duckdns.org";
 const REQUEST_TIMEOUT_MS = 30 * 1000;
 const SEGMENT_SLEEP_MS = 200;
-const ROW_LIMIT = 2000;
+const SAFE_ROW_LIMIT = 1900;
+const MIN_SPLIT_DAYS = 3;
 const MAX_SEGMENTS = 120;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 200;
@@ -334,8 +335,27 @@ function splitRange(start, end) {
   ];
 }
 
+function daysBetween(start, end) {
+  const s = new Date(`${start.slice(0, 4)}-${start.slice(4, 6)}-${start.slice(6, 8)}T00:00:00Z`);
+  const e = new Date(`${end.slice(0, 4)}-${end.slice(4, 6)}-${end.slice(6, 8)}T00:00:00Z`);
+  return Math.round((e - s) / 86400000);
+}
+
+function eachDay(start, end) {
+  const days = [];
+  const fmt = (d) =>
+    `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
+  const s = new Date(`${start.slice(0, 4)}-${start.slice(4, 6)}-${start.slice(6, 8)}T00:00:00Z`);
+  const e = new Date(`${end.slice(0, 4)}-${end.slice(4, 6)}-${end.slice(6, 8)}T00:00:00Z`);
+  for (let d = s; d <= e; d = new Date(d.getTime() + 86400000)) {
+    days.push(fmt(d));
+  }
+  return days;
+}
+
 async function fetchRepurchaseRange(start, end, budget) {
   if (budget.count >= MAX_SEGMENTS) {
+    budget.truncated = true;
     console.warn(`[tushare] segment budget exceeded, skipping ${start}-${end}`);
     return [];
   }
@@ -345,13 +365,27 @@ async function fetchRepurchaseRange(start, end, budget) {
     { start_date: start, end_date: end },
     "ts_code,ann_date,end_date,proc,vol,amount,high_limit,low_limit,exp_date",
   );
-  if (rows.length >= ROW_LIMIT && start !== end) {
+  if (rows.length >= SAFE_ROW_LIMIT && start !== end) {
+    if (daysBetween(start, end) <= MIN_SPLIT_DAYS) {
+      const all = [];
+      for (const day of eachDay(start, end)) {
+        await sleep(SEGMENT_SLEEP_MS);
+        all.push(...(await fetchRepurchaseRange(day, day, budget)));
+      }
+      return all;
+    }
     await sleep(SEGMENT_SLEEP_MS);
     const [left, right] = splitRange(start, end);
     const leftRows = await fetchRepurchaseRange(left[0], left[1], budget);
     await sleep(SEGMENT_SLEEP_MS);
     const rightRows = await fetchRepurchaseRange(right[0], right[1], budget);
     return leftRows.concat(rightRows);
+  }
+  if (rows.length >= SAFE_ROW_LIMIT) {
+    budget.truncated = true;
+    console.warn(
+      `[tushare] single-day window ${start} still returned ${rows.length} rows (>= ${SAFE_ROW_LIMIT}), data may be incomplete`,
+    );
   }
   return rows;
 }
@@ -378,7 +412,7 @@ async function queryRepurchases({ code, tsCode, from, to } = {}) {
     yearStart += 1;
   }
 
-  const budget = { count: 0 };
+  const budget = { count: 0, truncated: false };
   const all = [];
   for (let i = 0; i < segments.length; i += 1) {
     if (i > 0) await sleep(SEGMENT_SLEEP_MS);
@@ -390,14 +424,25 @@ async function queryRepurchases({ code, tsCode, from, to } = {}) {
   for (const row of all) {
     if (target && row.ts_code !== target) continue;
     if (!target && code && !String(row.ts_code || "").startsWith(code)) continue;
-    const key = [row.ts_code, row.ann_date, row.proc, row.vol, row.amount].join("|");
+    const key = [row.ts_code, row.ann_date, row.proc].join("|");
     if (seen.has(key)) continue;
     seen.add(key);
     items.push(row);
   }
   items.sort((a, b) => String(b.ann_date || "").localeCompare(String(a.ann_date || "")));
 
-  const result = { items, fetchedAt: new Date().toISOString(), cached: false };
+  console.log(
+    `[tushare] repurchase ${start}-${end}: ${budget.count} segment request(s), ` +
+      `${all.length} raw rows, ${items.length} unique after filter/dedupe, truncated=${budget.truncated}`,
+  );
+
+  const result = {
+    items,
+    fetchedAt: new Date().toISOString(),
+    cached: false,
+    segments: budget.count,
+    truncated: budget.truncated,
+  };
   setCache(cacheKey, result);
   return result;
 }

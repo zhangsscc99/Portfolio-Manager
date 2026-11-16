@@ -117,6 +117,35 @@ function normalizeItem(row, company, index) {
   };
 }
 
+// 对时间倒序（新->旧）的条目，向前沿用同公司最近一次非空的 amount/vol，
+// 作为「累计已回购」展示；整条区间无非空值则保持 null。
+function applyCarriedForward(items) {
+  let lastAmount = null;
+  let lastVol = null;
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i];
+    if (item.amount != null) {
+      lastAmount = item.amount;
+      item.amount_source = "native";
+    } else if (lastAmount != null) {
+      item.amount = lastAmount;
+      item.amount_source = "carried_forward";
+    } else {
+      item.amount_source = null;
+    }
+    if (item.quantity != null) {
+      lastVol = item.quantity;
+      item.quantity_source = "native";
+    } else if (lastVol != null) {
+      item.quantity = lastVol;
+      item.quantity_source = "carried_forward";
+    } else {
+      item.quantity_source = null;
+    }
+  }
+  return items;
+}
+
 async function queryBuybacks({
   company,
   from,
@@ -134,15 +163,16 @@ async function queryBuybacks({
   const resolvedCompany = await resolveCompany(company);
   const keyword = String(searchKey || "回购").trim().slice(0, 50);
 
-  const { items: rawItems, fetchedAt, cached } = await queryRepurchases({
-    code: resolvedCompany.code,
-    tsCode: resolvedCompany.tsCode,
-    from: normalizedRange.from,
-    to: normalizedRange.to,
-  });
+  const { items: rawItems, fetchedAt, cached, truncated } =
+    await queryRepurchases({
+      code: resolvedCompany.code,
+      tsCode: resolvedCompany.tsCode,
+      from: normalizedRange.from,
+      to: normalizedRange.to,
+    });
 
-  const allItems = rawItems.map((row, index) =>
-    normalizeItem(row, resolvedCompany, index),
+  const allItems = applyCarriedForward(
+    rawItems.map((row, index) => normalizeItem(row, resolvedCompany, index)),
   );
   const filtered = keyword
     ? allItems.filter(
@@ -157,14 +187,18 @@ async function queryBuybacks({
   const offset = (normalizedPage - 1) * normalizedPageSize;
   const items = filtered.slice(offset, offset + normalizedPageSize);
 
-  const totalAmount = filtered.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0,
-  );
-  const totalQuantity = filtered.reduce(
-    (sum, item) => sum + (Number(item.quantity) || 0),
-    0,
-  );
+  const amounts = filtered
+    .map((item) => item.amount)
+    .filter((value) => value != null && Number.isFinite(Number(value)));
+  const totalAmount = amounts.length
+    ? amounts.reduce((sum, value) => sum + Number(value), 0)
+    : null;
+  const quantities = filtered
+    .map((item) => item.quantity)
+    .filter((value) => value != null && Number.isFinite(Number(value)));
+  const totalQuantity = quantities.length
+    ? quantities.reduce((sum, value) => sum + Number(value), 0)
+    : null;
 
   return {
     company: resolvedCompany,
@@ -172,6 +206,7 @@ async function queryBuybacks({
       from: normalizedRange.from,
       to: normalizedRange.to,
       searchKey: keyword,
+      truncated: truncated === true,
     },
     pagination: {
       page: normalizedPage,

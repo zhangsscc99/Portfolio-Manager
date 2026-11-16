@@ -469,7 +469,7 @@ const BuybacksCN = () => {
                     <Typography variant="h5" sx={{ fontWeight: 600 }}>
                       {summary?.totalAmount != null
                         ? `${fmtAmount(summary.totalAmount)}元`
-                        : '—'}
+                        : '数据源未提供'}
                     </Typography>
                   </CardContent>
                 </Card>

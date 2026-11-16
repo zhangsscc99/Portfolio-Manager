@@ -7,6 +7,7 @@ import invalid from './invalid.mjs';
 import mobile from './mobile.mjs';
 import detail from './detail.mjs';
 import memory from './memory.mjs';
+import bugfix000950 from './bugfix-000950.mjs';
 
 const tests = [
   ['page-load', pageLoad],
@@ -18,6 +19,7 @@ const tests = [
   ['mobile', mobile],
   ['detail', detail],
   ['memory', memory],
+  ['bugfix-000950', bugfix000950],
 ];
 
 let failures = 0;
