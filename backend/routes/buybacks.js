@@ -187,18 +187,39 @@ async function queryBuybacks({
   const offset = (normalizedPage - 1) * normalizedPageSize;
   const items = filtered.slice(offset, offset + normalizedPageSize);
 
-  const amounts = filtered
+  // amount/vol 为累计披露值，不能求和：计划类取最大值作为目标金额，
+  // 完成类取最大值作为累计已回购。
+  const isPlanStage = (item) =>
+    item.stage === "plan" || item.stage === "progress";
+  const isCompletionStage = (item) => item.stage === "completion";
+
+  const planAmounts = filtered
+    .filter(isPlanStage)
     .map((item) => item.amount)
-    .filter((value) => value != null && Number.isFinite(Number(value)));
-  const totalAmount = amounts.length
-    ? amounts.reduce((sum, value) => sum + Number(value), 0)
+    .filter((value) => value != null && Number.isFinite(Number(value)))
+    .map(Number);
+  const targetAmount = planAmounts.length ? Math.max(...planAmounts) : null;
+
+  const completionItems = filtered.filter(isCompletionStage);
+  const completionAmounts = completionItems
+    .map((item) => item.amount)
+    .filter((value) => value != null && Number.isFinite(Number(value)))
+    .map(Number);
+  const completedAmount = completionAmounts.length
+    ? Math.max(...completionAmounts)
     : null;
-  const quantities = filtered
+  const completionQuantities = completionItems
     .map((item) => item.quantity)
-    .filter((value) => value != null && Number.isFinite(Number(value)));
-  const totalQuantity = quantities.length
-    ? quantities.reduce((sum, value) => sum + Number(value), 0)
+    .filter((value) => value != null && Number.isFinite(Number(value)))
+    .map(Number);
+  const completedQuantity = completionQuantities.length
+    ? Math.max(...completionQuantities)
     : null;
+
+  const progressPct =
+    completedAmount != null && targetAmount != null && targetAmount > 0
+      ? Math.round((completedAmount / targetAmount) * 1000) / 10
+      : null;
 
   return {
     company: resolvedCompany,
@@ -222,8 +243,12 @@ async function queryBuybacks({
       shareBuyback: total,
       equityIncentiveRepurchase: 0,
       other: 0,
-      totalQuantity,
-      totalAmount,
+      targetAmount,
+      completedAmount,
+      completedQuantity,
+      progressPct,
+      totalQuantity: completedQuantity,
+      totalAmount: completedAmount,
       latestAnnDate: filtered.length ? filtered[0].publishTime : null,
     },
     items,

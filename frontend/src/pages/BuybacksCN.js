@@ -448,7 +448,7 @@ const BuybacksCN = () => {
         {result && (
           <>
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={6} sm={4} md={2}>
                 <Card>
                   <CardContent sx={{ py: 2 }}>
                     <Typography variant="body2" color="text.secondary">
@@ -460,21 +460,63 @@ const BuybacksCN = () => {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={6} sm={4} md={2}>
                 <Card>
                   <CardContent sx={{ py: 2 }}>
                     <Typography variant="body2" color="text.secondary">
-                      回购金额合计
+                      已回购金额
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                      {summary?.totalAmount != null
-                        ? `${fmtAmount(summary.totalAmount)}元`
+                      {summary?.completedAmount != null
+                        ? `${fmtAmount(summary.completedAmount)}元`
                         : '数据源未提供'}
                     </Typography>
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={6} sm={4} md={2}>
+                <Card>
+                  <CardContent sx={{ py: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      已回购数量
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                      {summary?.completedQuantity != null
+                        ? `${fmtWan(summary.completedQuantity)}股`
+                        : '—'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <Card>
+                  <CardContent sx={{ py: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      回购目标
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                      {summary?.targetAmount != null
+                        ? `${fmtAmount(summary.targetAmount)}元`
+                        : '—'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
+                <Card>
+                  <CardContent sx={{ py: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      完成进度
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                      {summary?.progressPct != null
+                        ? `${summary.progressPct.toFixed(1)}%`
+                        : '—'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2}>
                 <Card>
                   <CardContent sx={{ py: 2 }}>
                     <Typography variant="body2" color="text.secondary">
